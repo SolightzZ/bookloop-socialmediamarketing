@@ -4,6 +4,7 @@ import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, Container,
 import { Search as SearchIcon, ShoppingCart as CartIcon, FavoriteBorder as WishlistIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { alpha, styled } from '@mui/material/styles';
 import { NAV_ITEMS } from './navItems';
+import logoImg from '../../assets/images/logo.png';
 
 const SearchContainer = styled('div')(({ theme }) => ({
    position: 'relative',
@@ -113,7 +114,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ cartCount, wishlistCount, 
                   onClick={() => navigate('/')}>
                   <Box
                      component="img"
-                     src="/images/logo.png"
+                     src={logoImg}
                      alt="BookLoop Logo"
                      referrerPolicy="no-referrer"
                      sx={{
