@@ -3,8 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
+const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === 'true';
+
 export default defineConfig(() => {
   return {
+    base: isGitHubPagesBuild ? '/bookloop-socialmediamarketing/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

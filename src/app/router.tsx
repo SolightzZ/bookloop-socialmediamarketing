@@ -11,6 +11,13 @@ import CartPage from '../pages/CartPage';
 import TechStackPage from '../pages/TechStackPage';
 import { AppProviders } from './providers';
 
+const githubPagesBasePath = '/bookloop-socialmediamarketing';
+const basename =
+   window.location.pathname === githubPagesBasePath ||
+   window.location.pathname.startsWith(`${githubPagesBasePath}/`)
+      ? githubPagesBasePath
+      : '/';
+
 const router = createBrowserRouter([
    {
       path: '/',
@@ -27,7 +34,7 @@ const router = createBrowserRouter([
          { path: 'tech-stack', element: <TechStackPage /> },
       ],
    },
-]);
+], { basename });
 
 export const AppRouter = () => {
    return (
