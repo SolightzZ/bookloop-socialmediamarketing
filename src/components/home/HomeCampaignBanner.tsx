@@ -25,11 +25,11 @@ export const HomeCampaignBanner: React.FC = () => {
         navigate('/campaign/read-share-repeat');
       }}
     >
-      <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <OfferIcon sx={{ fontSize: 24, color: '#F59E0B' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 1.5 }, minWidth: 0, flex: 1 }}>
+            <OfferIcon sx={{ fontSize: { xs: 22, sm: 24 }, color: '#F59E0B', flexShrink: 0, mt: 0.25 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', fontSize: { xs: '0.85rem', sm: '1rem' }, lineHeight: 1.5 }}>
               <Box component="span" sx={{ color: '#FCD34D', fontWeight: 800 }}>
                 แคมเปญพิเศษ:
               </Box>
@@ -45,11 +45,12 @@ export const HomeCampaignBanner: React.FC = () => {
                 color: '#FDE68A',
                 fontWeight: 700,
                 border: '1px solid rgba(253, 230, 138, 0.3)',
+                flexShrink: 0,
               }}
             />
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: '#38BDF8' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#38BDF8', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               ร่วมแคมเปญเลย
             </Typography>
             <ArrowForwardIcon fontSize="small" sx={{ color: '#38BDF8' }} />

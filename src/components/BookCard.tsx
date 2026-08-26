@@ -57,7 +57,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
       onClick={handleCardClick}
     >
       {/* Cover Image Container */}
-      <Box sx={{ position: 'relative', width: '100%', pt: '130%', overflow: 'hidden', bgcolor: '#F0F4F8' }}>
+      <Box sx={{ position: 'relative', width: '100%', pt: { xs: '26%', sm: '130%' }, overflow: 'hidden', bgcolor: '#F0F4F8' }}>
         <Box
           component="img"
           src={book.cover}

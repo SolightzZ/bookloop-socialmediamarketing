@@ -38,6 +38,7 @@ const SearchForm = styled('form')(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
   marginTop: theme.spacing(3),
   maxWidth: 540,
+  width: '100%',
 }));
 
 interface HomeHeroBannerProps {
@@ -54,9 +55,9 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
   const navigate = useNavigate();
 
   return (
-    <HeroSection>
-      <Container maxWidth="lg">
-        <Grid container spacing={6} sx={{ alignItems: 'center' }}>
+    <HeroSection sx={{ py: { xs: 5, sm: 6, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Grid container spacing={{ xs: 4, md: 6 }} sx={{ alignItems: 'center' }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -70,22 +71,24 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                   bgcolor: 'rgba(23, 105, 170, 0.1)',
                   color: 'secondary.main',
                   fontWeight: 700,
-                  mb: 2,
+                  mb: { xs: 1.5, md: 2 },
+                  height: 'auto',
+                  '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 },
                 }}
               />
               <Typography
                 variant="h2"
                 component="h1"
                 gutterBottom
-                sx={{ fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}
+                sx={{ fontWeight: 800, lineHeight: 1.2, color: 'primary.main', fontSize: { xs: '2.05rem', sm: '2.5rem', md: '3rem' } }}
               >
                 หนังสือทุกเล่ม มีเรื่องราวให้คนถัดไป
               </Typography>
-              <Typography variant="h6" sx={{ color: 'text.secondary', mb: 4, fontWeight: 400, lineHeight: 1.7 }}>
+              <Typography variant="h6" sx={{ color: 'text.secondary', mb: { xs: 3, md: 4 }, fontWeight: 400, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.25rem' } }}>
                 ซื้อหนังสือมือสองสภาพดีในราคาที่เข้าถึงง่าย หรือส่งต่อหนังสือที่คุณอ่านจบแล้วให้กับเจ้าของคนใหม่ในชุมชน BookLoop
               </Typography>
 
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: { xs: 1.25, sm: 2 }, flexDirection: { xs: 'column', sm: 'row' }, '& .MuiButton-root': { width: { xs: '100%', sm: 'auto' } } }}>
                 <Button
                   variant="contained"
                   color="primary"
@@ -110,24 +113,26 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
               </Box>
 
               {/* Hero Search Box */}
-              <SearchForm onSubmit={onSearchSubmit}>
-                <SearchIcon sx={{ ml: 1.5, color: 'text.secondary' }} />
-                <InputBase
-                  sx={{ ml: 1.5, flex: 1 }}
-                  placeholder="ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN..."
-                  value={searchQuery}
-                  onChange={(e) => onSearchQueryChange(e.target.value)}
-                />
+              <SearchForm onSubmit={onSearchSubmit} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'stretch', gap: { xs: 1, sm: 0 }, p: { xs: 1, sm: '6px 10px' } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  <SearchIcon sx={{ ml: 1.5, color: 'text.secondary', flexShrink: 0 }} />
+                  <InputBase
+                    sx={{ ml: { xs: 0.75, sm: 1.5 }, flex: 1, minWidth: 0, px: { xs: 0.5, sm: 0 } }}
+                    placeholder="ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN..."
+                    value={searchQuery}
+                    onChange={(e) => onSearchQueryChange(e.target.value)}
+                  />
+                </Box>
                 <Button
                   type="submit"
                   variant="contained"
-                  sx={{ borderRadius: 6, px: 3, bgcolor: 'secondary.main' }}
+                  sx={{ borderRadius: 6, px: 3, width: { xs: '100%', sm: 'auto' }, bgcolor: 'secondary.main' }}
                 >
                   ค้นหา
                 </Button>
               </SearchForm>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mt: 3, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 1.5, sm: 3 }, mt: { xs: 2.5, md: 3 }, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <SavingsIcon sx={{ fontSize: 18, color: 'success.main' }} />
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -163,6 +168,9 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                   alt="Book community reading"
                   sx={{
                     width: '100%',
+                    aspectRatio: { xs: '4 / 3', md: 'auto' },
+                    objectFit: 'cover',
+                    display: 'block',
                     borderRadius: 4,
                     boxShadow: '0 24px 48px rgba(16, 42, 67, 0.15)',
                   }}

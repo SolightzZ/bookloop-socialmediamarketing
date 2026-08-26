@@ -12,27 +12,27 @@ import TechStackPage from '../pages/TechStackPage';
 import { AppProviders } from './providers';
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <AppLayout />,
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: 'books', element: <BooksPage /> },
-      { path: 'books/:id', element: <BookDetailPage /> },
-      { path: 'sell', element: <SellPage /> },
-      { path: 'about', element: <AboutPage /> },
-      { path: 'campaign/read-share-repeat', element: <CampaignPage /> },
-      { path: 'cart', element: <CartPage /> },
-      { path: 'techstack', element: <TechStackPage /> },
-      { path: 'tech-stack', element: <TechStackPage /> },
-    ],
-  },
+   {
+      path: '/',
+      element: <AppLayout />,
+      children: [
+         { index: true, element: <HomePage /> },
+         { path: 'books', element: <BooksPage /> },
+         { path: 'books/:id', element: <BookDetailPage /> },
+         { path: 'sell', element: <SellPage /> },
+         { path: 'about', element: <AboutPage /> },
+         { path: 'campaign/read-share-repeat', element: <CampaignPage /> },
+         { path: 'cart', element: <CartPage /> },
+         { path: 'techstack', element: <TechStackPage /> },
+         { path: 'tech-stack', element: <TechStackPage /> },
+      ],
+   },
 ]);
 
 export const AppRouter = () => {
-  return (
-    <AppProviders>
-      <RouterProvider router={router} />
-    </AppProviders>
-  );
+   return (
+      <AppProviders>
+         <RouterProvider router={router} />
+      </AppProviders>
+   );
 };

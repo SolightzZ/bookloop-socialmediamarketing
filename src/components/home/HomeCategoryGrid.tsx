@@ -37,8 +37,8 @@ export const HomeCategoryGrid: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Container maxWidth="lg" sx={{ py: 10 }}>
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 } }}>
         <Typography
           variant="overline"
           sx={{
@@ -50,15 +50,15 @@ export const HomeCategoryGrid: React.FC = () => {
         >
           EXPLORE CATEGORIES
         </Typography>
-        <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5 }}>
+        <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5, fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' }, lineHeight: 1.25 }}>
           ค้นหาหนังสือในหมวดที่คุณชอบ
         </Typography>
-        <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: 600, mx: 'auto', fontWeight: 'normal' }}>
+        <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: 600, mx: 'auto', fontWeight: 'normal', fontSize: { xs: '0.95rem', md: '1.25rem' }, lineHeight: 1.65 }}>
           เลือกหมวดหมู่ที่ใช่ แล้วเริ่มต้นค้นพบหนังสือเล่มถัดไปของคุณ
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
         {categoryList.map((cat) => (
           <Grid size={{ xs: 6, sm: 4, md: 3 }} key={cat.name}>
             <Card
@@ -82,18 +82,18 @@ export const HomeCategoryGrid: React.FC = () => {
                 navigate(`/books?category=${encodeURIComponent(cat.name)}`);
               }}
             >
-              <CardContent sx={{ textAlign: 'center', py: 3.5, px: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+              <CardContent sx={{ textAlign: 'center', py: { xs: 2.25, sm: 3.5 }, px: { xs: 1, sm: 2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
                 <Box
                   sx={{
-                    width: 64,
-                    height: 64,
+                    width: { xs: 52, sm: 64 },
+                    height: { xs: 52, sm: 64 },
                     borderRadius: '50%',
                     bgcolor: cat.bgColor,
                     color: cat.color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    mb: 2,
+                    mb: { xs: 1.25, sm: 2 },
                     transition: 'transform 0.25s ease',
                     '&:hover': {
                       transform: 'scale(1.08)',
@@ -102,7 +102,7 @@ export const HomeCategoryGrid: React.FC = () => {
                 >
                   {cat.icon}
                 </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5, fontSize: '1.05rem' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5, fontSize: { xs: '0.9rem', sm: '1.05rem' } }}>
                   {cat.name}
                 </Typography>
                 <Typography
@@ -113,10 +113,10 @@ export const HomeCategoryGrid: React.FC = () => {
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    minHeight: 36,
+                    minHeight: { xs: 38, sm: 36 },
                     lineHeight: 1.4,
-                    fontSize: '0.8rem',
-                    mb: 1.5,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                    mb: { xs: 1, sm: 1.5 },
                   }}
                 >
                   {cat.desc}

@@ -41,8 +41,8 @@ const valueProps = [
 
 export const HomeValueProps: React.FC = () => {
   return (
-    <Container maxWidth="lg" sx={{ py: 10 }}>
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 } }}>
         <Typography
           variant="overline"
           sx={{
@@ -54,12 +54,12 @@ export const HomeValueProps: React.FC = () => {
         >
           WHY BOOKLOOP
         </Typography>
-        <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5 }}>
+        <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5, fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' }, lineHeight: 1.25 }}>
           คุณค่าที่เรามุ่งมั่นส่งมอบ
         </Typography>
       </Box>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
         {valueProps.map((vp, idx) => {
           const IconComponent = vp.icon;
           return (
@@ -67,7 +67,7 @@ export const HomeValueProps: React.FC = () => {
               <Box
                 sx={{
                   textAlign: 'center',
-                  p: 3,
+                  p: { xs: 2, sm: 3 },
                   height: '100%',
                   borderRadius: 2.5,
                   bgcolor: 'background.default',
@@ -90,10 +90,10 @@ export const HomeValueProps: React.FC = () => {
                 >
                   <IconComponent fontSize="medium" />
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' }, lineHeight: 1.35 }}>
                   {vp.title}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>
                   {vp.desc}
                 </Typography>
               </Box>

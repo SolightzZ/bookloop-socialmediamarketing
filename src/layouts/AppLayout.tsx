@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
@@ -9,49 +9,48 @@ import { AppMobileDrawer } from '../components/layout/AppMobileDrawer';
 import { AppFooter } from '../components/layout/AppFooter';
 
 export const AppLayout: React.FC = () => {
-  const { cartCount } = useCart();
+   const { cartCount } = useCart();
   const { wishlist } = useWishlist();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleDrawerToggle = () => {
-    setMobileOpen((prev) => !prev);
-  };
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname, location.search]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      trackEvent('search_book', { query: searchQuery.trim() });
-      navigate(`/books?q=${encodeURIComponent(searchQuery.trim())}`);
-      setMobileOpen(false);
-    }
-  };
+   const handleDrawerToggle = () => {
+      setMobileOpen((prev) => !prev);
+   };
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppNavbar
-        cartCount={cartCount}
-        wishlistCount={wishlist.length}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        onSearchSubmit={handleSearch}
-        onOpenMobileMenu={handleDrawerToggle}
-      />
+   const handleSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (searchQuery.trim()) {
+         trackEvent('search_book', { query: searchQuery.trim() });
+         navigate(`/books?q=${encodeURIComponent(searchQuery.trim())}`);
+         setMobileOpen(false);
+      }
+   };
 
-      <AppMobileDrawer
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        onSearchSubmit={handleSearch}
-      />
+   return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+         <AppNavbar
+            cartCount={cartCount}
+            wishlistCount={wishlist.length}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onSearchSubmit={handleSearch}
+            onOpenMobileMenu={handleDrawerToggle}
+         />
 
-      <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Outlet />
+         <AppMobileDrawer open={mobileOpen} onClose={handleDrawerToggle} searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onSearchSubmit={handleSearch} />
+
+         <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <Outlet />
+         </Box>
+
+         <AppFooter />
       </Box>
-
-      <AppFooter />
-    </Box>
-  );
+   );
 };

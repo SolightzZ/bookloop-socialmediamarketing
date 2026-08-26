@@ -26,6 +26,9 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({
   onRemoveItem,
 }) => {
   const navigate = useNavigate();
+  const maxQuantity = Math.max(1, item.stock);
+  const isAtMinimum = item.quantity <= 1;
+  const isAtMaximum = item.quantity >= maxQuantity;
 
   return (
     <Card
@@ -115,22 +118,29 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({
             <IconButton
               size="small"
               onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-              disabled={item.quantity <= 1}
-              aria-label="decrease quantity"
+              disabled={isAtMinimum}
+              aria-label="ลดจำนวนสินค้า"
+              title={isAtMinimum ? 'จำนวนขั้นต่ำคือ 1 เล่ม' : 'ลดจำนวนสินค้า'}
             >
               <Remove fontSize="small" />
             </IconButton>
-            <Typography sx={{ px: 2, fontWeight: 'bold', fontSize: '0.9rem' }}>
+            <Typography aria-live="polite" sx={{ px: 2, fontWeight: 'bold', fontSize: '0.9rem', minWidth: 28, textAlign: 'center' }}>
               {item.quantity}
             </Typography>
             <IconButton
               size="small"
               onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-              aria-label="increase quantity"
+              disabled={isAtMaximum}
+              aria-label="เพิ่มจำนวนสินค้า"
+              title={isAtMaximum ? `มีสินค้าได้สูงสุด ${maxQuantity} เล่ม` : 'เพิ่มจำนวนสินค้า'}
             >
               <Add fontSize="small" />
             </IconButton>
           </Box>
+
+          <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1, mr: 'auto' }}>
+            มีในสต็อก {maxQuantity} เล่ม
+          </Typography>
 
           <Button
             startIcon={<DeleteIcon />}
