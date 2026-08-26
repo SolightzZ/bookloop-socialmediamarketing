@@ -24,14 +24,7 @@ export default function CartPage() {
   }, []);
 
   const handleRemoveItem = (id: string, title: string) => {
-    showConfirm('ต้องการลบหนังสือเล่มนี้หรือไม่?', `"${title}" จะถูกนำออกจากตะกร้าสินค้า`).then(
-      (result) => {
-        if (result.isConfirmed) {
-          removeFromCart(id);
-          showSuccess('ลบสินค้าแล้ว', 'นำหนังสือออกจากตะกร้าเรียบร้อย');
-        }
-      }
-    );
+    removeFromCart(id);
   };
 
   const handleClearCart = () => {

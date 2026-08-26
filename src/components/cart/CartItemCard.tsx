@@ -54,6 +54,9 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({
           flexShrink: 0,
         }}
         onClick={() => navigate(`/books/${item.id}`)}
+        onError={(e) => {
+          e.currentTarget.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80';
+        }}
       />
 
       <CardContent
