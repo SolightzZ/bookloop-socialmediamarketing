@@ -1,0 +1,6 @@
+{
+  "name": "BookLoop",
+  "description": "BookLoop is a marketplace for second-hand books where every book has a story to pass on.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
