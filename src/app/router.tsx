@@ -5,8 +5,6 @@ import HomePage from '../pages/HomePage';
 import BooksPage from '../pages/BooksPage';
 import BookDetailPage from '../pages/BookDetailPage';
 import SellPage from '../pages/SellPage';
-import AboutPage from '../pages/AboutPage';
-import CampaignPage from '../pages/CampaignPage';
 import CartPage from '../pages/CartPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
@@ -35,8 +33,6 @@ const router = createBrowserRouter([
          { path: 'books', element: <BooksPage /> },
          { path: 'books/:id', element: <BookDetailPage /> },
          { path: 'sell', element: <SellPage /> },
-         { path: 'about', element: <AboutPage /> },
-         { path: 'campaign/read-share-repeat', element: <CampaignPage /> },
          { path: 'cart', element: <CartPage /> },
          { path: 'checkout', element: <CheckoutPage /> },
          { path: 'order/success', element: <OrderSuccessPage /> },

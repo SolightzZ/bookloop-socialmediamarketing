@@ -17,7 +17,6 @@ import { MarketingFunnel } from '../components/MarketingFunnel';
 import { tokens } from '../theme';
 import { trackEvent } from '../utils/analytics';
 import { HomeHeroBanner } from '../components/home/HomeHeroBanner';
-import { HomeCampaignBanner } from '../components/home/HomeCampaignBanner';
 import { HomeCategoryGrid } from '../components/home/HomeCategoryGrid';
 import { HomeValueProps } from '../components/home/HomeValueProps';
 
@@ -44,10 +43,7 @@ export default function HomePage() {
         onSearchSubmit={handleSearch}
       />
 
-      {/* 2. Campaign Banner */}
-      <HomeCampaignBanner />
-
-      {/* 3. Categories Discovery */}
+      {/* 2. Categories Discovery */}
       <HomeCategoryGrid />
 
       {/* 4. Featured Books */}
@@ -137,7 +133,7 @@ export default function HomePage() {
               size="large"
               onClick={() => navigate('/sell')}
             >
-              ขายหนังสือของคุณ
+              ส่งต่อหนังสือ
             </Button>
           </Box>
         </Container>

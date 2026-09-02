@@ -109,6 +109,42 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                 ซื้อหนังสือมือสองสภาพดีในราคาที่เข้าถึงง่าย หรือส่งต่อหนังสือที่คุณอ่านจบแล้วให้กับเจ้าของคนใหม่ในชุมชน BookLoop
               </Typography>
 
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => {
+                    trackEvent('pass_on_book_click', { source: 'hero_badge' });
+                    navigate('/sell');
+                  }}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    py: 0.75,
+                    px: 1.75,
+                    borderRadius: 2.5,
+                    bgcolor: 'rgba(23, 105, 170, 0.08)',
+                    color: 'primary.main',
+                    fontWeight: 600,
+                    fontSize: { xs: '0.85rem', sm: '0.925rem' },
+                    border: '1px solid rgba(23, 105, 170, 0.18)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    '&:hover': {
+                      bgcolor: 'rgba(23, 105, 170, 0.14)',
+                      borderColor: 'primary.main',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                >
+                  <StoryIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+                  <span>มีหนังสือที่อ่านจบแล้ว? ส่งต่อได้ที่นี่ &rarr;</span>
+                </Box>
+              </Box>
+
               <Box sx={{ display: 'flex', gap: { xs: 1.25, sm: 2 }, flexDirection: { xs: 'column', sm: 'row' }, '& .MuiButton-root': { width: { xs: '100%', sm: 'auto' } } }}>
                 <Button
                   variant="contained"
@@ -124,12 +160,12 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                   color="primary"
                   size="large"
                   onClick={() => {
-                    trackEvent('sell_book_click', { source: 'hero' });
+                    trackEvent('pass_on_book_click', { source: 'hero_button' });
                     navigate('/sell');
                   }}
-                  sx={{ px: 3.5, py: 1.4, borderRadius: 2 }}
+                  sx={{ px: 3.5, py: 1.4, borderRadius: 2, fontWeight: 600 }}
                 >
-                  ขายหนังสือของคุณ
+                  ส่งต่อหนังสือ
                 </Button>
               </Box>
 

@@ -114,7 +114,7 @@ export const AppFooter: React.FC = () => {
                 variant="subtitle1"
                 sx={{ fontWeight: 700, color: tokens.colors.footerHeading, mb: 2, letterSpacing: '0.2px' }}
               >
-                เกี่ยวกับเรา
+                บริการของเรา
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.3 }}>
                 <Typography
@@ -125,9 +125,9 @@ export const AppFooter: React.FC = () => {
                     transition: 'color 0.2s ease',
                     '&:hover': { color: '#38BDF8' },
                   }}
-                  onClick={() => navigate('/about')}
+                  onClick={() => navigate('/books')}
                 >
-                  เรื่องราวและปรัชญา
+                  ค้นหาหนังสือ
                 </Typography>
                 <Typography
                   variant="body2"
@@ -140,18 +140,6 @@ export const AppFooter: React.FC = () => {
                   onClick={() => navigate('/sell')}
                 >
                   ส่งต่อหนังสือของคุณ
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: tokens.colors.footerText,
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease',
-                    '&:hover': { color: '#38BDF8' },
-                  }}
-                  onClick={() => navigate('/campaign/read-share-repeat')}
-                >
-                  แคมเปญ #อ่านจบส่งต่อวนต่อไป
                 </Typography>
               </Box>
             </Box>

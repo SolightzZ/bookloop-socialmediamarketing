@@ -11,6 +11,7 @@ export type AnalyticsEvent =
   | 'purchase_demo'
   | 'share_product'
   | 'sell_book_click'
+  | 'pass_on_book_click'
   | 'sell_book_submit_demo'
   | 'campaign_view'
   | 'campaign_click'

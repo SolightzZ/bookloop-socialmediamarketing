@@ -371,7 +371,7 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
             }}
             sx={{ borderRadius: 2, fontWeight: 700 }}
           >
-            ลงขายหนังสือ
+            ส่งต่อหนังสือ
           </Button>
         </Box>
       </Box>
