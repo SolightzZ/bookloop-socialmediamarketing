@@ -10,15 +10,26 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  ListItemIcon,
   Button,
   InputBase,
+  Avatar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Search as SearchIcon,
+  PersonOutlined as ProfileIcon,
+  ShoppingBagOutlined as OrdersIcon,
+  FavoriteBorder as WishlistIcon,
+  MenuBook as MyBooksIcon,
+  SettingsOutlined as SettingsIcon,
+  Logout as LogoutIcon,
+  Login as LoginIcon,
 } from '@mui/icons-material';
 import { alpha, styled } from '@mui/material/styles';
 import { NAV_ITEMS } from './navItems';
+import { useAuth } from '../../hooks/useAuth';
+import { showConfirm, showSuccess } from '../../utils/alerts';
 
 const DrawerSearch = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -67,6 +78,18 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    showConfirm('ต้องการออกจากระบบหรือไม่?').then((res) => {
+      if (res.isConfirmed) {
+        logout();
+        onClose();
+        showSuccess('ออกจากระบบแล้ว');
+        navigate('/');
+      }
+    });
+  };
 
   return (
     <Drawer
@@ -76,11 +99,11 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
       ModalProps={{ keepMounted: true }}
       sx={{
         display: { xs: 'block', md: 'none' },
-        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 290 },
+        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 300 },
       }}
     >
-      <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+      <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box
             sx={{
               display: 'flex',
@@ -114,9 +137,75 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
             <CloseIcon />
           </IconButton>
         </Box>
+
+        {/* User profile card or login prompt */}
+        {isAuthenticated && user ? (
+          <Box
+            sx={{
+              p: 1.75,
+              mb: 2,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(15, 41, 66, 0.04)',
+              border: '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              navigate('/account/profile');
+              onClose();
+            }}
+          >
+            <Avatar
+              src={user.avatar}
+              alt={user.name}
+              sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontWeight: 700 }}
+            >
+              {user.name.charAt(0)}
+            </Avatar>
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }} noWrap>
+                {user.name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                {user.email}
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              startIcon={<LoginIcon />}
+              onClick={() => {
+                navigate('/login');
+                onClose();
+              }}
+              sx={{ borderRadius: 2, fontWeight: 700, py: 0.85 }}
+            >
+              เข้าสู่ระบบ
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                navigate('/register');
+                onClose();
+              }}
+              sx={{ borderRadius: 2, fontWeight: 700, py: 0.85 }}
+            >
+              สมัครสมาชิก
+            </Button>
+          </Box>
+        )}
+
         <Divider sx={{ mb: 2 }} />
 
-        <Box component="form" onSubmit={onSearchSubmit} sx={{ mb: 3 }}>
+        <Box component="form" onSubmit={onSearchSubmit} sx={{ mb: 2.5 }}>
           <DrawerSearch>
             <SearchIconWrapper>
               <SearchIcon />
@@ -130,7 +219,8 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
           </DrawerSearch>
         </Box>
 
-        <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        {/* Main Nav Items */}
+        <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0 }}>
           {NAV_ITEMS.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -143,8 +233,8 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
                   selected={isActive}
                   sx={{
                     borderRadius: 2,
-                    py: 1.2,
-                    px: 2,
+                    py: 1,
+                    px: 1.5,
                     bgcolor: isActive ? 'rgba(23, 105, 170, 0.08)' : 'transparent',
                     '&.Mui-selected': {
                       bgcolor: 'rgba(23, 105, 170, 0.12)',
@@ -155,11 +245,11 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
                   <ListItemText
                     primary={
                       <Typography
-                        variant="body1"
+                        variant="body2"
                         sx={{
                           fontWeight: isActive ? 700 : 500,
                           color: isActive ? 'secondary.main' : 'text.primary',
-                          fontSize: '0.95rem',
+                          fontSize: '0.925rem',
                         }}
                       >
                         {item.label}
@@ -172,7 +262,105 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({
           })}
         </List>
 
-        <Box sx={{ mt: 'auto', pt: 3, borderTop: '1px solid #E2E8F0', display: 'flex', gap: 1 }}>
+        {/* User Account Navigation links for authenticated users */}
+        {isAuthenticated && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="caption" sx={{ px: 1.5, color: 'text.secondary', fontWeight: 700, mb: 0.5, display: 'block' }}>
+              จัดการบัญชีของคุณ
+            </Typography>
+            <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0 }}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/account/profile');
+                    onClose();
+                  }}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'primary.main' }}>
+                    <ProfileIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem' }}>บัญชีของฉัน</Typography>} />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/account/orders');
+                    onClose();
+                  }}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'primary.main' }}>
+                    <OrdersIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem' }}>คำสั่งซื้อของฉัน</Typography>} />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/account/wishlist');
+                    onClose();
+                  }}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'primary.main' }}>
+                    <WishlistIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem' }}>รายการโปรด</Typography>} />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/account/books');
+                    onClose();
+                  }}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'primary.main' }}>
+                    <MyBooksIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem' }}>หนังสือของฉัน</Typography>} />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/account/settings');
+                    onClose();
+                  }}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'primary.main' }}>
+                    <SettingsIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem' }}>ตั้งค่าบัญชี</Typography>} />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={handleLogout}
+                  sx={{ borderRadius: 2, py: 0.85, px: 1.5, color: 'error.main' }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'error.main' }}>
+                    <LogoutIcon sx={{ fontSize: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'error.main' }}>ออกจากระบบ</Typography>} />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          </>
+        )}
+
+        <Box sx={{ mt: 'auto', pt: 2.5, borderTop: '1px solid #E2E8F0', display: 'flex', gap: 1 }}>
           <Button
             fullWidth
             variant="outlined"

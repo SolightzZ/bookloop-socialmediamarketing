@@ -7,6 +7,7 @@ export type AnalyticsEvent =
   | 'favorite_book'
   | 'add_to_cart'
   | 'begin_checkout'
+  | 'purchase'
   | 'purchase_demo'
   | 'share_product'
   | 'sell_book_click'
@@ -15,7 +16,10 @@ export type AnalyticsEvent =
   | 'campaign_click'
   | 'social_share'
   | 'view_tech_stack'
-  | 'review_submit_demo';
+  | 'review_submit_demo'
+  | 'user_login'
+  | 'user_register'
+  | 'user_logout';
 
 export interface EventPayload {
   [key: string]: any;

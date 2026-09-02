@@ -37,6 +37,30 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [wishlistIds]);
 
+  // Listen for external updates (such as login merge)
+  useEffect(() => {
+    const handleWishlistSync = () => {
+      try {
+        const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
+        if (!saved) {
+          setWishlistIds([]);
+          return;
+        }
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setWishlistIds(parsed.map((item: any) => (typeof item === 'string' ? item : item.id)).filter(Boolean));
+        }
+      } catch (e) {
+        console.warn('Error reading synced wishlist', e);
+      }
+    };
+
+    window.addEventListener('bookloop_wishlist_updated', handleWishlistSync);
+    return () => {
+      window.removeEventListener('bookloop_wishlist_updated', handleWishlistSync);
+    };
+  }, []);
+
   const wishlist = useMemo<Book[]>(() => {
     return wishlistIds
       .map((id) => books.find((b) => b.id === id))

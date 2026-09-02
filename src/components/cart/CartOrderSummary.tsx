@@ -89,7 +89,7 @@ export const CartOrderSummary: React.FC<CartOrderSummaryProps> = ({
           mb: 1.5,
         }}
       >
-        ดำเนินการสั่งซื้อแบบ Demo
+        ดำเนินการชำระเงิน
       </Button>
 
       <Button

@@ -153,18 +153,6 @@ export const AppFooter: React.FC = () => {
                 >
                   แคมเปญ #อ่านจบส่งต่อวนต่อไป
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: tokens.colors.footerText,
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease',
-                    '&:hover': { color: '#38BDF8' },
-                  }}
-                  onClick={() => navigate('/techstack')}
-                >
-                  TechStack (สถาปัตยกรรมระบบ)
-                </Typography>
               </Box>
             </Box>
           </Box>

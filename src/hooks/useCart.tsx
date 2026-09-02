@@ -55,6 +55,37 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [storedItems]);
 
+  // Listen for external updates (such as login merge)
+  useEffect(() => {
+    const handleCartSync = () => {
+      try {
+        const saved = localStorage.getItem(CART_STORAGE_KEY);
+        if (!saved) {
+          setStoredItems([]);
+          return;
+        }
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setStoredItems(
+            parsed
+              .map((item: any) => ({
+                productId: item.productId || item.id,
+                quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+              }))
+              .filter((item) => Boolean(item.productId))
+          );
+        }
+      } catch (e) {
+        console.warn('Error reading synced cart', e);
+      }
+    };
+
+    window.addEventListener('bookloop_cart_updated', handleCartSync);
+    return () => {
+      window.removeEventListener('bookloop_cart_updated', handleCartSync);
+    };
+  }, []);
+
   // Lookup full book information from catalog data
   const cart = useMemo<CartItem[]>(() => {
     return storedItems

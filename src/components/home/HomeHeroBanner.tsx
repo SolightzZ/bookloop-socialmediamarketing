@@ -6,9 +6,7 @@ import {
   Grid,
   Button,
   Chip,
-  Paper,
   InputBase,
-  Avatar,
   styled,
 } from '@mui/material';
 import {
@@ -20,6 +18,7 @@ import {
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../utils/analytics';
+import { BookstoreHeroIllustration } from './BookstoreHeroIllustration';
 
 const HeroSection = styled('div')(({ theme }) => ({
   background: `linear-gradient(180deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
@@ -77,14 +76,36 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                 }}
               />
               <Typography
-                variant="h2"
+                variant="h1"
                 component="h1"
                 gutterBottom
-                sx={{ fontWeight: 800, lineHeight: 1.2, color: 'primary.main', fontSize: { xs: '2.05rem', sm: '2.5rem', md: '3rem' } }}
+                sx={{
+                  fontWeight: 800,
+                  lineHeight: { xs: 1.22, sm: 1.18, md: 1.15 },
+                  color: 'primary.main',
+                  fontSize: { xs: '2.15rem', sm: '2.75rem', md: '3.5rem', lg: '3.85rem' },
+                  letterSpacing: { xs: '-0.02em', md: '-0.03em' },
+                  wordBreak: 'keep-all',
+                }}
               >
-                หนังสือทุกเล่ม มีเรื่องราวให้คนถัดไป
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'inline-block' }, whiteSpace: { sm: 'nowrap' } }}>
+                  หนังสือทุกเล่ม
+                </Box>{' '}
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'inline-block' }, whiteSpace: { sm: 'nowrap' } }}>
+                  มีเรื่องราวให้คนถัดไป
+                </Box>
               </Typography>
-              <Typography variant="h6" sx={{ color: 'text.secondary', mb: { xs: 3, md: 4 }, fontWeight: 400, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.25rem' } }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: 'text.secondary',
+                  mb: { xs: 3, md: 4 },
+                  fontWeight: 400,
+                  lineHeight: 1.65,
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+                  maxWidth: 540,
+                }}
+              >
                 ซื้อหนังสือมือสองสภาพดีในราคาที่เข้าถึงง่าย หรือส่งต่อหนังสือที่คุณอ่านจบแล้วให้กับเจ้าของคนใหม่ในชุมชน BookLoop
               </Typography>
 
@@ -121,6 +142,7 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
                     placeholder="ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN..."
                     value={searchQuery}
                     onChange={(e) => onSearchQueryChange(e.target.value)}
+                    inputProps={{ 'aria-label': 'ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN' }}
                   />
                 </Box>
                 <Button
@@ -157,52 +179,11 @@ export const HomeHeroBanner: React.FC<HomeHeroBannerProps> = ({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
             >
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  component="img"
-                  src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=80"
-                  alt="Book community reading"
-                  sx={{
-                    width: '100%',
-                    aspectRatio: { xs: '4 / 3', md: 'auto' },
-                    objectFit: 'cover',
-                    display: 'block',
-                    borderRadius: 4,
-                    boxShadow: '0 24px 48px rgba(16, 42, 67, 0.15)',
-                  }}
-                />
-                {/* Floating Story Card Overlay */}
-                <Paper
-                  sx={{
-                    position: 'absolute',
-                    bottom: -20,
-                    left: 20,
-                    p: 2,
-                    maxWidth: 280,
-                    borderRadius: 2,
-                    bgcolor: '#FFFFFF',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.12)',
-                    display: { xs: 'none', sm: 'block' },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Avatar
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                      sx={{ width: 28, height: 28 }}
-                    />
-                    <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-                      Mint Reader ส่งต่อเล่มที่ 124
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    "อ่านจบแล้วอยากส่งต่อให้คนอื่นได้อินเหมือนกันค่ะ"
-                  </Typography>
-                </Paper>
-              </Box>
+              <BookstoreHeroIllustration />
             </motion.div>
           </Grid>
         </Grid>

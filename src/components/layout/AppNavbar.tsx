@@ -1,10 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, Container, InputBase, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, Container, InputBase, Tooltip, Divider } from '@mui/material';
 import { Search as SearchIcon, ShoppingCart as CartIcon, FavoriteBorder as WishlistIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { alpha, styled } from '@mui/material/styles';
 import { NAV_ITEMS } from './navItems';
-import logoImg from '../../assets/images/logo.png';
+import { useAuth } from '../../hooks/useAuth';
+import { AuthButton } from '../navbar/AuthButton';
+import { UserMenu } from '../navbar/UserMenu';
+
+const logoImg = '/images/logo.png';
 
 const SearchContainer = styled('div')(({ theme }) => ({
    position: 'relative',
@@ -60,6 +64,7 @@ interface AppNavbarProps {
 export const AppNavbar: React.FC<AppNavbarProps> = ({ cartCount, wishlistCount, searchQuery, onSearchQueryChange, onSearchSubmit, onOpenMobileMenu }) => {
    const navigate = useNavigate();
    const location = useLocation();
+   const { isAuthenticated } = useAuth();
 
    const handleNavigation = (path: string) => {
       navigate(path);
@@ -197,21 +202,21 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ cartCount, wishlistCount, 
                </Box>
 
                {/* Action Icons */}
-               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 1 }, flexShrink: 0, minWidth: 0 }}>
+               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, flexShrink: 0, minWidth: 0 }}>
                   <Tooltip title="รายการโปรดของคุณ">
                      <IconButton
                         color="inherit"
                         onClick={() => navigate('/books?favorite=true')}
                         aria-label="รายการโปรดของคุณ"
                         sx={{
-                           width: { xs: 40, sm: 44 },
-                           height: { xs: 40, sm: 44 },
-                           p: { xs: 0.75, sm: 1.1 },
+                           width: { xs: 38, sm: 42 },
+                           height: { xs: 38, sm: 42 },
+                           p: { xs: 0.75, sm: 1 },
                            flexShrink: 0,
                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
                         }}>
                         <Badge badgeContent={wishlistCount} color="error">
-                           <WishlistIcon sx={{ fontSize: { xs: 21, sm: 22 } }} />
+                           <WishlistIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Badge>
                      </IconButton>
                   </Tooltip>
@@ -221,17 +226,26 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ cartCount, wishlistCount, 
                         onClick={() => navigate('/cart')}
                         aria-label="ตะกร้าสินค้า"
                         sx={{
-                           width: { xs: 40, sm: 44 },
-                           height: { xs: 40, sm: 44 },
-                           p: { xs: 0.75, sm: 1.1 },
+                           width: { xs: 38, sm: 42 },
+                           height: { xs: 38, sm: 42 },
+                           p: { xs: 0.75, sm: 1 },
                            flexShrink: 0,
                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
                         }}>
                         <Badge badgeContent={cartCount} color="error">
-                           <CartIcon sx={{ fontSize: { xs: 21, sm: 22 } }} />
+                           <CartIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Badge>
                      </IconButton>
                   </Tooltip>
+
+                  <Divider orientation="vertical" flexItem sx={{ height: 24, my: 'auto', mx: { xs: 0.25, sm: 0.5 }, borderColor: '#E2E8F0' }} />
+
+                  {/* Authentication Section */}
+                  {isAuthenticated ? (
+                     <UserMenu />
+                  ) : (
+                     <AuthButton size="small" />
+                  )}
                </Box>
             </Toolbar>
          </Container>

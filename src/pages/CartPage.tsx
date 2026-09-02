@@ -8,6 +8,8 @@ import {
   Button,
 } from '@mui/material';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
 import { formatCurrency } from '../utils/formatCurrency';
 import { showConfirm, showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
@@ -17,6 +19,7 @@ import { CartOrderSummary } from '../components/cart/CartOrderSummary';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, subtotal, savings, cartCount } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,24 +41,8 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
-
-    trackEvent('begin_checkout', { itemsCount: cartCount, subtotal });
-
-    showConfirm(
-      'ยืนยันการสั่งซื้อแบบ Demo หรือไม่?',
-      `ยอดชำระทั้งหมด ${formatCurrency(subtotal)} (${cartCount} เล่ม)\n(นี่คือการจำลองการทำงาน ไม่มีการเรียกเก็บเงินจริง)`
-    ).then((result) => {
-      if (result.isConfirmed) {
-        const orderId = '#DEMO-' + Math.floor(100000 + Math.random() * 900000);
-        trackEvent('purchase_demo', { orderId, subtotal, itemsCount: cartCount });
-        clearCart();
-        showSuccess(
-          'สั่งซื้อแบบ Demo สำเร็จ!',
-          `หมายเลขคำสั่งซื้อของคุณคือ ${orderId} ขอบคุณที่ร่วมทดสอบและสนับสนุนการส่งต่อหนังสือกับ BookLoop`
-        );
-        navigate('/books');
-      }
-    });
+    trackEvent('begin_checkout', { itemsCount: cartCount, subtotal, userId: user?.id || 'guest' });
+    navigate('/checkout');
   };
 
   if (cart.length === 0) {
