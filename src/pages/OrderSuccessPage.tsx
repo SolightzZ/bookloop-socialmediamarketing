@@ -59,12 +59,12 @@ export default function OrderSuccessPage() {
   }[order?.paymentMethod || 'promptpay'] || 'PromptPay QR';
 
   return (
-    <Box sx={{ py: 8, bgcolor: '#F7F9FB', minHeight: '90vh' }}>
-      <Container maxWidth="md">
+    <Box sx={{ py: { xs: 3, sm: 5, md: 8 }, bgcolor: '#F7F9FB', minHeight: '90vh' }}>
+      <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 3.5, sm: 6 },
+            p: { xs: 2.5, sm: 4.5, md: 6 },
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             bgcolor: '#FFFFFF',
@@ -75,8 +75,8 @@ export default function OrderSuccessPage() {
           {/* Success Check Animation/Icon */}
           <Box
             sx={{
-              width: 80,
-              height: 80,
+              width: { xs: 64, sm: 80 },
+              height: { xs: 64, sm: 80 },
               borderRadius: '50%',
               bgcolor: 'rgba(46, 125, 50, 0.1)',
               color: 'success.main',
@@ -87,13 +87,21 @@ export default function OrderSuccessPage() {
               mb: 2.5,
             }}
           >
-            <SuccessIcon sx={{ fontSize: 48 }} />
+            <SuccessIcon sx={{ fontSize: { xs: 38, sm: 48 } }} />
           </Box>
 
-          <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: 'primary.main',
+              mb: 1,
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' },
+            }}
+          >
             สั่งซื้อสำเร็จ!
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 500, mx: 'auto' }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 500, mx: 'auto', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             ขอบคุณที่ร่วมเป็นส่วนหนึ่งของการส่งต่อความรู้และหมุนเวียนหนังสือกับ BookLoop เรากำลังเตรียมแพ็คหนังสืออย่างดีที่สุด
           </Typography>
 
@@ -183,12 +191,20 @@ export default function OrderSuccessPage() {
             </Paper>
           )}
 
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
+          {/* Actions */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              justifyContent: 'center',
+              flexDirection: { xs: 'column', sm: 'row' },
+            }}
+          >
             <Button
               variant="contained"
               color="primary"
               size="large"
+              fullWidth={false}
               startIcon={<ReceiptIcon />}
               onClick={() => navigate(order ? `/orders/${order.id}` : '/account/orders')}
               sx={{
@@ -197,6 +213,7 @@ export default function OrderSuccessPage() {
                 px: 3.5,
                 py: 1.4,
                 boxShadow: '0 4px 14px rgba(16, 42, 67, 0.25)',
+                width: { xs: '100%', sm: 'auto' },
               }}
             >
               ดูคำสั่งซื้อ
@@ -214,6 +231,7 @@ export default function OrderSuccessPage() {
                 py: 1.4,
                 borderColor: '#CBD5E1',
                 color: 'text.primary',
+                width: { xs: '100%', sm: 'auto' },
                 '&:hover': {
                   borderColor: 'primary.main',
                   bgcolor: '#F8FAFC',

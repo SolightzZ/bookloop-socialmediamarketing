@@ -60,6 +60,6 @@ export interface UserListedBook {
   category: string;
   cover: string;
   dateListed: string;
-  status: 'active' | 'sold' | 'reserved';
+  status: 'active' | 'sold' | 'reserved' | 'paused';
   views: number;
 }

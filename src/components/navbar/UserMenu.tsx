@@ -13,7 +13,6 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  KeyboardArrowDown as ArrowDownIcon,
   PersonOutlined as ProfileIcon,
   ShoppingBagOutlined as OrdersIcon,
   FavoriteBorder as WishlistIcon,
@@ -71,19 +70,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onItemClick }) => {
         aria-controls={open ? 'user-account-menu' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
-        aria-label="เมนูผู้ใช้งาน"
+        aria-label="บัญชีผู้ใช้"
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
-          px: { xs: 0.75, sm: 1.25 },
-          py: 0.5,
-          borderRadius: 3,
+          justifyContent: 'center',
+          minWidth: 0,
+          p: 0.5,
+          borderRadius: '50%',
           color: 'text.primary',
           bgcolor: open ? 'rgba(15, 41, 66, 0.06)' : 'transparent',
           transition: 'all 0.15s ease',
           '&:hover': {
-            bgcolor: 'rgba(15, 41, 66, 0.06)',
+            bgcolor: 'rgba(15, 41, 66, 0.08)',
           },
         }}
       >
@@ -91,40 +90,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onItemClick }) => {
           src={user.avatar}
           alt={user.name}
           sx={{
-            width: { xs: 32, sm: 34 },
-            height: { xs: 32, sm: 34 },
+            width: { xs: 34, sm: 36 },
+            height: { xs: 34, sm: 36 },
             bgcolor: 'primary.main',
             fontSize: '0.875rem',
             fontWeight: 700,
             border: '2px solid #FFFFFF',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            boxShadow: open ? '0 0 0 2px #1976D2' : '0 1px 3px rgba(0,0,0,0.1)',
+            transition: 'box-shadow 0.15s ease',
           }}
         >
           {user.name.charAt(0)}
         </Avatar>
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            color: 'primary.main',
-            display: { xs: 'none', lg: 'block' },
-            maxWidth: 120,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontSize: '0.9rem',
-          }}
-        >
-          {user.name}
-        </Typography>
-        <ArrowDownIcon
-          sx={{
-            fontSize: 18,
-            color: 'text.secondary',
-            transition: 'transform 0.2s',
-            transform: open ? 'rotate(180deg)' : 'none',
-          }}
-        />
       </Button>
 
       <Menu

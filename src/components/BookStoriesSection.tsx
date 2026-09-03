@@ -1,110 +1,76 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, Card, CardContent, Avatar } from '@mui/material';
-import { FormatQuote as QuoteIcon } from '@mui/icons-material';
+import { Box, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { books } from '../data/books';
+import { AppContainer } from './common/Container';
+import { SectionHeader } from './common/SectionHeader';
+import { StoryCard } from './home/StoryCard';
 
 export const BookStoriesSection: React.FC = () => {
   const navigate = useNavigate();
-  // Filter books with rich stories
   const storyBooks = books.filter((b) => b.story).slice(0, 3);
 
+  if (storyBooks.length === 0) return null;
+
+  const featuredStory = storyBooks[0];
+  const secondaryStories = storyBooks.slice(1, 3);
+
   return (
-    <Box sx={{ py: 10, bgcolor: '#FFFFFF' }}>
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="overline"
-            sx={{
-              color: 'secondary.main',
-              fontWeight: 'bold',
-              letterSpacing: 1.5,
-              display: 'block',
-            }}
-          >
-            BEHIND THE BOOKS
-          </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5 }}>
-            เรื่องราวของหนังสือ
-          </Typography>
-          <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: 650, mx: 'auto', fontWeight: 'normal' }}>
-            "หนังสือของคุณอาจเป็นเล่มโปรดของใครอีกคน" สัมผัสความตั้งใจและเหตุผลในการส่งต่อจากเจ้าของเดิม
-          </Typography>
-        </Box>
+    <Box
+      component="section"
+      id="behind-the-books"
+      aria-labelledby="behind-the-books-heading"
+      sx={{
+        py: { xs: 7, sm: 9, md: 12 },
+        bgcolor: '#F7F9FC',
+        borderTop: '1px solid #D9E2EC',
+        borderBottom: '1px solid #D9E2EC',
+      }}
+    >
+      <AppContainer>
+        <SectionHeader
+          id="behind-the-books-heading"
+          eyebrow="BEHIND THE BOOKS"
+          title="เรื่องราวของหนังสือ"
+          subtitle="“หนังสือของคุณอาจเป็นเล่มโปรดของใครอีกคน” สัมผัสความตั้งใจ ความทรงจำ และเหตุผลในการส่งต่อจากเจ้าของเดิม"
+          align="center"
+        />
 
-        <Grid container spacing={4}>
-          {storyBooks.map((book) => (
-            <Grid size={{ xs: 12, md: 4 }} key={book.id}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 3,
-                  border: '1px solid #D9E2EC',
-                  bgcolor: 'background.default',
-                  cursor: 'pointer',
-                  transition: '0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 24px rgba(16, 42, 67, 0.08)',
-                  },
-                }}
-                onClick={() => navigate(`/books/${book.id}`)}
-              >
-                <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                  <QuoteIcon sx={{ fontSize: 36, color: 'secondary.main', opacity: 0.6, mb: 1 }} />
+        {/* Asymmetric Magazine Editorial Layout */}
+        <Grid container spacing={{ xs: 3, md: 3.5 }} sx={{ alignItems: 'stretch' }}>
+          {/* Left Column: Featured Story with Large Quotation Typography */}
+          <Grid size={{ xs: 12, md: 7 }}>
+            <StoryCard
+              book={featuredStory}
+              isFeatured={true}
+              onClick={() => navigate(`/books/${featuredStory.id}`)}
+            />
+          </Grid>
 
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      fontStyle: 'italic',
-                      color: 'primary.main',
-                      mb: 3,
-                      flexGrow: 1,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    "{book.story}"
-                  </Typography>
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      pt: 2,
-                      borderTop: '1px solid #D9E2EC',
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={book.cover}
-                      alt={book.title}
-                      sx={{ width: 44, height: 60, objectFit: 'cover', borderRadius: 1 }}
-                    />
-                    <Box sx={{ overflow: 'hidden' }}>
-                      <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                        {book.title}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.3 }}>
-                        <Avatar
-                          src={book.seller.avatar}
-                          alt={book.seller.name}
-                          sx={{ width: 18, height: 18 }}
-                        />
-                        <Typography variant="caption" noWrap sx={{ color: 'text.secondary' }}>
-                          ส่งต่อโดย {book.seller.name}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+          {/* Right Column: 2 Secondary Stories Stacked */}
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: { xs: 2.5, md: 3 },
+                height: '100%',
+                justifyContent: 'space-between',
+              }}
+            >
+              {secondaryStories.map((book) => (
+                <Box key={book.id} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <StoryCard
+                    book={book}
+                    isFeatured={false}
+                    onClick={() => navigate(`/books/${book.id}`)}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </Grid>
         </Grid>
-      </Container>
+      </AppContainer>
     </Box>
   );
 };

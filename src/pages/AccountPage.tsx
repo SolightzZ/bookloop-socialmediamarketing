@@ -39,13 +39,16 @@ import {
   Add as AddIcon,
   CheckCircle as CheckIcon,
   Lock as LockIcon,
+  PauseCircleOutlined as PauseIcon,
+  PlayCircleOutlined as PlayIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { authService, UserAccountData } from '../services/authService';
+import { UserListedBook } from '../types/auth';
 import { formatCurrency } from '../utils/formatCurrency';
-import { showSuccess, showConfirm } from '../utils/alerts';
+import { showSuccess, showConfirm, showToast } from '../utils/alerts';
 import { PasswordInput } from '../components/auth/PasswordInput';
 import { BookCard } from '../components/BookCard';
 
@@ -92,6 +95,70 @@ export default function AccountPage() {
   const [notifyOrder, setNotifyOrder] = useState(true);
   const [notifyPromo, setNotifyPromo] = useState(false);
   const [notifyBookUpdates, setNotifyBookUpdates] = useState(true);
+
+  // Seller Listing Management State
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [editPriceInput, setEditPriceInput] = useState<string>('');
+
+  const handleToggleListingStatus = (bookId: string) => {
+    if (!user || !userData) return;
+    const updatedBooks: UserListedBook[] = userData.listedBooks.map((b) => {
+      if (b.id === bookId) {
+        const nextStatus: 'active' | 'paused' = b.status === 'active' ? 'paused' : 'active';
+        return { ...b, status: nextStatus };
+      }
+      return b;
+    });
+
+    const newStatus = updatedBooks.find((b) => b.id === bookId)?.status;
+    const updatedData: UserAccountData = { ...userData, listedBooks: updatedBooks };
+    setUserData(updatedData);
+    authService.saveUserData(user.id, { listedBooks: updatedBooks });
+    showToast(
+      'อัปเดตสถานะสำเร็จ',
+      newStatus === 'active' ? 'เปิดวางขายหนังสือเล่มนี้แล้ว' : 'พักการขายหนังสือเล่มนี้ชั่วคราว'
+    );
+  };
+
+  const handleSaveListingPrice = (bookId: string) => {
+    if (!user || !userData) return;
+    const parsedPrice = parseFloat(editPriceInput);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      showToast('กรุณากรอกราคาที่ถูกต้อง', 'ราคาต้องมากกว่า 0 บาท', 'warning');
+      return;
+    }
+
+    const updatedBooks: UserListedBook[] = userData.listedBooks.map((b) => {
+      if (b.id === bookId) {
+        return { ...b, price: Math.round(parsedPrice) };
+      }
+      return b;
+    });
+
+    const updatedData: UserAccountData = { ...userData, listedBooks: updatedBooks };
+    setUserData(updatedData);
+    authService.saveUserData(user.id, { listedBooks: updatedBooks });
+    showToast('แก้ไขราคาสำเร็จ', `ปรับราคาเป็น ฿${Math.round(parsedPrice).toLocaleString()} เรียบร้อยแล้ว`);
+    setEditingBookId(null);
+  };
+
+  const handleDeleteListing = async (bookId: string, bookTitle: string) => {
+    if (!user || !userData) return;
+    const result = await showConfirm(
+      'ยืนยันการลบรายการ?',
+      `คุณแน่ใจหรือไม่ว่าต้องการลบ "${bookTitle}" ออกจากรายการวางขาย การดำเนินการนี้ไม่สามารถยกเลิกได้`,
+      'ลบรายการ',
+      'ยกเลิก'
+    );
+
+    if (result.isConfirmed) {
+      const updatedBooks = userData.listedBooks.filter((b) => b.id !== bookId);
+      const updatedData = { ...userData, listedBooks: updatedBooks };
+      setUserData(updatedData);
+      authService.saveUserData(user.id, { listedBooks: updatedBooks });
+      showToast('ลบรายการสำเร็จ', 'นำหนังสือออกจากรายการขายแล้ว');
+    }
+  };
 
   // Sync tab with path
   useEffect(() => {
@@ -183,8 +250,8 @@ export default function AccountPage() {
   if (!user) return null;
 
   return (
-    <Box sx={{ bgcolor: '#F7F9FB', minHeight: '100vh', py: { xs: 4, sm: 6 } }}>
-      <Container maxWidth="lg">
+    <Box sx={{ bgcolor: '#F7F9FB', minHeight: '100vh', py: { xs: 2.5, sm: 4, md: 6 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* User Top Profile Header */}
         <Paper
           elevation={0}
@@ -277,6 +344,7 @@ export default function AccountPage() {
               onChange={handleTabChange}
               variant="scrollable"
               scrollButtons="auto"
+              allowScrollButtonsMobile
               sx={{
                 '& .MuiTab-root': {
                   textTransform: 'none',
@@ -661,7 +729,15 @@ export default function AccountPage() {
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             ชำระโดย: {order.paymentMethod || 'PromptPay QR'}
                           </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                              width: { xs: '100%', sm: 'auto' },
+                              gap: 2,
+                            }}
+                          >
                             <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main' }}>
                               ยอดรวมสุทธิ: {formatCurrency(order.total)}
                             </Typography>
@@ -690,9 +766,9 @@ export default function AccountPage() {
 
           {/* Tab 2: Wishlist */}
           {activeTab === 2 && (
-            <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+            <Box sx={{ p: { xs: 2, sm: 3.5, md: 4 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
                   หนังสือที่บันทึกไว้ในรายการโปรด ({wishlist.length} เล่ม)
                 </Typography>
                 {wishlist.length > 0 && (
@@ -726,9 +802,9 @@ export default function AccountPage() {
                   </Button>
                 </Box>
               ) : (
-                <Grid container spacing={3}>
+                <Grid container spacing={{ xs: 2, sm: 3 }}>
                   {wishlist.map((book) => (
-                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={book.id}>
+                    <Grid size={{ xs: 6, sm: 6, md: 4 }} key={book.id}>
                       <BookCard book={book} />
                     </Grid>
                   ))}
@@ -739,9 +815,9 @@ export default function AccountPage() {
 
           {/* Tab 3: My Listed Books */}
           {activeTab === 3 && (
-            <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+            <Box sx={{ p: { xs: 2, sm: 3.5, md: 4 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
                   หนังสือที่คุณลงขาย ({userData?.listedBooks?.length || 0} เล่ม)
                 </Typography>
                 <Button
@@ -784,43 +860,166 @@ export default function AccountPage() {
                           borderRadius: 2.5,
                           border: '1px solid #E2E8F0',
                           display: 'flex',
-                          gap: 2,
+                          flexDirection: 'column',
+                          gap: 1.5,
                         }}
                       >
-                        <Box
-                          component="img"
-                          src={item.cover}
-                          alt={item.title}
-                          sx={{
-                            width: 70,
-                            height: 95,
-                            objectFit: 'cover',
-                            borderRadius: 1.5,
-                            border: '1px solid #E2E8F0',
-                          }}
-                        />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                              {item.title}
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <Box
+                            component="img"
+                            src={item.cover}
+                            alt={item.title}
+                            sx={{
+                              width: 70,
+                              height: 95,
+                              objectFit: 'cover',
+                              borderRadius: 1.5,
+                              border: '1px solid #E2E8F0',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }} noWrap>
+                                {item.title}
+                              </Typography>
+                              <Chip
+                                label={
+                                  item.status === 'sold'
+                                    ? 'ขายแล้ว'
+                                    : item.status === 'paused'
+                                    ? 'พักการขาย'
+                                    : 'กำลังวางขาย'
+                                }
+                                color={
+                                  item.status === 'sold'
+                                    ? 'default'
+                                    : item.status === 'paused'
+                                    ? 'warning'
+                                    : 'success'
+                                }
+                                size="small"
+                                sx={{ borderRadius: 1.5, fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}
+                              />
+                            </Box>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                              {item.author} • {item.condition}
                             </Typography>
-                            <Chip
-                              label={item.status === 'sold' ? 'ขายแล้ว' : 'กำลังวางขาย'}
-                              color={item.status === 'sold' ? 'default' : 'success'}
-                              size="small"
-                              sx={{ borderRadius: 1.5, fontSize: '0.75rem', fontWeight: 600 }}
-                            />
+
+                            {/* Price display or Price inline edit */}
+                            {editingBookId === item.id ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="ราคา (บาท)"
+                                  value={editPriceInput}
+                                  onChange={(e) => setEditPriceInput(e.target.value)}
+                                  sx={{ width: 110 }}
+                                  autoFocus
+                                />
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  aria-label="บันทึกราคาใหม่"
+                                  onClick={() => handleSaveListingPrice(item.id)}
+                                  sx={{ bgcolor: '#EAF4FF' }}
+                                >
+                                  <SaveIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  aria-label="ยกเลิกการแก้ไข"
+                                  onClick={() => setEditingBookId(null)}
+                                  sx={{ bgcolor: '#F1F5F9' }}
+                                >
+                                  <CancelIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main', mt: 0.75 }}>
+                                {formatCurrency(item.price)}
+                              </Typography>
+                            )}
+
+                            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 0.5 }}>
+                              ผู้เข้าชม {item.views} ครั้ง • ลงเมื่อ {new Date(item.dateListed).toLocaleDateString('th-TH')}
+                            </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                            {item.author} • {item.condition}
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main', mt: 1 }}>
-                            {formatCurrency(item.price)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-                            ผู้เข้าชม {item.views} ครั้ง • ลงเมื่อ {new Date(item.dateListed).toLocaleDateString('th-TH')}
-                          </Typography>
                         </Box>
+
+                        {/* Seller Listing Management Actions Toolbar */}
+                        {item.status !== 'sold' && (
+                          <Box
+                            sx={{
+                              pt: 1.25,
+                              borderTop: '1px solid #F1F5F9',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 1,
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                                onClick={() => {
+                                  setEditingBookId(item.id);
+                                  setEditPriceInput(String(item.price));
+                                }}
+                                sx={{
+                                  borderRadius: 1.5,
+                                  fontSize: '0.75rem',
+                                  py: 0.4,
+                                  px: 1.2,
+                                  textTransform: 'none',
+                                  borderColor: '#CBD5E1',
+                                  color: '#0F2D4A',
+                                }}
+                              >
+                                แก้ไขราคา
+                              </Button>
+
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={item.status === 'active' ? <PauseIcon sx={{ fontSize: 14 }} /> : <PlayIcon sx={{ fontSize: 14 }} />}
+                                onClick={() => handleToggleListingStatus(item.id)}
+                                sx={{
+                                  borderRadius: 1.5,
+                                  fontSize: '0.75rem',
+                                  py: 0.4,
+                                  px: 1.2,
+                                  textTransform: 'none',
+                                  borderColor: item.status === 'active' ? '#F59E0B' : '#10B981',
+                                  color: item.status === 'active' ? '#B45309' : '#047857',
+                                }}
+                              >
+                                {item.status === 'active' ? 'พักการขาย' : 'เปิดขาย'}
+                              </Button>
+                            </Box>
+
+                            <Button
+                              size="small"
+                              startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+                              onClick={() => handleDeleteListing(item.id, item.title)}
+                              sx={{
+                                borderRadius: 1.5,
+                                fontSize: '0.75rem',
+                                py: 0.4,
+                                px: 1,
+                                textTransform: 'none',
+                                color: '#EF4444',
+                                '&:hover': { bgcolor: '#FEE2E2' },
+                              }}
+                            >
+                              ลบ
+                            </Button>
+                          </Box>
+                        )}
                       </Paper>
                     </Grid>
                   ))}
@@ -831,18 +1030,18 @@ export default function AccountPage() {
 
           {/* Tab 4: Settings */}
           {activeTab === 4 && (
-            <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>
+            <Box sx={{ p: { xs: 2, sm: 3.5, md: 4 } }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 3, fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
                 ตั้งค่าความปลอดภัยและการแจ้งเตือน
               </Typography>
 
-              <Grid container spacing={4}>
+              <Grid container spacing={{ xs: 2.5, sm: 3, md: 4 }}>
                 {/* Password Change Section */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2, sm: 3 },
                       borderRadius: 2.5,
                       border: '1px solid #E2E8F0',
                       bgcolor: '#FFFFFF',
@@ -862,6 +1061,17 @@ export default function AccountPage() {
                     )}
 
                     <Box component="form" onSubmit={handleChangePasswordSubmit}>
+                      {/* Hidden username input for accessibility and password manager compliance */}
+                      <input
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        value={user?.email || user?.name || ''}
+                        readOnly
+                        style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      />
                       <PasswordInput
                         id="setting-old-password"
                         name="oldPassword"

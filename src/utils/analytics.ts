@@ -18,6 +18,10 @@ export type AnalyticsEvent =
   | 'social_share'
   | 'view_tech_stack'
   | 'review_submit_demo'
+  | 'ugc_like'
+  | 'ugc_share'
+  | 'random_book_click'
+  | 'random_book_result'
   | 'user_login'
   | 'user_register'
   | 'user_logout';
@@ -27,7 +31,7 @@ export interface EventPayload {
 }
 
 export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): void => {
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env?.DEV) {
     console.log(`[BookLoop Analytics] 📊 ${eventName}`, payload || {});
   }
   // Store recent events in session for audit/demo inspection if needed

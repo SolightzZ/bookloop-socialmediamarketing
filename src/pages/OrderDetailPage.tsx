@@ -12,10 +12,6 @@ import {
   Breadcrumbs,
   Link,
   Tooltip,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import {
   NavigateNext as NextIcon,
@@ -26,7 +22,6 @@ import {
   LocationOnOutlined as AddressIcon,
   PaymentOutlined as PaymentIcon,
   ReceiptLongOutlined as ReceiptIcon,
-  Sync as SyncIcon,
 } from '@mui/icons-material';
 import { Order, OrderStatus, PaymentStatus } from '../types/order';
 import { orderService } from '../services/orderService';
@@ -34,6 +29,9 @@ import { OrderTimeline } from '../components/orders/OrderTimeline';
 import { OrderTrackingModal } from '../components/orders/OrderTrackingModal';
 import { formatCurrency } from '../utils/formatCurrency';
 import { showSuccess, showWarning } from '../utils/alerts';
+import { SafeImage } from '../components/common/SafeImage';
+import { PageLoadingSkeleton } from '../components/common/LoadingSkeleton';
+import { ErrorState } from '../components/common/ErrorState';
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -60,50 +58,30 @@ export default function OrderDetailPage() {
     showSuccess(`คัดลอก${label}แล้ว`, text);
   };
 
-  const handleDemoStatusChange = (newStatus: OrderStatus) => {
-    if (!order) return;
-    const updated = orderService.updateOrderStatus(
-      order.id,
-      newStatus,
-      newStatus === 'processing' || newStatus === 'shipped' || newStatus === 'out_for_delivery' || newStatus === 'delivered'
-        ? 'paid'
-        : order.paymentStatus
-    );
-    if (updated) {
-      setOrder({ ...updated });
-      showSuccess('อัปเดตสถานะจำลองแล้ว', `สถานะเปลี่ยนเป็น "${newStatus}"`);
-    }
-  };
 
   if (isLoading) {
-    return (
-      <Box sx={{ py: 8, textAlign: 'center', minHeight: '60vh' }}>
-        <Typography>กำลังโหลดข้อมูลคำสั่งซื้อ...</Typography>
-      </Box>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!order) {
     return (
       <Box sx={{ py: 8, bgcolor: '#F7F9FB', minHeight: '80vh' }}>
-        <Container maxWidth="md">
-          <Paper elevation={0} sx={{ p: 5, borderRadius: 3, border: '1px solid #E2E8F0', textAlign: 'center' }}>
-            <OrderIcon sx={{ fontSize: 48, color: '#94A3B8', mb: 2 }} />
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
-              ไม่พบข้อมูลคำสั่งซื้อ
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-              ไม่พบคำสั่งซื้อหมายเลข #{orderId} ในระบบ หรืออาจถูกลบไปแล้ว
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => navigate('/account/orders')}
-              sx={{ borderRadius: 2, fontWeight: 700 }}
-            >
-              ดูรายการคำสั่งซื้อของฉัน
-            </Button>
-          </Paper>
+        <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
+          <ErrorState
+            title="ไม่พบข้อมูลคำสั่งซื้อ"
+            description={`ไม่พบคำสั่งซื้อหมายเลข #${orderId} ในระบบ หรืออาจถูกลบไปแล้ว`}
+            actionText="ดูรายการคำสั่งซื้อของฉัน"
+            onRetry={() => navigate('/account/orders')}
+            secondaryAction={
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/')}
+                sx={{ borderRadius: 2, px: 3, fontWeight: 700, borderColor: '#CBD5E1', color: '#0F2D4A' }}
+              >
+                กลับสู่หน้าหลัก
+              </Button>
+            }
+          />
         </Container>
       </Box>
     );
@@ -133,8 +111,8 @@ export default function OrderDetailPage() {
   }[order.paymentMethod] || order.paymentMethod;
 
   return (
-    <Box sx={{ py: 5, bgcolor: '#F7F9FB', minHeight: '100vh' }}>
-      <Container maxWidth="lg">
+    <Box sx={{ py: { xs: 3, sm: 4.5, md: 6 }, bgcolor: '#F7F9FB', minHeight: '100vh' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Breadcrumbs */}
         <Breadcrumbs
           separator={<NextIcon fontSize="small" sx={{ color: '#94A3B8' }} />}
@@ -274,18 +252,15 @@ export default function OrderDetailPage() {
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box
-                        component="img"
-                        src={item.image}
-                        alt={item.title}
-                        sx={{
-                          width: 56,
-                          height: 76,
-                          objectFit: 'cover',
-                          borderRadius: 1.5,
-                          border: '1px solid #CBD5E1',
-                        }}
-                      />
+                      <Box sx={{ width: 56, height: 76, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden' }}>
+                        <SafeImage
+                          src={item.image}
+                          alt={item.title}
+                          fallbackTitle={item.title}
+                          objectFit="cover"
+                          borderRadius={6}
+                        />
+                      </Box>
                       <Box>
                         <Typography
                           component={RouterLink}
@@ -317,68 +292,6 @@ export default function OrderDetailPage() {
                     </Typography>
                   </Box>
                 ))}
-              </Box>
-            </Paper>
-
-            {/* Demo Status Controller for Testing */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                border: '1px dashed #CBD5E1',
-                bgcolor: '#FFFFFF',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, color: 'text.secondary' }}>
-                <SyncIcon sx={{ fontSize: 18 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  ⚡ DEMO Simulator: ปรับเปลี่ยนสถานะเพื่อทดสอบไทม์ไลน์
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                <Button
-                  size="small"
-                  variant={order.status === 'pending_payment' ? 'contained' : 'outlined'}
-                  onClick={() => handleDemoStatusChange('pending_payment')}
-                  sx={{ borderRadius: 2 }}
-                >
-                  รอชำระเงิน
-                </Button>
-                <Button
-                  size="small"
-                  variant={order.status === 'processing' ? 'contained' : 'outlined'}
-                  onClick={() => handleDemoStatusChange('processing')}
-                  sx={{ borderRadius: 2 }}
-                >
-                  กำลังเตรียมจัดส่ง
-                </Button>
-                <Button
-                  size="small"
-                  variant={order.status === 'shipped' ? 'contained' : 'outlined'}
-                  onClick={() => handleDemoStatusChange('shipped')}
-                  sx={{ borderRadius: 2 }}
-                >
-                  จัดส่งแล้ว
-                </Button>
-                <Button
-                  size="small"
-                  variant={order.status === 'out_for_delivery' ? 'contained' : 'outlined'}
-                  onClick={() => handleDemoStatusChange('out_for_delivery')}
-                  sx={{ borderRadius: 2 }}
-                >
-                  กำลังนำจ่าย
-                </Button>
-                <Button
-                  size="small"
-                  variant={order.status === 'delivered' ? 'contained' : 'outlined'}
-                  onClick={() => handleDemoStatusChange('delivered')}
-                  color="success"
-                  sx={{ borderRadius: 2 }}
-                >
-                  จัดส่งสำเร็จ
-                </Button>
               </Box>
             </Paper>
           </Grid>

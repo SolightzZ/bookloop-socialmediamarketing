@@ -10,6 +10,7 @@ import {
   LocalShippingOutlined as ShippedIcon,
   TwoWheelerOutlined as DeliveryIcon,
   CheckCircleOutlined as DeliveredIcon,
+  CancelOutlined as CancelIcon,
 } from '@mui/icons-material';
 import { OrderStatus, PaymentStatus } from '../../types/order';
 
@@ -50,9 +51,12 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, paymentSta
   if (status === 'cancelled') {
     return (
       <Paper elevation={0} sx={{ p: 3, mb: 3.5, borderRadius: 3, bgcolor: '#FFF5F5', border: '1px solid #FED7D7' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'error.main' }}>
-          ❌ คำสั่งซื้อนี้ถูกยกเลิกแล้ว
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CancelIcon sx={{ color: 'error.main', fontSize: 20 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'error.main' }}>
+            คำสั่งซื้อนี้ถูกยกเลิกแล้ว
+          </Typography>
+        </Box>
       </Paper>
     );
   }
@@ -156,7 +160,7 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, paymentSta
                     color: isCompleted && !isCurrent ? 'success.main' : isCurrent ? 'primary.main' : '#CBD5E1',
                   }}
                 >
-                  {isCompleted && !isCurrent ? '✓ สำเร็จ' : isCurrent ? '● กำลังดำเนิน' : '○ รอดำเนิน'}
+                  {isCompleted && !isCurrent ? 'สำเร็จ' : isCurrent ? 'กำลังดำเนิน' : 'รอดำเนิน'}
                 </Typography>
               </Box>
 

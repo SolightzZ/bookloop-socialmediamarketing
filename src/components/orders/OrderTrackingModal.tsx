@@ -17,6 +17,7 @@ import {
   CheckCircle as CheckIcon,
   RadioButtonChecked as CurrentIcon,
   ContentCopy as CopyIcon,
+  LocationOnOutlined as LocationIcon,
 } from '@mui/icons-material';
 import { Order } from '../../types/order';
 import { orderService } from '../../services/orderService';
@@ -52,7 +53,8 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
         paper: {
           sx: {
             borderRadius: 3.5,
-            p: 1,
+            p: { xs: 0.5, sm: 1 },
+            m: { xs: 2, sm: 'auto' },
           },
         },
       }}
@@ -88,7 +90,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ p: 3 }}>
+      <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
         {/* Tracking Number Banner */}
         <Box
           sx={{
@@ -196,8 +198,18 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                     {milestone.description}
                   </Typography>
 
-                  <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mt: 0.5, fontStyle: 'italic' }}>
-                    📍 {milestone.location}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: '#64748B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      mt: 0.5,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    <LocationIcon sx={{ fontSize: 13, mr: 0.4 }} />
+                    <span>{milestone.location}</span>
                   </Typography>
                 </Box>
               </Box>

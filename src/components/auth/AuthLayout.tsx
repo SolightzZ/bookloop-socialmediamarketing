@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Container, Paper, Typography, Link, Chip } from '@mui/material';
+import { Box, Container, Paper, Typography, Link } from '@mui/material';
 import { AutoStories as BookIcon } from '@mui/icons-material';
+import { LoginBackground } from './LoginBackground';
 
 const logoImg = '/images/logo.png';
 
@@ -23,17 +24,26 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#F7F9FB',
+        justifyContent: 'center',
+        bgcolor: '#F7F9FC',
         py: { xs: 4, sm: 6, md: 8 },
         px: { xs: 2, sm: 3 },
+        overflow: 'hidden',
       }}
     >
+      {/* 1. Background Layer (z-index: 0, pointer-events: none) */}
+      <LoginBackground />
+
+      {/* 2. Content Container (z-index: 10) */}
       <Container
         maxWidth="xs"
         sx={{
+          position: 'relative',
+          zIndex: 10,
           maxWidth: { xs: '100%', sm: 460 },
           mx: 'auto',
           display: 'flex',
@@ -41,7 +51,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           alignItems: 'center',
         }}
       >
-        {/* Brand Logo Header */}
+        {/* Brand Logo Header (z-index: 10) */}
         <Box
           onClick={() => navigate('/')}
           sx={{
@@ -49,7 +59,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             alignItems: 'center',
             cursor: 'pointer',
             userSelect: 'none',
-            mb: 3.5,
+            mb: 3,
             gap: 1.25,
             transition: 'transform 0.15s ease-in-out',
             '&:hover': {
@@ -71,8 +81,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             alt="BookLoop Logo"
             referrerPolicy="no-referrer"
             sx={{
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               borderRadius: 2,
               objectFit: 'contain',
             }}
@@ -83,7 +93,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               sx={{
                 fontWeight: 800,
                 letterSpacing: '-0.5px',
-                color: 'primary.main',
+                color: '#0F2D4A',
                 lineHeight: 1.1,
               }}
             >
@@ -92,9 +102,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             <Typography
               variant="caption"
               sx={{
-                color: 'text.secondary',
+                color: '#627D98',
                 fontSize: '0.75rem',
-                fontWeight: 500,
+                fontWeight: 600,
               }}
             >
               แพลตฟอร์มส่งต่อหนังสือมือสอง
@@ -102,16 +112,18 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </Box>
         </Box>
 
-        {/* Main Card */}
+        {/* Main Login Card (z-index: 20, stable, no animation) */}
         <Paper
           elevation={0}
           sx={{
+            position: 'relative',
+            zIndex: 20,
             width: '100%',
             p: { xs: 3, sm: 4 },
-            borderRadius: 3,
+            borderRadius: { xs: 3, sm: '24px' },
             border: '1px solid #E2E8F0',
             bgcolor: '#FFFFFF',
-            boxShadow: '0 4px 20px -2px rgba(15, 41, 66, 0.05)',
+            boxShadow: '0 8px 30px rgba(15, 45, 74, 0.05)',
           }}
         >
           {/* Card Title & Subtitle */}
@@ -121,9 +133,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               component="h1"
               sx={{
                 fontWeight: 800,
-                color: 'primary.main',
+                color: '#0F2D4A',
                 mb: 0.75,
                 fontSize: { xs: '1.35rem', sm: '1.5rem' },
+                letterSpacing: '-0.02em',
               }}
             >
               {title}
@@ -132,7 +145,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  color: 'text.secondary',
+                  color: '#627D98',
                   fontSize: '0.875rem',
                   lineHeight: 1.5,
                 }}
@@ -142,8 +155,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             )}
           </Box>
 
-          {/* Form Content */}
-          {children}
+          {/* Form Content (Interactive controls: z-index: 30) */}
+          <Box sx={{ position: 'relative', zIndex: 30 }}>
+            {children}
+          </Box>
 
           {/* Footer Text / Alternate Auth Link */}
           {footerText && (
@@ -154,7 +169,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                 borderTop: '1px solid #F1F5F9',
                 textAlign: 'center',
                 fontSize: '0.875rem',
-                color: 'text.secondary',
+                color: '#627D98',
               }}
             >
               {footerText}
@@ -169,11 +184,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            color: 'text.secondary',
+            color: '#627D98',
           }}
         >
-          <BookIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
-          <Typography variant="caption" sx={{ fontSize: '0.78rem' }}>
+          <BookIcon sx={{ fontSize: 16, color: '#1976D2' }} />
+          <Typography variant="caption" sx={{ fontSize: '0.78rem', fontWeight: 500 }}>
             หนังสือทุกเล่ม มีเรื่องราวให้คนถัดไป
           </Typography>
         </Box>
@@ -184,7 +199,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             component={RouterLink}
             to="/about"
             variant="caption"
-            sx={{ color: '#94A3B8', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+            sx={{
+              color: '#94A3B8',
+              textDecoration: 'none',
+              '&:hover': { color: '#1976D2', textDecoration: 'underline' },
+            }}
           >
             เกี่ยวกับเรา
           </Link>
@@ -195,7 +214,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             component={RouterLink}
             to="/campaign/read-share-repeat"
             variant="caption"
-            sx={{ color: '#94A3B8', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+            sx={{
+              color: '#94A3B8',
+              textDecoration: 'none',
+              '&:hover': { color: '#1976D2', textDecoration: 'underline' },
+            }}
           >
             แคมเปญ Read-Share-Repeat
           </Link>

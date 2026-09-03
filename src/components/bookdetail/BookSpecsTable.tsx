@@ -19,20 +19,20 @@ interface BookSpecsTableProps {
 
 export const BookSpecsTable: React.FC<BookSpecsTableProps> = ({ book }) => {
   return (
-    <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid #D9E2EC', bgcolor: '#FFFFFF', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <InfoIcon sx={{ color: 'primary.main' }} />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+    <Paper sx={{ p: { xs: 2.25, sm: 3, md: 4 }, borderRadius: 3, border: '1px solid #D9E2EC', bgcolor: '#FFFFFF', height: '100%', boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+        <InfoIcon sx={{ color: '#1976D2' }} />
+        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F2D4A', fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
           ข้อมูลรายละเอียดหนังสือ
         </Typography>
       </Box>
 
       <TableContainer>
-        <Table size="small">
+        <Table size="small" sx={{ '& .MuiTableCell-root': { px: { xs: 1, sm: 2 }, py: 1.1 } }}>
           <TableBody>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', width: '35%', color: 'text.secondary' }}>สำนักพิมพ์</TableCell>
-              <TableCell>{book.publisher || '-'}</TableCell>
+              <TableCell sx={{ fontWeight: 700, width: { xs: '42%', sm: '35%' }, color: 'text.secondary', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>สำนักพิมพ์</TableCell>
+              <TableCell sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>{book.publisher || '-'}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }}>ปีที่พิมพ์</TableCell>

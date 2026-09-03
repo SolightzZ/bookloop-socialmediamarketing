@@ -26,8 +26,8 @@ export const CheckoutStepper: React.FC<CheckoutStepperProps> = ({ activeStep }) 
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 2, sm: 2.5 },
-        mb: 4,
+        p: { xs: 1.5, sm: 2.5 },
+        mb: { xs: 2.5, md: 4 },
         borderRadius: 3,
         border: '1px solid #E2E8F0',
         bgcolor: '#FFFFFF',

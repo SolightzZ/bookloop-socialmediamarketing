@@ -1,11 +1,307 @@
 @import "tailwindcss";
 
+/* Layout stabilization and overflow protection across all breakpoints */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Accessible focus ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #1565C0 !important;
+  outline-offset: 2px !important;
+}
+
+/* --------------------------------------------------
+   BOOKLOOP COZY STORY WORLD — Hero-Only Atmospheric System
+   GPU-only: transform + opacity  |  Hero boundary: overflow:hidden
+   Layers: Ambient Glow → Gradient Flow → Clouds → Books → Dust → Sparkles → Breath
+   -------------------------------------------------- */
+
+/* ── L01: Ambient Glow — X -20→20, Y -10→10, scale 1→1.06, 20-35s ── */
+@keyframes bl-glow-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.08; }
+  50%       { transform: translate3d(18px, -10px, 0) scale(1.06); opacity: 0.10; }
+}
+@keyframes bl-glow-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.11; }
+  50%       { transform: translate3d(-20px, 12px, 0) scale(1.05); opacity: 0.09; }
+}
+@keyframes bl-glow-c {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
+  50%       { transform: translate(calc(-50% + 14px), calc(-50% + 10px)) scale(1.06); opacity: 0.07; }
+}
+
+/* ── L02: Large Gradient Flow — background-position 0%→100%, 32s ── */
+@keyframes bl-gradient-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.bl-gradient-flow {
+  animation: bl-gradient-flow 32s ease-in-out infinite;
+  will-change: background-position;
+}
+
+/* ── L03: Cloud Drift — X -15→15, 25-55s ── */
+@keyframes bl-cloud-drift {
+  0%, 100% { transform: translate3d(-12px, 0, 0); }
+  50%       { transform: translate3d(14px, 0, 0); }
+}
+.bl-cloud { will-change: transform; }
+
+/* ── L04: Book Outline Float — Y 0→-8→0, rot -1→1, 8-15s ── */
+@keyframes bl-book-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1deg); }
+  50%       { transform: translate3d(0, -8px, 0) rotate(1deg); }
+}
+.bl-book-outline { will-change: transform; }
+
+/* ── L05: Dust — Y 0→-20→0, X ±4, opacity 0→0.4→0, scale 0.8→1→0.8, 6-12s ── */
+@keyframes bl-dust-float {
+  0%   { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
+  18%  { opacity: 0.38; }
+  50%  { transform: translate3d(-4px, -20px, 0) scale(1); opacity: 0.28; }
+  82%  { opacity: 0.14; }
+  100% { transform: translate3d(4px, -28px, 0) scale(0.8); opacity: 0; }
+}
+.bl-dust { will-change: transform, opacity; }
+
+/* ── L06: Micro Sparkle — opacity 0→0.7→0, scale 0.7→1.05→0.7, 2-5s ── */
+@keyframes bl-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.7); }
+  50%       { opacity: 0.7; transform: scale(1.05); }
+}
+.bl-sparkle { will-change: transform, opacity; }
+
+/* ── L07: Breathing Light — opacity 0.03→0.08→0.03, scale 1→1.015→1, 10s ── */
+@keyframes bl-breathe {
+  0%, 100% { opacity: 0.03; transform: scale(1); }
+  50%       { opacity: 0.08; transform: scale(1.015); }
+}
+.bl-breath {
+  animation: bl-breathe 10s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Legacy aliases kept for illustration sub-components */
+@keyframes bl-drift-1 { 0%,100%{transform:translate3d(0,0,0) scale(0.98);} 50%{transform:translate3d(20px,-15px,0) scale(1.03);} }
+@keyframes bl-drift-2 { 0%,100%{transform:translate3d(0,0,0) scale(1);} 50%{transform:translate3d(-25px,20px,0) scale(1.02);} }
+@keyframes bl-drift-3 { 0%,100%{transform:translate3d(0,0,0) scale(1.02);} 50%{transform:translate3d(15px,16px,0) scale(0.98);} }
+@keyframes bl-scale-breathe { 0%,100%{transform:scale(0.98);} 50%{transform:scale(1.03);} }
+@keyframes bl-light-sweep { 0%{transform:translate3d(-100%,0,0);opacity:0;} 10%{opacity:0.12;} 90%{opacity:0.12;} 100%{transform:translate3d(100%,0,0);opacity:0;} }
+.bl-animate-drift-1,.bl-animate-drift-2{will-change:transform;}
+.bl-animate-dust{will-change:transform,opacity;}
+.bl-animate-book-float{will-change:transform;}
+.bl-animate-cloud{will-change:transform;}
+.bl-animate-light-sweep{will-change:transform,opacity;}
+
+/* --------------------------------------------------
+   CUTE 2D BOOKLOOP HERO ILLUSTRATION ANIMATIONS
+   -------------------------------------------------- */
+@keyframes bl-cute-breathe {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -2px, 0) rotate(-0.5deg);
+  }
+}
+
+@keyframes bl-cute-head {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(1.2deg);
+  }
+}
+
+@keyframes bl-cute-book-tilt {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -2.5px, 0) rotate(1deg);
+  }
+}
+
+@keyframes bl-loop-dash {
+  0% {
+    stroke-dashoffset: 56;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bl-cute-sparkle {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.15);
+  }
+}
+
+.bl-anim-breathe {
+  animation: bl-cute-breathe 5.2s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: 50% 85%;
+}
+
+.bl-anim-head {
+  animation: bl-cute-head 6.5s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: 50% 90%;
+}
+
+.bl-anim-book-tilt {
+  animation: bl-cute-book-tilt 5.8s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.bl-anim-loop-dash {
+  animation: bl-loop-dash 7.5s linear infinite;
+}
+
+.bl-anim-sparkle {
+  animation: bl-cute-sparkle 3.8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+/* Floating decorative book */
+@keyframes bl-deco-book-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-5deg);
+  }
+  50% {
+    transform: translate3d(-4px, -8px, 0) rotate(2deg);
+  }
+}
+
+/* Tiny sparkle dot */
+@keyframes bl-tiny-sparkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
+}
+
+.bl-anim-deco-book {
+  animation: bl-deco-book-float 10s ease-in-out infinite;
+  will-change: transform;
+}
+
+.bl-anim-tiny-sparkle {
+  animation: bl-tiny-sparkle 5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* --------------------------------------------------
+   ACCESSIBILITY: prefers-reduced-motion
+   -------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .hero-animation,
-  .hero-animation *,
-  .bl-hero-anim,
-  .bl-hero-anim * {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Hero-only atmospheric background — keep static beautiful gradient */
+  .hero-bg-root,
+  .bl-gradient-flow,
+  .bl-breath,
+  .bl-cloud,
+  .bl-book-outline,
+  .bl-dust,
+  .bl-sparkle,
+  .bl-animate-drift-1,
+  .bl-animate-drift-2,
+  .bl-animate-drift-3,
+  .bl-animate-dust,
+  .bl-animate-book-float,
+  .bl-animate-cloud,
+  .bl-animate-light-sweep,
+  .bl-animate-float-1,
+  .bl-animate-float-2,
+  .bl-animate-float-3,
+  .bl-animate-float-4 {
     animation: none !important;
     transition: none !important;
+  }
+  .bl-gradient-flow { background-position: 0% 50% !important; }
+
+  /* Hero illustration animations */
+  .bl-anim-breathe,
+  .bl-anim-head,
+  .bl-anim-book-tilt,
+  .bl-anim-loop-dash,
+  .bl-anim-sparkle,
+  .bl-anim-deco-book,
+  .bl-anim-tiny-sparkle {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Hero-only: pause expensive animations when out of viewport ── */
+.hero-paused .bl-gradient-flow,
+.hero-paused .bl-breath,
+.hero-paused .bl-cloud,
+.hero-paused .bl-book-outline,
+.hero-paused .bl-dust,
+.hero-paused .bl-sparkle {
+  animation-play-state: paused !important;
+}
+
+/* --------------------------------------------------
+   RESPONSIVE: Mobile optimizations (hero-only)
+   Dust: desktop 20 / tablet 14 / mobile 8
+   Sparkle: desktop 6 / mobile 4
+   Glow C: hidden on mobile (already via Tailwind)
+   -------------------------------------------------- */
+@media (max-width: 1024px) and (min-width: 769px) {
+  [data-parallax="dust"]:nth-child(n+15) { display: none; }
+}
+@media (max-width: 768px) {
+  [data-parallax="dust"]:nth-child(n+9) { display: none; }
+  .bl-sparkle:nth-child(n+5) { display: none; }
+  /* Disable parallax on mobile/touch */
+  [data-parallax],
+  [data-parallax="glow"],
+  [data-parallax="cloud"],
+  [data-parallax="book"],
+  [data-parallax="dust"] {
+    transform: none !important;
+  }
+}
+@media (hover: none) {
+  [data-parallax],
+  [data-parallax="glow"],
+  [data-parallax="cloud"],
+  [data-parallax="book"],
+  [data-parallax="dust"] {
+    transform: none !important;
   }
 }

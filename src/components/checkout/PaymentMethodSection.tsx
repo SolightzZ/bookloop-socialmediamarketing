@@ -13,6 +13,7 @@ import {
   AccountBalanceWalletOutlined as WalletIcon,
   LocalAtmOutlined as CodIcon,
   CheckCircle as ActiveCheckIcon,
+  InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 import { PaymentMethod, PaymentStatus } from '../../types/order';
 import { PromptPayDemo } from './PromptPayDemo';
@@ -94,7 +95,7 @@ export const PaymentMethodSection: React.FC<PaymentMethodSectionProps> = ({
             3. วิธีการชำระเงิน
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            เลือกช่องทางชำระเงินที่ต้องการ (ระบบจำลอง Demo)
+            เลือกช่องทางชำระเงินที่ต้องการ
           </Typography>
         </Box>
       </Box>
@@ -158,8 +159,19 @@ export const PaymentMethodSection: React.FC<PaymentMethodSectionProps> = ({
                   </Typography>
 
                   {opt.note && (
-                    <Typography variant="caption" sx={{ color: '#D97706', mt: 0.5, display: 'block' }}>
-                      ℹ️ {opt.note}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#D97706',
+                        mt: 0.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <InfoIcon sx={{ fontSize: 14 }} />
+                      <span>{opt.note}</span>
                     </Typography>
                   )}
                 </Box>

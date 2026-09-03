@@ -155,6 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     authService.logout();
     setUser(null);
+    window.dispatchEvent(new Event('bookloop_cart_updated'));
+    window.dispatchEvent(new Event('bookloop_wishlist_updated'));
   }, []);
 
   const getCurrentUser = useCallback(async (): Promise<User | null> => {

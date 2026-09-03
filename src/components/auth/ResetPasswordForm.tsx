@@ -109,6 +109,17 @@ export const ResetPasswordForm: React.FC = () => {
 
   return (
     <Box component="form" onSubmit={handleReset} noValidate>
+      {/* Hidden username input for password manager accessibility compliance */}
+      <input
+        type="text"
+        name="username"
+        autoComplete="username"
+        value="user"
+        readOnly
+        style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
       {errors.general && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.875rem' }}>
           {errors.general}

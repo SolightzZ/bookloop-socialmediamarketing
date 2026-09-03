@@ -1,21 +1,33 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
-import HomePage from '../pages/HomePage';
-import BooksPage from '../pages/BooksPage';
-import BookDetailPage from '../pages/BookDetailPage';
-import SellPage from '../pages/SellPage';
-import CartPage from '../pages/CartPage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import ForgotPasswordPage from '../pages/ForgotPasswordPage';
-import ResetPasswordPage from '../pages/ResetPasswordPage';
-import AccountPage from '../pages/AccountPage';
-import CheckoutPage from '../pages/CheckoutPage';
-import OrderSuccessPage from '../pages/OrderSuccessPage';
-import OrderDetailPage from '../pages/OrderDetailPage';
+import { RequireAuth } from '../components/auth/RequireAuth';
 import { ProtectedRoute } from '../routes/ProtectedRoute';
 import { AppProviders } from './providers';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { PageLoadingSkeleton } from '../components/common/LoadingSkeleton';
+
+const HomePage = lazy(() => import('../pages/HomePage'));
+const BooksPage = lazy(() => import('../pages/BooksPage'));
+const BookDetailPage = lazy(() => import('../pages/BookDetailPage'));
+const SellPage = lazy(() => import('../pages/SellPage'));
+const CartPage = lazy(() => import('../pages/CartPage'));
+const LoginPage = lazy(() => import('../pages/LoginPage'));
+const RegisterPage = lazy(() => import('../pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
+const AccountPage = lazy(() => import('../pages/AccountPage'));
+const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
+const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage'));
+const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
+const SellerProfilePage = lazy(() => import('../pages/SellerProfilePage'));
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
+
+const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
+   <Suspense fallback={<PageLoadingSkeleton />}>
+      <Component />
+   </Suspense>
+);
 
 const githubPagesBasePath = '/bookloop-socialmediamarketing';
 const basename =
@@ -28,24 +40,47 @@ const router = createBrowserRouter([
    {
       path: '/',
       element: <AppLayout />,
+      errorElement: <ErrorBoundary />,
       children: [
-         { index: true, element: <HomePage /> },
-         { path: 'books', element: <BooksPage /> },
-         { path: 'books/:id', element: <BookDetailPage /> },
-         { path: 'sell', element: <SellPage /> },
-         { path: 'cart', element: <CartPage /> },
-         { path: 'checkout', element: <CheckoutPage /> },
-         { path: 'order/success', element: <OrderSuccessPage /> },
-         { path: 'orders/:orderId', element: <OrderDetailPage /> },
-         { path: 'login', element: <LoginPage /> },
-         { path: 'register', element: <RegisterPage /> },
-         { path: 'forgot-password', element: <ForgotPasswordPage /> },
-         { path: 'reset-password', element: <ResetPasswordPage /> },
+         { index: true, element: withSuspense(HomePage) },
+         { path: 'books', element: withSuspense(BooksPage) },
+         { path: 'books/:id', element: withSuspense(BookDetailPage) },
+         { path: 'seller/:sellerId', element: withSuspense(SellerProfilePage) },
+         { path: 'sell', element: withSuspense(SellPage) },
+         { path: 'cart', element: withSuspense(CartPage) },
+         {
+            path: 'checkout',
+            element: (
+               <RequireAuth>
+                  {withSuspense(CheckoutPage)}
+               </RequireAuth>
+            ),
+         },
+         {
+            path: 'order/success',
+            element: (
+               <RequireAuth>
+                  {withSuspense(OrderSuccessPage)}
+               </RequireAuth>
+            ),
+         },
+         {
+            path: 'orders/:orderId',
+            element: (
+               <RequireAuth>
+                  {withSuspense(OrderDetailPage)}
+               </RequireAuth>
+            ),
+         },
+         { path: 'login', element: withSuspense(LoginPage) },
+         { path: 'register', element: withSuspense(RegisterPage) },
+         { path: 'forgot-password', element: withSuspense(ForgotPasswordPage) },
+         { path: 'reset-password', element: withSuspense(ResetPasswordPage) },
          {
             path: 'account',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
@@ -53,7 +88,7 @@ const router = createBrowserRouter([
             path: 'account/profile',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
@@ -61,19 +96,19 @@ const router = createBrowserRouter([
             path: 'account/orders',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
          {
             path: 'account/orders/:orderId',
-            element: <OrderDetailPage />,
+            element: withSuspense(OrderDetailPage),
          },
          {
             path: 'account/wishlist',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
@@ -81,7 +116,7 @@ const router = createBrowserRouter([
             path: 'account/books',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
@@ -89,10 +124,11 @@ const router = createBrowserRouter([
             path: 'account/settings',
             element: (
                <ProtectedRoute>
-                  <AccountPage />
+                  {withSuspense(AccountPage)}
                </ProtectedRoute>
             ),
          },
+         { path: '*', element: withSuspense(NotFoundPage) },
       ],
    },
 ], { basename });

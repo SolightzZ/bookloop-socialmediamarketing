@@ -15,15 +15,24 @@ export const RelatedBooksSection: React.FC<RelatedBooksSectionProps> = ({ relate
 
   return (
     <Box sx={{ mb: 6 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3.5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F2D4A' }}>
           หนังสือที่คุณอาจสนใจ
         </Typography>
-        <Button onClick={() => navigate('/books')}>ดูทั้งหมด</Button>
+        <Button
+          onClick={() => navigate('/books')}
+          sx={{
+            color: '#1976D2',
+            fontWeight: 700,
+            '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
+          }}
+        >
+          ดูทั้งหมด
+        </Button>
       </Box>
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         {relatedBooks.map((relBook) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={relBook.id}>
+          <Grid size={{ xs: 6, sm: 6, md: 4 }} key={relBook.id}>
             <BookCard book={relBook} />
           </Grid>
         ))}

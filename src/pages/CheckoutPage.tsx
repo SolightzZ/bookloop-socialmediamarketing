@@ -53,6 +53,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; label: string; discount: number } | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -83,8 +84,13 @@ export default function CheckoutPage() {
   // Selected Shipping fee calculation
   const selectedShipping = SHIPPING_OPTIONS.find((s) => s.id === shippingMethodId) || SHIPPING_OPTIONS[0];
   const shippingFee = selectedShipping.price;
-  const discount = 0;
-  const finalTotal = subtotal + shippingFee - discount;
+  const promoDiscount = appliedPromo
+    ? appliedPromo.discount >= 1 && appliedPromo.discount <= 100
+      ? Math.round(subtotal * (appliedPromo.discount / 100))
+      : appliedPromo.discount
+    : 0;
+  const discount = promoDiscount;
+  const finalTotal = Math.max(0, subtotal + shippingFee - discount);
 
   const handleAddressChange = (field: keyof OrderShippingAddress, value: string) => {
     setAddress((prev) => ({ ...prev, [field]: value }));
@@ -133,6 +139,14 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmOrder = async () => {
+    if (isSubmitting) return;
+
+    if (!isAuthenticated || !user) {
+      showError('กรุณาเข้าสู่ระบบ', 'เซสชันของคุณหมดอายุ กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการ');
+      navigate('/login', { state: { from: '/checkout' } });
+      return;
+    }
+
     if (cart.length === 0) {
       showError('ไม่มีสินค้าในตะกร้า', 'กรุณาเลือกหนังสือลงตะกร้าก่อนดำเนินการชำระเงิน');
       navigate('/books');
@@ -152,7 +166,7 @@ export default function CheckoutPage() {
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
-        userId: user?.id || 'guest',
+        userId: user.id,
         items: cart.map((item) => ({
           bookId: item.id,
           title: item.title,
@@ -229,12 +243,12 @@ export default function CheckoutPage() {
   }
 
   return (
-    <Box sx={{ py: 5, bgcolor: '#F7F9FB', minHeight: '100vh' }}>
-      <Container maxWidth="lg">
+    <Box sx={{ py: { xs: 2.5, sm: 4, md: 5 }, bgcolor: '#F7F9FB', minHeight: '100vh' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Breadcrumbs */}
         <Breadcrumbs
           separator={<NextIcon fontSize="small" sx={{ color: '#94A3B8' }} />}
-          sx={{ mb: 3 }}
+          sx={{ mb: { xs: 2, sm: 3 } }}
         >
           <Link
             underline="hover"
@@ -261,10 +275,10 @@ export default function CheckoutPage() {
         <CheckoutStepper activeStep={4} />
 
         {/* 2-Column Responsive Layout */}
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 2.5, md: 4 }}>
           {/* Left Column: Form Steps */}
           <Grid size={{ xs: 12, md: 7.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2.5, sm: 3.5 } }}>
               {/* Step 1: Shipping Address */}
               <ShippingAddressSection
                 address={address}
@@ -318,6 +332,9 @@ export default function CheckoutPage() {
               savings={savings}
               isSubmitting={isSubmitting}
               onConfirmOrder={handleConfirmOrder}
+              appliedPromo={appliedPromo}
+              onApplyPromo={(d, label) => setAppliedPromo({ code: label.split(' ')[0] || 'PROMO', label, discount: d })}
+              onRemovePromo={() => setAppliedPromo(null)}
             />
           </Grid>
         </Grid>

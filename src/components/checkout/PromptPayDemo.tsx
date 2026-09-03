@@ -69,7 +69,7 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
     setTimeout(() => {
       setIsVerifying(false);
       onStatusChange('paid');
-      showSuccess('ชำระเงินสำเร็จ (Demo)', `ได้รับยอดชำระ ${formatCurrency(totalAmount)} เรียบร้อยแล้ว`);
+      showSuccess('ชำระเงินสำเร็จ', `ได้รับยอดชำระ ${formatCurrency(totalAmount)} เรียบร้อยแล้ว`);
     }, 1200);
   };
 
@@ -279,7 +279,7 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
         }}
       >
         <Typography variant="caption">
-          ชื่อบัญชี: <strong>BookLoop Social Platform (Demo)</strong>
+          ชื่อบัญชี: <strong>BookLoop Thailand</strong>
         </Typography>
         <Tooltip title="คัดลอก Biller ID">
           <IconButton size="small" onClick={copyBillerId}>
@@ -288,10 +288,10 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
         </Tooltip>
       </Box>
 
-      {/* Payment verification actions (Simulation) */}
+      {/* Payment verification actions */}
       <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid #E2E8F0' }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-          ⚡ ทดสอบระบบ Demo (คลิกเพื่อจำลองสถานะการชำระเงิน):
+          เมื่อสแกนชำระเงินผ่านแอปธนาคารเรียบร้อยแล้ว กดปุ่มด้านล่างเพื่อตรวจสอบ:
         </Typography>
 
         {isVerifying ? (
@@ -302,28 +302,17 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
             <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button
               variant="contained"
               color="success"
-              size="small"
+              size="medium"
               startIcon={<PaidIcon />}
               onClick={handleSimulatePaid}
               disabled={paymentStatus === 'paid'}
-              sx={{ borderRadius: 2, fontWeight: 700, px: 2 }}
+              sx={{ borderRadius: 2, fontWeight: 700, px: 3, py: 1 }}
             >
-              {paymentStatus === 'paid' ? 'ชำระเงินเรียบร้อยแล้ว' : 'ฉันชำระเงินแล้ว'}
-            </Button>
-
-            <Button
-              variant="outlined"
-              color="error"
-              size="small"
-              onClick={handleSimulateFailed}
-              disabled={paymentStatus === 'paid'}
-              sx={{ borderRadius: 2, fontSize: '0.75rem' }}
-            >
-              จำลองชำระเงินไม่สำเร็จ
+              {paymentStatus === 'paid' ? 'ชำระเงินเรียบร้อยแล้ว' : 'ฉันชำระเงินเรียบร้อยแล้ว'}
             </Button>
           </Box>
         )}

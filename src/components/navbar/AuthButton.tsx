@@ -1,57 +1,117 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@mui/material';
-import { Login as LoginIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button, CircularProgress } from '@mui/material';
+import { Login as LoginIcon, PersonAdd as RegisterIcon } from '@mui/icons-material';
 
 interface AuthButtonProps {
   fullWidth?: boolean;
-  variant?: 'contained' | 'outlined' | 'text';
   size?: 'small' | 'medium' | 'large';
   onClick?: () => void;
 }
 
 export const AuthButton: React.FC<AuthButtonProps> = ({
   fullWidth = false,
-  variant = 'outlined',
-  size = 'medium',
+  size = 'small',
   onClick,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [loading, setLoading] = useState(false);
+
+  const isLoginPage = location.pathname === '/login';
+  const label = isLoginPage ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+  const loadingLabel = 'กำลังเข้าสู่ระบบ...';
+  const ariaLabel = isLoginPage ? 'สมัครสมาชิก BookLoop' : 'เข้าสู่ระบบ BookLoop';
+  const Icon = isLoginPage ? RegisterIcon : LoginIcon;
 
   const handleClick = () => {
+    if (loading) return;
+    setLoading(true);
     if (onClick) {
       onClick();
     } else {
-      navigate('/login');
+      navigate(isLoginPage ? '/register' : '/login');
     }
   };
 
   return (
     <Button
-      variant={variant}
-      color="primary"
-      size={size}
+      component="button"
+      type="button"
+      variant="contained"
       fullWidth={fullWidth}
+      size={size}
+      disableElevation
+      disabled={loading}
       onClick={handleClick}
-      startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
-      aria-label="เข้าสู่ระบบ BookLoop"
+      aria-label={loading ? loadingLabel : ariaLabel}
+      aria-busy={loading || undefined}
+      tabIndex={0}
       sx={{
-        borderRadius: 2,
-        fontWeight: 700,
-        px: { xs: 1.5, sm: 2 },
-        py: { xs: 0.6, sm: 0.8 },
-        fontSize: { xs: '0.85rem', sm: '0.875rem' },
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 0.625,
+        height: 36,
+        px: 1.75,
+        py: 0,
+        borderRadius: '10px',
+        fontWeight: 600,
+        fontSize: '0.8125rem',
+        lineHeight: 1,
         whiteSpace: 'nowrap',
-        borderColor: 'primary.main',
-        color: variant === 'contained' ? '#FFFFFF' : 'primary.main',
-        bgcolor: variant === 'contained' ? 'primary.main' : 'transparent',
+        minWidth: 0,
+        flexShrink: 0,
+        textTransform: 'none',
+        letterSpacing: 0,
+        color: '#FFFFFF',
+        bgcolor: '#1976D2',
+        border: '1px solid #1565C0',
+        boxShadow: 'none',
+        cursor: loading ? 'default' : 'pointer',
         '&:hover': {
-          bgcolor: variant === 'contained' ? 'primary.dark' : 'rgba(15, 41, 66, 0.06)',
-          borderColor: 'primary.dark',
+          bgcolor: loading ? '#1976D2' : '#1565C0',
+          border: '1px solid #0D47A1',
+          boxShadow: loading ? 'none' : '0 2px 8px rgba(25, 118, 210, 0.3)',
+          transform: loading ? 'none' : 'translateY(-1px)',
         },
+        '&:active': {
+          bgcolor: '#0D47A1',
+          border: '1px solid #0D47A1',
+          boxShadow: 'none',
+          transform: 'translateY(0)',
+        },
+        '&:focus-visible': {
+          outline: '2px solid #1976D2',
+          outlineOffset: '2px',
+        },
+        '&.Mui-disabled': {
+          bgcolor: '#1976D2',
+          color: '#FFFFFF',
+          border: '1px solid #1565C0',
+          opacity: 0.8,
+        },
+        '& .MuiButton-startIcon': {
+          m: 0,
+          p: 0,
+          display: 'inline-flex',
+          alignItems: 'center',
+          '& > *': { fontSize: '17px !important' },
+        },
+        transition: 'all 0.18s ease',
       }}
     >
-      เข้าสู่ระบบ
+      {loading ? (
+        <>
+          <CircularProgress size={17} sx={{ color: '#FFFFFF', flexShrink: 0 }} />
+          {loadingLabel}
+        </>
+      ) : (
+        <>
+          <Icon sx={{ fontSize: '17px !important' }} />
+          {label}
+        </>
+      )}
     </Button>
   );
 };

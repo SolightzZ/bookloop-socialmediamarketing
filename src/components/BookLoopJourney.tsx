@@ -1,147 +1,223 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, Paper } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import {
-  ShoppingCart as BuyIcon,
-  MenuBook as ReadIcon,
-  Sell as SellIcon,
-  Share as ShareIcon,
-  Autorenew as LoopIcon,
+  ShoppingCartOutlined as BuyIcon,
+  MenuBookOutlined as ReadIcon,
+  LocalAtmOutlined as SellIcon,
+  ShareOutlined as PassOnIcon,
+  LoopOutlined as RepeatIcon,
+  Sync as LoopBadgeIcon,
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { AppContainer } from './common/Container';
+import { SectionHeader } from './common/SectionHeader';
+import { TimelineStep } from './home/TimelineStep';
 
-const steps = [
+const loopSteps = [
   {
-    step: '01',
-    title: 'ซื้อ (Buy)',
+    stepNumber: '01',
+    title: 'ซื้อ',
+    subtitle: '(Buy)',
     desc: 'เลือกซื้อหนังสือมือสองสภาพดีในราคาประหยัดกว่า 40-70%',
-    icon: BuyIcon,
-    color: '#102A43',
+    icon: <BuyIcon sx={{ fontSize: 24 }} />,
+    color: '#0F2D4A',
   },
   {
-    step: '02',
-    title: 'อ่าน (Read)',
+    stepNumber: '02',
+    title: 'อ่าน',
+    subtitle: '(Read)',
     desc: 'เพลิดเพลินกับเรื่องราว ความรู้ และแรงบันดาลใจจากเล่มโปรด',
-    icon: ReadIcon,
-    color: '#1769AA',
+    icon: <ReadIcon sx={{ fontSize: 24 }} />,
+    color: '#1976D2',
   },
   {
-    step: '03',
-    title: 'ขายต่อ (Resell)',
+    stepNumber: '03',
+    title: 'ขายต่อ',
+    subtitle: '(Resell)',
     desc: 'เมื่ออ่านจบแล้ว เปลี่ยนหนังสือบนชั้นให้กลายเป็นรายได้คืนกลับมา',
-    icon: SellIcon,
+    icon: <SellIcon sx={{ fontSize: 24 }} />,
     color: '#2E7D5B',
   },
   {
-    step: '04',
-    title: 'ส่งต่อ (Pass on)',
-    desc: 'ส่งต่อเรื่องราวและคุณค่าของหนังสือไปยังเจ้าของคนใหม่',
-    icon: ShareIcon,
+    stepNumber: '04',
+    title: 'ส่งต่อ',
+    subtitle: '(Pass on)',
+    desc: 'ส่งต่อเรื่องราวและคุณค่าของหนังสือไปยังเพื่อนนักอ่านคนใหม่',
+    icon: <PassOnIcon sx={{ fontSize: 24 }} />,
     color: '#B7791F',
   },
   {
-    step: '05',
-    title: 'อ่านต่อ (Loop & Repeat)',
+    stepNumber: '05',
+    title: 'อ่านต่อ',
+    subtitle: '(Loop & Repeat)',
     desc: 'เกิดเป็นวงจรการอ่านที่ไม่รู้จบ ลดการตัดต้นไม้และสร้างสังคมแห่งการแบ่งปัน',
-    icon: LoopIcon,
-    color: '#102A43',
+    icon: <RepeatIcon sx={{ fontSize: 24 }} />,
+    color: '#0F2D4A',
   },
 ];
 
 export const BookLoopJourney: React.FC = () => {
   return (
-    <Box sx={{ py: 10, bgcolor: 'background.default' }}>
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="overline"
+    <Box
+      component="section"
+      id="how-it-works"
+      aria-labelledby="how-bookloop-works-heading"
+      sx={{
+        py: { xs: 7, sm: 9, md: 12 },
+        bgcolor: '#F7F9FC',
+        borderTop: '1px solid #D9E2EC',
+        borderBottom: '1px solid #D9E2EC',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <AppContainer>
+        <SectionHeader
+          id="how-bookloop-works-heading"
+          eyebrow="HOW BOOKLOOP WORKS"
+          title="วงจรการอ่านที่ไม่สิ้นสุด"
+          subtitle="หนังสือทุกเล่มไม่ได้หยุดอยู่ที่คนคนเดียว แต่หมุนเวียนสร้างคุณค่าใหม่ได้ตลอดเวลาใน BookLoop"
+          align="center"
+        />
+
+        {/* DESKTOP TIMELINE (Visible on md and up) */}
+        <Box
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            position: 'relative',
+            mt: 6,
+            mb: 4,
+          }}
+        >
+          {/* Connecting Line Running Behind Nodes: 01 ──── 02 ──── 03 ──── 04 ──── 05 */}
+          <Box
+            aria-hidden="true"
             sx={{
-              color: 'secondary.main',
-              fontWeight: 'bold',
-              letterSpacing: 1.5,
-              display: 'block',
+              position: 'absolute',
+              top: 28,
+              left: '10%',
+              right: '10%',
+              height: 3,
+              background: 'linear-gradient(90deg, #0F2D4A 0%, #1976D2 25%, #2E7D5B 50%, #B7791F 75%, #0F2D4A 100%)',
+              zIndex: 1,
+              borderRadius: 2,
+            }}
+          />
+
+          {/* Steps Container */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              position: 'relative',
+              zIndex: 2,
             }}
           >
-            HOW BOOKLOOP WORKS
-          </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1.5 }}>
-            วงจรการอ่านที่ไม่สิ้นสุด
-          </Typography>
-          <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: 650, mx: 'auto', fontWeight: 'normal' }}>
-            หนังสือทุกเล่มไม่ได้หยุดอยู่ที่คนคนเดียว แต่หมุนเวียนสร้างคุณค่าใหม่ได้ตลอดเวลา
-          </Typography>
+            {loopSteps.map((item, index) => (
+              <TimelineStep
+                key={item.stepNumber}
+                stepNumber={item.stepNumber}
+                title={item.title}
+                subtitle={item.subtitle}
+                desc={item.desc}
+                icon={item.icon}
+                color={item.color}
+                isLast={index === loopSteps.length - 1}
+                isDesktop={true}
+              />
+            ))}
+          </Box>
+
+          {/* Visual Continuous Loop Return Curve */}
+          <Box
+            sx={{
+              mt: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1.5,
+              py: 1.5,
+              px: 3,
+              borderRadius: 50,
+              bgcolor: '#FFFFFF',
+              border: '1px solid #D9E2EC',
+              maxWidth: 480,
+              mx: 'auto',
+              boxShadow: '0 4px 12px rgba(15, 45, 74, 0.04)',
+            }}
+          >
+            <Box
+              sx={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                bgcolor: 'rgba(25, 118, 210, 0.1)',
+                color: '#1976D2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LoopBadgeIcon sx={{ fontSize: 16 }} />
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: '#0F2D4A',
+                fontSize: '0.85rem',
+                letterSpacing: '0.01em',
+              }}
+            >
+              วงจรหมุนเวียนต่อเนื่อง: อ่านต่อ → ส่งต่อ → ค้นพบเล่มใหม่
+            </Typography>
+          </Box>
         </Box>
 
-        <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
-          {steps.map((item, index) => {
-            const IconComponent = item.icon;
-            return (
-              <Grid size={{ xs: 12, sm: 6, md: 2.4 }} key={item.step}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                >
-                  <Paper
-                    sx={{
-                      p: 3,
-                      height: '100%',
-                      textAlign: 'center',
-                      borderRadius: 3,
-                      position: 'relative',
-                      border: '1px solid #D9E2EC',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      transition: '0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 8px 20px rgba(16, 42, 67, 0.08)',
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '50%',
-                        bgcolor: `${item.color}15`,
-                        color: item.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mb: 2,
-                      }}
-                    >
-                      <IconComponent sx={{ fontSize: 28 }} />
-                    </Box>
+        {/* MOBILE & TABLET VERTICAL TIMELINE (Visible on xs & sm) */}
+        <Box
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            maxWidth: 480,
+            mx: 'auto',
+            mt: 4,
+          }}
+        >
+          {loopSteps.map((item, index) => (
+            <TimelineStep
+              key={item.stepNumber}
+              stepNumber={item.stepNumber}
+              title={item.title}
+              subtitle={item.subtitle}
+              desc={item.desc}
+              icon={item.icon}
+              color={item.color}
+              isLast={index === loopSteps.length - 1}
+              isDesktop={false}
+            />
+          ))}
 
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 'bold',
-                        color: 'text.secondary',
-                        letterSpacing: 1,
-                        display: 'block',
-                      }}
-                    >
-                      STEP {item.step}
-                    </Typography>
-
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
-                      {item.title}
-                    </Typography>
-
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                      {item.desc}
-                    </Typography>
-                  </Paper>
-                </motion.div>
-              </Grid>
-            );
-          })}
-        </Grid>
-      </Container>
+          {/* Mobile Loop Return Indicator */}
+          <Box
+            sx={{
+              mt: 2,
+              ml: 6,
+              p: 2,
+              borderRadius: 2.5,
+              bgcolor: '#FFFFFF',
+              border: '1px solid #D9E2EC',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <LoopBadgeIcon sx={{ color: '#1976D2', fontSize: 20 }} />
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F2D4A', fontSize: '0.8rem' }}>
+              วนกลับสู่การอ่านเล่มใหม่ สร้างวงจรที่ไม่สิ้นสุด
+            </Typography>
+          </Box>
+        </Box>
+      </AppContainer>
     </Box>
   );
 };

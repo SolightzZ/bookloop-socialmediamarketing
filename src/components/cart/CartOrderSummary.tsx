@@ -30,12 +30,13 @@ export const CartOrderSummary: React.FC<CartOrderSummaryProps> = ({
 
   return (
     <Paper
+      elevation={0}
       sx={{
-        p: 3.5,
+        p: { xs: 2.5, sm: 3.5 },
         borderRadius: 3,
         border: '1px solid #D9E2EC',
         bgcolor: '#FFFFFF',
-        position: 'sticky',
+        position: { xs: 'static', md: 'sticky' },
         top: 90,
       }}
     >

@@ -4,9 +4,10 @@ import { Box } from '@mui/material';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { trackEvent } from '../utils/analytics';
-import { AppNavbar } from '../components/layout/AppNavbar';
+import { Header } from '../components/layout/Header';
 import { AppMobileDrawer } from '../components/layout/AppMobileDrawer';
-import { AppFooter } from '../components/layout/AppFooter';
+import { MobileBottomNav } from '../components/layout/MobileBottomNav';
+import { Footer } from '../components/layout/Footer';
 
 export const AppLayout: React.FC = () => {
    const { cartCount } = useCart();
@@ -35,7 +36,7 @@ export const AppLayout: React.FC = () => {
 
    return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-         <AppNavbar
+         <Header
             cartCount={cartCount}
             wishlistCount={wishlist.length}
             searchQuery={searchQuery}
@@ -50,7 +51,13 @@ export const AppLayout: React.FC = () => {
             <Outlet />
          </Box>
 
-         <AppFooter />
+          <Footer />
+
+         {/* Mobile Bottom Navigation */}
+         <MobileBottomNav />
+
+         {/* Spacer for mobile bottom nav */}
+         <Box sx={{ display: { xs: 'block', md: 'none' }, height: 64, flexShrink: 0 }} />
       </Box>
    );
 };

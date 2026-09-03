@@ -59,7 +59,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
     setNewName('');
 
     trackEvent('review_submit_demo', { bookTitle, rating: newRating });
-    showSuccess('ส่งความคิดเห็นแบบ Demo สำเร็จ', 'ขอบคุณสำหรับรีวิวส่งต่อความประทับใจให้กับชุมชน');
+    showSuccess('ส่งความคิดเห็นสำเร็จ', 'ขอบคุณสำหรับรีวิวส่งต่อความประทับใจให้กับชุมชน');
   };
 
   return (
@@ -85,7 +85,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
           onClick={() => setOpenModal(true)}
           sx={{ borderRadius: 2 }}
         >
-          เขียนรีวิว (Demo)
+          เขียนรีวิว
         </Button>
       </Box>
 
@@ -143,7 +143,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
 
       {/* Dialog for Review */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 'bold' }}>เขียนรีวิวหนังสือ (Demo Form)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>เขียนรีวิวหนังสือ</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             หนังสือ: <strong>{bookTitle}</strong>
@@ -192,7 +192,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
             variant="contained"
             disabled={!newComment.trim() || !newName.trim()}
           >
-            ส่งรีวิว (Demo)
+            ส่งรีวิว
           </Button>
         </DialogActions>
       </Dialog>

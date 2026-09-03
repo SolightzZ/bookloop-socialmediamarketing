@@ -24,16 +24,20 @@ export default function LoginPage() {
       title="เข้าสู่ระบบ BookLoop"
       subtitle="ยินดีต้อนรับกลับสู่อาณาจักรหนังสือและการแบ่งปัน"
       footerText={
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+        <Typography variant="body2" sx={{ color: '#627D98', fontSize: '0.875rem' }}>
           ยังไม่มีบัญชี BookLoop?{' '}
           <Link
             component={RouterLink}
             to={`/register${location.search}`}
             sx={{
-              color: 'secondary.main',
+              color: '#1976D2',
               fontWeight: 700,
               textDecoration: 'none',
               '&:hover': { textDecoration: 'underline' },
+              '&:focus-visible': {
+                outline: '2px solid #1976D2',
+                outlineOffset: '2px',
+              },
             }}
           >
             สมัครสมาชิกใหม่

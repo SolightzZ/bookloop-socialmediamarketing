@@ -18,17 +18,29 @@ import { SellerCard } from '../components/SellerCard';
 import { ReviewList } from '../components/ReviewList';
 import { showConfirm, showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
-import { BookImageGallery } from '../components/bookdetail/BookImageGallery';
+import { BookGallery } from '../components/bookdetail/BookGallery';
 import { BookPurchaseBox } from '../components/bookdetail/BookPurchaseBox';
 import { BookStoryCard } from '../components/bookdetail/BookStoryCard';
 import { BookSpecsTable } from '../components/bookdetail/BookSpecsTable';
 import { RelatedBooksSection } from '../components/bookdetail/RelatedBooksSection';
 
+import { useAuth } from '../hooks/useAuth';
+import { LoginRequiredDialog } from '../components/auth/LoginRequiredDialog';
+import { savePendingAction, PendingAction } from '../types/authGate';
+import { ErrorState } from '../components/common/ErrorState';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import { PriceAlertButton } from '../components/bookdetail/PriceAlertButton';
+
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const { user } = useAuth();
+  const { trackView } = useRecentlyViewed();
+
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [authGateMode, setAuthGateMode] = useState<'add-to-cart' | 'buy-now'>('add-to-cart');
 
   const book = books.find((b) => b.id === id);
   const [selectedImg, setSelectedImg] = useState<string>(book?.images?.[0] || book?.cover || '');
@@ -37,27 +49,32 @@ export default function BookDetailPage() {
     if (book) {
       setSelectedImg(book.images?.[0] || book.cover);
       window.scrollTo(0, 0);
-      trackEvent('view_product', { bookId: book.id, title: book.title, price: book.price });
+      trackEvent('view_product', {
+        bookId: book.id,
+        title: book.title,
+        price: book.price,
+      });
     }
   }, [book, id]);
 
   if (!book) {
     return (
-      <Container maxWidth="md" sx={{ py: 12, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          ไม่พบหนังสือที่คุณต้องการ
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
-          หนังสือเล่มนี้อาจถูกส่งต่อหรือรหัสสินค้าไม่ถูกต้อง
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/books')}
-          sx={{ mt: 2 }}
-        >
-          กลับไปเลือกซื้อหนังสือ
-        </Button>
+      <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 3 } }}>
+        <ErrorState
+          title="ไม่พบหนังสือที่คุณต้องการ"
+          description="หนังสือเล่มนี้อาจถูกส่งต่อไปยังเจ้าของใหม่แล้ว หรือรหัสหนังสือไม่ถูกต้องในระบบ"
+          actionText="ลองค้นหาใหม่"
+          onRetry={() => navigate('/books')}
+          secondaryAction={
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/')}
+              sx={{ borderRadius: 2, px: 3, fontWeight: 700, borderColor: '#CBD5E1', color: '#0F2D4A' }}
+            >
+              กลับสู่หน้าหลัก
+            </Button>
+          }
+        />
       </Container>
     );
   }
@@ -70,17 +87,19 @@ export default function BookDetailPage() {
 
   const handleBuyNow = () => {
     trackEvent('begin_checkout', { bookId: book.id, title: book.title, price: book.price });
-    showConfirm(
-      'ยืนยันการสั่งซื้อแบบ Demo หรือไม่?',
-      `หนังสือ "${book.title}" ยอดชำระ ฿${book.price} (นี่คือการจำลองการทำงาน ไม่มีการเรียกเก็บเงินจริง)`
-    ).then((result) => {
-      if (result.isConfirmed) {
-        trackEvent('purchase_demo', { bookId: book.id, title: book.title, price: book.price });
-        showSuccess(
-          'สั่งซื้อแบบ Demo สำเร็จ!',
-          'จำลองการสร้างหมายเลขคำสั่งซื้อ: #BK-' + Math.floor(100000 + Math.random() * 900000)
-        );
-      }
+    addToCart(book);
+    navigate('/checkout');
+  };
+
+  const handleModalLogin = () => {
+    const action: PendingAction = { type: authGateMode, bookId: book.id };
+    savePendingAction(action);
+    setLoginModalOpen(false);
+    navigate(`/login?redirect=${encodeURIComponent(`/books/${book.id}`)}`, {
+      state: {
+        from: `/books/${book.id}`,
+        pendingAction: action,
+      },
     });
   };
 
@@ -105,34 +124,65 @@ export default function BookDetailPage() {
     .slice(0, 3);
 
   return (
-    <Box sx={{ py: 6, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Container maxWidth="lg">
-        {/* Breadcrumbs */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 4 }}>
-          <Link component={RouterLink} to="/" underline="hover" color="inherit">
-            หน้าแรก
+    <Box sx={{ py: { xs: 3, sm: 4, md: 6 }, bgcolor: '#F7F9FC', minHeight: '100vh', overflowX: 'hidden' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* Breadcrumb: Desktop & Mobile intelligent truncation */}
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{
+            mb: { xs: 2, sm: 3, md: 4 },
+            fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+            '& .MuiBreadcrumbs-separator': {
+              color: '#CBD5E1',
+            },
+          }}
+        >
+          <Link
+            component={RouterLink}
+            to="/"
+            underline="hover"
+            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
+          >
+            หน้าหลัก
           </Link>
-          <Link component={RouterLink} to="/books" underline="hover" color="inherit">
+          <Link
+            component={RouterLink}
+            to="/books"
+            underline="hover"
+            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
+          >
             หนังสือทั้งหมด
           </Link>
           <Link
             component={RouterLink}
             to={`/books?category=${encodeURIComponent(book.category)}`}
             underline="hover"
-            color="inherit"
+            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
           >
             {book.category}
           </Link>
-          <Typography sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+          <Typography
+            component="span"
+            sx={{
+              color: '#0F2D4A',
+              fontWeight: 700,
+              maxWidth: { xs: 130, sm: 240, md: 380, lg: 500 },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'inline-block',
+              verticalAlign: 'bottom',
+            }}
+          >
             {book.title}
           </Typography>
         </Breadcrumbs>
 
-        {/* Main Product Section */}
-        <Grid container spacing={5} sx={{ mb: 8 }}>
+        {/* Main Product Section: Gallery (Left) | Product Info (Right) */}
+        <Grid container spacing={{ xs: 2.5, sm: 3, md: 5 }} sx={{ mb: { xs: 4, md: 8 } }}>
           {/* Left: Images Gallery */}
           <Grid size={{ xs: 12, md: 5 }}>
-            <BookImageGallery
+            <BookGallery
               title={book.title}
               images={book.images}
               selectedImg={selectedImg}
@@ -162,7 +212,7 @@ export default function BookDetailPage() {
         )}
 
         {/* Specifications & Seller Section */}
-        <Grid container spacing={4} sx={{ mb: 8 }}>
+        <Grid container spacing={{ xs: 2.5, md: 4 }} sx={{ mb: { xs: 4, md: 8 } }}>
           <Grid size={{ xs: 12, md: 7 }}>
             <BookSpecsTable book={book} />
           </Grid>
@@ -172,8 +222,8 @@ export default function BookDetailPage() {
         </Grid>
 
         {/* Reviews Section */}
-        <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 3, mb: 8, border: '1px solid #D9E2EC', bgcolor: '#FFFFFF' }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 3 }}>
+        <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 3, mb: 8, border: '1px solid #D9E2EC', bgcolor: '#FFFFFF', boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F2D4A', mb: 3 }}>
             รีวิวจากผู้อ่านและผู้ซื้อในชุมชน
           </Typography>
           <ReviewList
@@ -187,6 +237,14 @@ export default function BookDetailPage() {
         {/* Related Books */}
         <RelatedBooksSection relatedBooks={relatedBooks} />
       </Container>
+
+      {/* Mandatory Authentication Gate Modal */}
+      <LoginRequiredDialog
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLogin={handleModalLogin}
+        mode={authGateMode}
+      />
     </Box>
   );
 }

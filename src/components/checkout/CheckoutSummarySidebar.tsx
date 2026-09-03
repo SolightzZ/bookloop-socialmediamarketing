@@ -15,9 +15,12 @@ import {
   ShieldOutlined as ShieldIcon,
   CheckCircle as ConfirmIcon,
   Recycling as EcoIcon,
+  LockOutlined as LockIcon,
 } from '@mui/icons-material';
 import { CartItem } from '../../hooks/useCart';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { SafeImage } from '../common/SafeImage';
+import { PromoCodeInput } from './PromoCodeInput';
 
 interface CheckoutSummarySidebarProps {
   items: CartItem[];
@@ -28,6 +31,9 @@ interface CheckoutSummarySidebarProps {
   savings: number;
   isSubmitting: boolean;
   onConfirmOrder: () => void;
+  appliedPromo: { code: string; label: string; discount: number } | null;
+  onApplyPromo: (discount: number, label: string) => void;
+  onRemovePromo: () => void;
 }
 
 export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
@@ -39,6 +45,9 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
   savings,
   isSubmitting,
   onConfirmOrder,
+  appliedPromo,
+  onApplyPromo,
+  onRemovePromo,
 }) => {
   const [isItemsExpanded, setIsItemsExpanded] = useState<boolean>(true);
   const totalCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -100,19 +109,15 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
                 gap: 1.5,
               }}
             >
-              <Box
-                component="img"
-                src={item.cover}
-                alt={item.title}
-                sx={{
-                  width: 44,
-                  height: 60,
-                  objectFit: 'cover',
-                  borderRadius: 1.5,
-                  border: '1px solid #E2E8F0',
-                  flexShrink: 0,
-                }}
-              />
+              <Box sx={{ width: 44, height: 60, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden' }}>
+                <SafeImage
+                  src={item.cover}
+                  alt={item.title}
+                  fallbackTitle={item.title}
+                  objectFit="cover"
+                  borderRadius={6}
+                />
+              </Box>
               <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                 <Typography
                   variant="body2"
@@ -138,6 +143,17 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
           ))}
         </Box>
       </Collapse>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* Promo Code Input */}
+      <Box sx={{ mb: 2 }}>
+        <PromoCodeInput
+          appliedPromo={appliedPromo}
+          onApply={onApplyPromo}
+          onRemove={onRemovePromo}
+        />
+      </Box>
 
       <Divider sx={{ my: 2 }} />
 
@@ -211,21 +227,47 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
         onClick={onConfirmOrder}
         startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <ConfirmIcon />}
         sx={{
-          py: 1.6,
-          fontSize: '1.05rem',
-          fontWeight: 700,
+          py: 1.8,
+          fontSize: '1.1rem',
+          fontWeight: 800,
           borderRadius: 2.5,
-          mb: 2,
+          mb: 1.5,
+          bgcolor: '#1976D2',
+          boxShadow: '0 4px 14px rgba(25, 118, 210, 0.35)',
+          textTransform: 'none',
+          '&:hover': {
+            bgcolor: '#1565C0',
+          },
+          '&:disabled': {
+            bgcolor: '#CBD5E1',
+            color: '#94A3B8',
+          },
         }}
       >
         {isSubmitting ? 'กำลังสร้างคำสั่งซื้อ...' : 'ยืนยันการสั่งซื้อ'}
       </Button>
 
+      <Typography
+        variant="caption"
+        sx={{
+          textAlign: 'center',
+          color: '#64748B',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.6,
+          mb: 2,
+        }}
+      >
+        <LockIcon sx={{ fontSize: 14, color: '#16A34A' }} />
+        <span>การสั่งซื้อปลอดภัย ข้อมูลของคุณได้รับการปกป้อง 100%</span>
+      </Typography>
+
       {/* Trust & Eco Badges */}
       <Box sx={{ pt: 2, borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
           <ShieldIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-          <Typography variant="caption">ระบบจำลองคำสั่งซื้อปลอดภัย 100%</Typography>
+          <Typography variant="caption">รับประกันการซื้อขายปลอดภัย 100%</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
           <EcoIcon sx={{ fontSize: 16, color: 'success.main' }} />

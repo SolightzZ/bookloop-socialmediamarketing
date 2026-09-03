@@ -9,8 +9,6 @@ import {
 } from '@mui/material';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
-import { authService } from '../services/authService';
-import { formatCurrency } from '../utils/formatCurrency';
 import { showConfirm, showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { CartEmptyState } from '../components/cart/CartEmptyState';
@@ -19,7 +17,7 @@ import { CartOrderSummary } from '../components/cart/CartOrderSummary';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, subtotal, savings, cartCount } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,15 +48,31 @@ export default function CartPage() {
   }
 
   return (
-    <Box sx={{ py: 6, bgcolor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ py: { xs: 3, sm: 4.5, md: 6 }, bgcolor: 'background.default', minHeight: '100vh' }}>
       <Container maxWidth="lg">
         {/* Header Title */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1.5,
+            mb: { xs: 3, md: 4 },
+          }}
+        >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                color: 'primary.main',
+                fontSize: { xs: '1.45rem', sm: '1.85rem', md: '2.15rem' },
+              }}
+            >
               ตะกร้าสินค้าของคุณ
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
               คุณมีหนังสือ {cartCount} เล่มในตะกร้า
             </Typography>
           </Box>
@@ -66,7 +80,11 @@ export default function CartPage() {
             size="small"
             color="error"
             onClick={handleClearCart}
-            sx={{ fontSize: '0.85rem' }}
+            sx={{
+              fontSize: '0.825rem',
+              fontWeight: 600,
+              alignSelf: { xs: 'flex-end', sm: 'auto' },
+            }}
           >
             ล้างตะกร้าทั้งหมด
           </Button>

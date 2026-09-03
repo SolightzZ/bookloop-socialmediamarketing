@@ -16,6 +16,7 @@ import {
   ArrowBack as BackIcon,
   CheckCircleOutlined as SuccessIcon,
   Send as SendIcon,
+  BoltRounded as BoltIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -94,8 +95,19 @@ export const ForgotPasswordForm: React.FC = () => {
               textAlign: 'left',
             }}
           >
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#166534', display: 'block', mb: 0.5 }}>
-              ⚡ ทางลัดสำหรับการทดสอบระบบ (Demo Simulation):
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: '#166534',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mb: 0.5,
+              }}
+            >
+              <BoltIcon sx={{ fontSize: 16 }} />
+              <span>ทางลัดสำหรับการทดสอบระบบ (Demo Simulation):</span>
             </Typography>
             <Typography variant="caption" sx={{ color: '#15803D', display: 'block', mb: 1.5 }}>
               เนื่องจากเป็นโหมดตัวอย่าง คุณสามารถกดปุ่มด้านล่างเพื่อไปยังหน้าตั้งรหัสผ่านใหม่ได้ทันที

@@ -20,9 +20,9 @@ export const SocialLogin: React.FC<SocialLoginProps> = ({
       variant="outlined"
       onClick={onGoogleClick}
       disabled={disabled || isLoading}
-      aria-label={text}
+      aria-label={isLoading ? 'กำลังเชื่อมต่อ...' : text}
       sx={{
-        py: 1.2,
+        py: 1.25,
         px: 2,
         borderRadius: 2,
         borderColor: '#CBD5E1',
@@ -41,10 +41,17 @@ export const SocialLogin: React.FC<SocialLoginProps> = ({
           borderColor: '#94A3B8',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
         },
+        '&:focus-visible': {
+          outline: '2px solid #1976D2',
+          outlineOffset: '2px',
+        },
       }}
     >
       {isLoading ? (
-        <CircularProgress size={20} sx={{ color: 'text.secondary' }} />
+        <>
+          <CircularProgress size={18} sx={{ color: '#627D98' }} />
+          <span>กำลังเชื่อมต่อ...</span>
+        </>
       ) : (
         <>
           <Box
