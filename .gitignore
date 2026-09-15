@@ -14,3 +14,5 @@ src_backend/data/users.json
 src_backend/data/tokens.json
 src_backend/email/subscribers.txt
 src_backend/images/generated/
+skills-lock.json
+package-lock.json
