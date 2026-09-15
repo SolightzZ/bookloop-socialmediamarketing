@@ -96,6 +96,11 @@ export default function AccountPage() {
   const [notifyPromo, setNotifyPromo] = useState(false);
   const [notifyBookUpdates, setNotifyBookUpdates] = useState(true);
 
+  // Newsletter Subscribe State
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+
   // Seller Listing Management State
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [editPriceInput, setEditPriceInput] = useState<string>('');
@@ -244,6 +249,31 @@ export default function AccountPage() {
       setPasswordError(err.message || 'รหัสผ่านปัจจุบันไม่ถูกต้อง');
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleSubscribeNewsletter = async () => {
+    setIsSubscribing(true);
+    setSubscribeMessage('');
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user?.email }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setIsSubscribed(true);
+        setSubscribeMessage('สมัครสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ');
+        showSuccess('สมัครสำเร็จ', 'ส่งอีเมลต้อนรับไปยังกล่องจดหมายของคุณแล้ว');
+      } else {
+        setSubscribeMessage(result.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch {
+      setSubscribeMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+    } finally {
+      setIsSubscribing(false);
     }
   };
 
@@ -1205,6 +1235,51 @@ export default function AccountPage() {
                         }
                       />
                     </Stack>
+                  </Paper>
+
+                  {/* Newsletter Subscribe Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2.5,
+                      border: '1px solid #E2E8F0',
+                      bgcolor: '#FFFFFF',
+                      mb: 3,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                        📰 ติดตามข่าวสาร BookLoop
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                      รับข่าวสาร หนังสือแนะนำ และโปรโมชั่นพิเศษจาก BookLoop ทางอีเมล
+                    </Typography>
+
+                    {isSubscribed ? (
+                      <Alert severity="success" sx={{ borderRadius: 2 }}>
+                        ✅ สมัครรับข่าวสารแล้ว — กรุณาตรวจสอบอีเมลของคุณ
+                      </Alert>
+                    ) : (
+                      <Box>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          disabled={isSubscribing}
+                          startIcon={isSubscribing ? <CircularProgress size={18} color="inherit" /> : undefined}
+                          onClick={handleSubscribeNewsletter}
+                          sx={{ borderRadius: 2, fontWeight: 700 }}
+                        >
+                          {isSubscribing ? 'กำลังสมัคร...' : 'สมัครรับข่าวสาร'}
+                        </Button>
+                        {subscribeMessage && (
+                          <Alert severity={subscribeMessage.includes('สำเร็จ') ? 'success' : 'error'} sx={{ mt: 1.5, borderRadius: 2 }}>
+                            {subscribeMessage}
+                          </Alert>
+                        )}
+                      </Box>
+                    )}
                   </Paper>
 
                   {/* Logout Button */}

@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# PHP Backend
+src_backend/vendor/
+src_backend/.env
+src_backend/data/users.json
+src_backend/data/tokens.json
+src_backend/email/subscribers.txt
+src_backend/images/generated/

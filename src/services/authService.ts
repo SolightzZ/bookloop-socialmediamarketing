@@ -1,4 +1,5 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
+import { apiClient } from './apiClient';
 
 // Helper to hash password with Web Crypto SHA-256
 async function hashPassword(password: string): Promise<string> {
@@ -239,7 +240,25 @@ class AuthService {
   }
 
   public async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    // Artificial delay for realistic UI feedback
+    try {
+      const result = await apiClient.post<{ success: boolean; user: User; token: string }>(
+        'auth_login.php',
+        { email, password },
+      );
+
+      localStorage.setItem(
+        SESSION_TOKEN_KEY,
+        JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }),
+      );
+
+      return { user: result.user, token: result.token };
+    } catch {
+      // Fallback to localStorage if PHP API is unavailable
+      return this.loginLocal(email, password);
+    }
+  }
+
+  private async loginLocal(email: string, password: string): Promise<{ user: User; token: string }> {
     await new Promise((resolve) => setTimeout(resolve, 450));
 
     const cleanEmail = email.trim().toLowerCase();
@@ -247,12 +266,10 @@ class AuthService {
     const candidate = accounts.find((acc) => acc.user.email.toLowerCase() === cleanEmail);
 
     if (!candidate) {
-      // Safe error response - do not reveal specific details
       throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
     }
 
     const hashedInput = await hashPassword(password);
-    // Support either calculated hash match or demo account hash
     const isMatched =
       candidate.passwordHash === hashedInput ||
       (password === 'password123' && candidate.passwordHash === INITIAL_DEMO_USERS[0].passwordHash);
@@ -264,10 +281,7 @@ class AuthService {
     const token = `bl_jwt_${candidate.user.id}_${Date.now()}`;
     localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token, userId: candidate.user.id, expiresAt: Date.now() + 86400000 * 7 }));
 
-    return {
-      user: candidate.user,
-      token,
-    };
+    return { user: candidate.user, token };
   }
 
   public async loginWithGoogle(): Promise<{ user: User; token: string }> {
@@ -307,6 +321,25 @@ class AuthService {
   }
 
   public async register(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
+    try {
+      const result = await apiClient.post<{ success: boolean; user: User; token: string }>(
+        'auth_register.php',
+        { name, email, password },
+      );
+
+      localStorage.setItem(
+        SESSION_TOKEN_KEY,
+        JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }),
+      );
+
+      return { user: result.user, token: result.token };
+    } catch {
+      // Fallback to localStorage if PHP API is unavailable
+      return this.registerLocal(name, email, password);
+    }
+  }
+
+  private async registerLocal(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
     await new Promise((resolve) => setTimeout(resolve, 550));
 
     const cleanEmail = email.trim().toLowerCase();
@@ -339,31 +372,47 @@ class AuthService {
       bio: 'สมาชิกรักการอ่านแห่ง BookLoop',
     };
 
-    accounts.push({
-      user: newUser,
-      passwordHash,
-    });
-
+    accounts.push({ user: newUser, passwordHash });
     this.saveStoredAccounts(accounts);
 
-    // Initialize user data
-    this.saveUserData(userId, {
-      cart: [],
-      wishlist: [],
-      orders: [],
-      listedBooks: [],
-    });
+    this.saveUserData(userId, { cart: [], wishlist: [], orders: [], listedBooks: [] });
 
     const token = `bl_jwt_${userId}_${Date.now()}`;
     localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token, userId, expiresAt: Date.now() + 86400000 * 7 }));
 
-    return {
-      user: newUser,
-      token,
-    };
+    return { user: newUser, token };
   }
 
   public getCurrentUser(): User | null {
+    try {
+      const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (!rawSession) return null;
+
+      const session = JSON.parse(rawSession);
+      if (!session || !session.userId || Date.now() > session.expiresAt) {
+        return null;
+      }
+
+      // Try PHP API first
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5173/src_backend/api'}/auth_me.php`, false);
+      xhr.setRequestHeader('Authorization', `Bearer ${session.token}`);
+      xhr.send();
+
+      if (xhr.status === 200) {
+        const result = JSON.parse(xhr.responseText);
+        if (result.success && result.user) {
+          return result.user;
+        }
+      }
+    } catch {
+      // Fallback to localStorage
+    }
+
+    return this.getCurrentUserLocal();
+  }
+
+  private getCurrentUserLocal(): User | null {
     try {
       const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
       if (!rawSession) return null;
@@ -392,12 +441,16 @@ class AuthService {
         return null;
       }
 
-      const accounts = this.getStoredAccounts();
-      const matched = accounts.find((acc) => acc.user.id === session.userId);
-      return matched ? matched.user : null;
+      const result = await apiClient.get<{ success: boolean; user: User }>('auth_me.php');
+
+      if (result.success && result.user) {
+        return result.user;
+      }
     } catch {
-      return null;
+      // Fallback to localStorage
     }
+
+    return this.getCurrentUserLocal();
   }
 
   public logout(): void {
@@ -409,6 +462,30 @@ class AuthService {
   }
 
   public async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
+    try {
+      const result = await apiClient.post<{ success: boolean; user: User }>(
+        'auth_update_profile.php',
+        updates,
+      );
+
+      if (result.success && result.user) {
+        // Also update localStorage for offline fallback
+        const accounts = this.getStoredAccounts();
+        const index = accounts.findIndex((acc) => acc.user.id === userId);
+        if (index !== -1) {
+          accounts[index].user = { ...accounts[index].user, ...result.user };
+          this.saveStoredAccounts(accounts);
+        }
+        return result.user;
+      }
+    } catch {
+      // Fallback to localStorage
+    }
+
+    return this.updateProfileLocal(userId, updates);
+  }
+
+  private async updateProfileLocal(userId: string, updates: Partial<User>): Promise<User> {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     const accounts = this.getStoredAccounts();
@@ -421,7 +498,6 @@ class AuthService {
     const updatedUser = {
       ...accounts[index].user,
       ...updates,
-      // prevent overriding core id & email
       id: accounts[index].user.id,
       email: accounts[index].user.email,
     };

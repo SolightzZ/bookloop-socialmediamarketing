@@ -1,0 +1,17 @@
+{
+    "name": "bookloop/backend",
+    "description": "BookLoop Backend - Email Subscription & Tracking System",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Services\\": "Services/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
