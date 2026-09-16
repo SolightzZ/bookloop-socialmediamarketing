@@ -36,7 +36,7 @@ $bodyContent = <<<HTML
                             เรายินดีที่ได้รู้จักคุณ
                         </div>
                         <div style="margin:5px 0 0;color:#087cf1;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:28px;font-weight:800;line-height:1.3;">
-                            "คุณ{$safeName}"
+                            "คุณ {$safeName}"
                         </div>
                     </td>
                 </tr>

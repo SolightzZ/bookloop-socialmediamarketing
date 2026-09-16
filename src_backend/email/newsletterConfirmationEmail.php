@@ -14,7 +14,7 @@ $socialLinks = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ยืนยันการสมัคร - BookLoop</title>
+    <title>ยืนยันการสมัครรับข่าวสาร - BookLoop</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
 
@@ -57,28 +57,29 @@ $socialLinks = [
         /* ชื่อลูกค้า */
         .dynamic-name {
             position: absolute;
-            top: 14.7%;
+            top: 14.2%;
             left: 50%;
-            width: 82%;
+            width: 80%;
             transform: translateX(-50%);
             text-align: center;
-            color: #167fea;
-            font-size: clamp(24px, 4.6vw, 55px);
-            line-height: 1.2;
+            color: #1a3a6b;
+            font-size: clamp(22px, 4.2vw, 52px);
+            line-height: 1.15;
             font-weight: 800;
             letter-spacing: -1px;
             white-space: nowrap;
             z-index: 5;
             pointer-events: none;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.6);
         }
 
         /* ปุ่ม CTA */
         .button-link {
             position: absolute;
-            left: 25.78%;
-            top: 71.55%;
-            width: 48.34%;
-            height: 5.08%;
+            left: 24%;
+            top: 71.8%;
+            width: 52%;
+            height: 4.8%;
             display: block;
             background: transparent;
             border-radius: 999px;
@@ -86,10 +87,11 @@ $socialLinks = [
             cursor: pointer;
             z-index: 10;
             outline: none;
+            transition: background 0.2s;
         }
 
         .button-link:hover {
-            background: rgba(8, 121, 239, 0.08);
+            background: rgba(8, 121, 239, 0.1);
         }
 
         .button-link:focus,
@@ -101,7 +103,7 @@ $socialLinks = [
         .social-link {
             position: absolute;
             display: block;
-            width: 5.4%;
+            width: 5.2%;
             aspect-ratio: 1 / 1;
             border-radius: 50%;
             background: transparent;
@@ -109,15 +111,16 @@ $socialLinks = [
             text-decoration: none;
             cursor: pointer;
             outline: none;
+            transition: background 0.2s;
         }
 
-        .social-facebook { left: 37.7%; top: 89.6%; }
-        .social-instagram { left: 45.0%; top: 89.6%; }
-        .social-youtube { left: 52.3%; top: 89.6%; }
-        .social-x { left: 59.6%; top: 89.6%; }
+        .social-facebook { left: 37.5%; top: 89.4%; }
+        .social-instagram { left: 44.8%; top: 89.4%; }
+        .social-youtube { left: 52.1%; top: 89.4%; }
+        .social-x { left: 59.4%; top: 89.4%; }
 
         .social-link:hover {
-            background: rgba(8, 121, 239, 0.08);
+            background: rgba(8, 121, 239, 0.1);
         }
 
         .social-link:focus,
@@ -127,25 +130,25 @@ $socialLinks = [
 
         /* Responsive */
         @media screen and (max-width: 600px) {
-            body { padding: 10px; }
+            body { padding: 8px; }
             .email-card { border-radius: 16px; }
             .dynamic-name {
-                top: 14.7%;
-                width: 92%;
-                font-size: clamp(18px, 5.8vw, 32px);
+                top: 14.2%;
+                width: 90%;
+                font-size: clamp(16px, 5.5vw, 30px);
                 letter-spacing: -0.5px;
             }
             .button-link {
-                left: 25.78%;
-                top: 71.55%;
-                width: 48.34%;
-                height: 5.08%;
+                left: 24%;
+                top: 71.8%;
+                width: 52%;
+                height: 4.8%;
             }
-            .social-link { width: 5.8%; }
-            .social-facebook { left: 37.7%; top: 89.6%; }
-            .social-instagram { left: 45.0%; top: 89.6%; }
-            .social-youtube { left: 52.3%; top: 89.6%; }
-            .social-x { left: 59.6%; top: 89.6%; }
+            .social-link { width: 5.6%; }
+            .social-facebook { left: 37.5%; top: 89.4%; }
+            .social-instagram { left: 44.8%; top: 89.4%; }
+            .social-youtube { left: 52.1%; top: 89.4%; }
+            .social-x { left: 59.4%; top: 89.4%; }
         }
     </style>
 </head>
