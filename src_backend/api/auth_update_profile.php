@@ -40,7 +40,7 @@ if (!$updatedUser) {
     jsonResponse(['success' => false, 'message' => 'ไม่พบข้อมูลผู้ใช้งาน'], 404);
 }
 
-unset($updatedUser['password_hash'], $updatedUser['salt']);
+unset($updatedUser['password']);
 
 jsonResponse([
     'success' => true,

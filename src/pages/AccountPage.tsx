@@ -183,6 +183,17 @@ export default function AccountPage() {
       setDistrict(user.address?.district || '');
       setProvince(user.address?.province || '');
       setPostalCode(user.address?.postalCode || '');
+
+      // Check newsletter subscription status
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      fetch(`${API_BASE}/newsletter_status.php?email=${encodeURIComponent(user.email)}`)
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) {
+            setIsSubscribed(result.subscribed);
+          }
+        })
+        .catch(() => {});
     }
   }, [user]);
 
@@ -267,6 +278,31 @@ export default function AccountPage() {
         setIsSubscribed(true);
         setSubscribeMessage('สมัครสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ');
         showSuccess('สมัครสำเร็จ', 'ส่งอีเมลต้อนรับไปยังกล่องจดหมายของคุณแล้ว');
+      } else {
+        setSubscribeMessage(result.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch {
+      setSubscribeMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
+  const handleUnsubscribeNewsletter = async () => {
+    setIsSubscribing(true);
+    setSubscribeMessage('');
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/newsletter_status.php`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user?.email }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setIsSubscribed(false);
+        setSubscribeMessage('ยกเลิกการสมัครรับข่าวสารแล้ว');
+        showSuccess('ยกเลิกสำเร็จ', 'คุณจะไม่ได้รับข่าวสารจาก BookLoop อีก');
       } else {
         setSubscribeMessage(result.message || 'เกิดข้อผิดพลาด');
       }
@@ -1258,9 +1294,21 @@ export default function AccountPage() {
                     </Typography>
 
                     {isSubscribed ? (
-                      <Alert severity="success" sx={{ borderRadius: 2 }}>
-                        ✅ สมัครรับข่าวสารแล้ว — กรุณาตรวจสอบอีเมลของคุณ
-                      </Alert>
+                      <Box>
+                        <Alert severity="success" sx={{ borderRadius: 2, mb: 1.5 }}>
+                          สมัครรับข่าวสารแล้ว คุณจะได้รับข่าวสารและโปรโมชั่นพิเศษทางอีเมล
+                        </Alert>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          disabled={isSubscribing}
+                          startIcon={isSubscribing ? <CircularProgress size={18} color="inherit" /> : undefined}
+                          onClick={handleUnsubscribeNewsletter}
+                          sx={{ borderRadius: 2, fontWeight: 700 }}
+                        >
+                          {isSubscribing ? 'กำลังยกเลิก...' : 'ยกเลิกการสมัคร'}
+                        </Button>
+                      </Box>
                     ) : (
                       <Box>
                         <Button

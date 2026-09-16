@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/../config/config.php';
 
-define('AUTH_SALT', '_bookloop_salt_2025');
 define('USERS_FILE', DATA_PATH . '/users.json');
 define('TOKENS_FILE', DATA_PATH . '/tokens.json');
 define('TOKEN_EXPIRY_DAYS', 7);
@@ -49,18 +48,6 @@ function saveJson(string $filePath, array $data): bool
     fclose($fp);
 
     return true;
-}
-
-// ─── Password Hashing ─────────────────────────────────────────
-
-function hashPassword(string $password): string
-{
-    return hash('sha256', $password . AUTH_SALT);
-}
-
-function verifyPassword(string $password, string $hash): bool
-{
-    return hash('sha256', $password . AUTH_SALT) === $hash;
 }
 
 // ─── Token Management ─────────────────────────────────────────
@@ -152,8 +139,7 @@ function createUser(string $name, string $email, string $password): array
         'id' => $userId,
         'name' => trim($name),
         'email' => strtolower(trim($email)),
-        'password_hash' => hashPassword($password),
-        'salt' => AUTH_SALT,
+        'password' => $password,
         'avatar' => 'https://api.dicebear.com/7.x/initials/svg?seed=' . urlencode(trim($name)) . '&backgroundColor=0f2942,1565c0',
         'phone' => '',
         'bio' => 'สมาชิกรักการอ่านแห่ง BookLoop',
@@ -176,7 +162,7 @@ function updateUser(string $userId, array $updates): ?array
     foreach ($users as &$user) {
         if ($user['id'] === $userId) {
             foreach ($updates as $key => $value) {
-                if ($key !== 'id' && $key !== 'email' && $key !== 'password_hash' && $key !== 'salt') {
+                if ($key !== 'id' && $key !== 'email') {
                     $user[$key] = $value;
                 }
             }
@@ -193,8 +179,9 @@ function updateUser(string $userId, array $updates): ?array
 
 function corsHeaders(): void
 {
-    header("Access-Control-Allow-Origin: " . ALLOWED_ORIGIN);
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+    header("Access-Control-Allow-Origin: " . $origin);
+    header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization");
     header("Content-Type: application/json; charset=utf-8");
 

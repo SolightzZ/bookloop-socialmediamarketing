@@ -26,7 +26,7 @@ if (!$user) {
     jsonResponse(['success' => false, 'message' => 'ไม่พบข้อมูลผู้ใช้งาน'], 404);
 }
 
-unset($user['password_hash'], $user['salt']);
+unset($user['password']);
 
 jsonResponse([
     'success' => true,

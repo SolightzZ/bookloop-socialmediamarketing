@@ -33,7 +33,7 @@ if ($existing) {
 $user = createUser($name, $email, $password);
 $token = generateToken($user['id']);
 
-unset($user['password_hash'], $user['salt']);
+unset($user['password']);
 
 // ส่ง Welcome Email
 require_once __DIR__ . '/../Services/emailService.php';

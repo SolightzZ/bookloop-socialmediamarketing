@@ -18,13 +18,13 @@ if (empty($email) || empty($password)) {
 
 $user = findUserByEmail($email);
 
-if (!$user || !verifyPassword($password, $user['password_hash'])) {
+if (!$user || $user['password'] !== $password) {
     jsonResponse(['success' => false, 'message' => 'อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'], 401);
 }
 
 $token = generateToken($user['id']);
 
-unset($user['password_hash'], $user['salt']);
+unset($user['password']);
 
 jsonResponse([
     'success' => true,
