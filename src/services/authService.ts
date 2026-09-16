@@ -49,12 +49,8 @@ class AuthService {
       return { user: result.user, token: result.token };
    }
 
-   public async loginWithGoogle(): Promise<{ user: User; token: string }> {
-      throw new Error('ยังไม่รองรับการเข้าสู่ระบบด้วย Google ในขณะนี้');
-   }
-
-   public async register(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
-      const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_register.php', { name, email, password });
+   public async register(name: string, email: string, password: string, subscribeNewsletter: boolean = false): Promise<{ user: User; token: string }> {
+      const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_register.php', { name, email, password, subscribeNewsletter });
 
       localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }));
 
@@ -128,6 +124,14 @@ class AuthService {
       }
 
       throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
+   }
+
+   public async deleteAccount(password: string): Promise<void> {
+      try {
+         await apiClient.delete<{ success: boolean; message: string }>('auth_delete_account.php', { password });
+      } finally {
+         this.logout();
+      }
    }
 
    public async requestPasswordReset(email: string): Promise<{ success: boolean; message: string; resetToken?: string }> {

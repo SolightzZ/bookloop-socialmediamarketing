@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
     <AuthLayout
       title="ลืมรหัสผ่าน"
       subtitle="ระบบจะช่วยคุณตั้งค่ารหัสผ่านใหม่อย่างปลอดภัย"
+      hideBrandHeader
       footerText={
         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
           จำรหัสผ่านได้แล้ว?{' '}

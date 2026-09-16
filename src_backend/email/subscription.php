@@ -16,8 +16,12 @@ function sendSubscriptionEmail(string $to, string $userName): array
         $mail->SMTPAuth = true;
         $mail->Username = SMTP_USERNAME;
         $mail->Password = SMTP_PASSWORD;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = SMTP_ENCRYPTION === 'ssl'
+            ? PHPMailer::ENCRYPTION_SMTPS
+            : PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = SMTP_PORT;
+
+        $mail->Timeout = MAIL_TIMEOUT;
 
         $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
         $mail->addAddress($to);
@@ -38,7 +42,7 @@ function sendSubscriptionEmail(string $to, string $userName): array
         file_put_contents(
             EMAIL_PATH . '/subscribers.txt',
             $to . "\n",
-            FILE_APPEND
+            FILE_APPEND | LOCK_EX
         );
 
         return ['success' => true, 'error' => null];

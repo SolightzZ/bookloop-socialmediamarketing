@@ -23,6 +23,7 @@ export default function RegisterPage() {
     <AuthLayout
       title="สร้างบัญชี BookLoop"
       subtitle="ร่วมเป็นส่วนหนึ่งของสังคมส่งต่อหนังสือสภาพดี"
+      hideBrandHeader
       footerText={
         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
           มีบัญชี BookLoop อยู่แล้ว?{' '}

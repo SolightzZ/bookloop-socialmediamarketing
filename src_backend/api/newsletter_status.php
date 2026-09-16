@@ -1,38 +1,12 @@
 <?php
 
 require_once __DIR__ . '/../auth/auth.php';
+require_once BASE_PATH . '/Services/Subscribers.php';
 
 corsHeaders();
 
 $method = $_SERVER['REQUEST_METHOD'];
 $subscriberFile = EMAIL_PATH . '/subscribers.txt';
-
-// Helper: check if email is subscribed
-function isEmailSubscribed(string $email, string $filePath): bool
-{
-    if (!file_exists($filePath)) {
-        return false;
-    }
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES);
-    foreach ($lines as $line) {
-        if (trim($line) === $email) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Helper: remove email from subscribers
-function removeEmail(string $email, string $filePath): bool
-{
-    if (!file_exists($filePath)) {
-        return false;
-    }
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES);
-    $filtered = array_filter($lines, fn($line) => trim($line) !== $email);
-    file_put_contents($filePath, implode("\n", $filtered) . "\n");
-    return true;
-}
 
 if ($method === 'GET') {
     // Check subscription status

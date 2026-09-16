@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   Box,
-  Button,
-  Typography,
   Alert,
-  CircularProgress,
+  Typography,
 } from '@mui/material';
-import { CheckCircleOutlined as SuccessIcon, LockReset as ResetIcon } from '@mui/icons-material';
+import { LockReset as ResetIcon } from '@mui/icons-material';
 import { PasswordInput } from './PasswordInput';
 import { useAuth } from '../../hooks/useAuth';
 import { showSuccess } from '../../utils/alerts';
+import { getPasswordError, getPasswordMatchError } from '../../utils/validation';
+import { SubmitButton } from '../common/SubmitButton';
+import { SuccessPanel } from '../common/SuccessPanel';
 
 export const ResetPasswordForm: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { resetPassword } = useAuth();
 
@@ -29,17 +29,11 @@ export const ResetPasswordForm: React.FC = () => {
   const validate = () => {
     const newErrors: typeof errors = {};
 
-    if (!password) {
-      newErrors.password = 'กรุณากรอกรหัสผ่านใหม่';
-    } else if (password.length < 6) {
-      newErrors.password = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
-    }
+    const passwordErr = getPasswordError(password);
+    if (passwordErr) newErrors.password = passwordErr;
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'กรุณายืนยันรหัสผ่านใหม่';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'รหัสผ่านยืนยันไม่ตรงกัน';
-    }
+    const confirmErr = getPasswordMatchError(password, confirmPassword);
+    if (confirmErr) newErrors.confirmPassword = confirmErr;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -68,41 +62,15 @@ export const ResetPasswordForm: React.FC = () => {
   if (isDone) {
     return (
       <Box sx={{ textAlign: 'center', py: 2 }}>
-        <Box
-          sx={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            bgcolor: 'rgba(46, 125, 91, 0.1)',
-            color: 'success.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 2,
+        <SuccessPanel
+          title="ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว"
+          message="รหัสผ่านของคุณได้รับการอัปเดตอย่างปลอดภัยแล้ว สามารถเข้าสู่ระบบเพื่อใช้งานต่อได้ทันที"
+          primaryAction={{
+            label: 'เข้าสู่ระบบทันที',
+            to: '/login',
+            variant: 'contained',
           }}
-        >
-          <SuccessIcon sx={{ fontSize: 32 }} />
-        </Box>
-
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
-          ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว
-        </Typography>
-
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-          รหัสผ่านของคุณได้รับการอัปเดตอย่างปลอดภัยแล้ว สามารถเข้าสู่ระบบเพื่อใช้งานต่อได้ทันที
-        </Typography>
-
-        <Button
-          component={RouterLink}
-          to="/login"
-          variant="contained"
-          color="primary"
-          fullWidth
-          sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
-        >
-          เข้าสู่ระบบทันที
-        </Button>
+        />
       </Box>
     );
   }
@@ -163,28 +131,15 @@ export const ResetPasswordForm: React.FC = () => {
         autoComplete="new-password"
       />
 
-      <Button
-        fullWidth
-        type="submit"
-        variant="contained"
+      <SubmitButton
+        isLoading={isLoading}
+        loadingLabel="กำลังบันทึก..."
         color="primary"
-        size="large"
-        disabled={isLoading}
-        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <ResetIcon />}
-        sx={{
-          mt: 1,
-          py: 1.25,
-          borderRadius: 2,
-          fontWeight: 700,
-          fontSize: '0.95rem',
-          bgcolor: 'primary.main',
-          '&:hover': {
-            bgcolor: 'primary.dark',
-          },
-        }}
+        sx={{ mt: 1 }}
+        startIcon={<ResetIcon />}
       >
-        {isLoading ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}
-      </Button>
+        บันทึกรหัสผ่านใหม่
+      </SubmitButton>
     </Box>
   );
 };

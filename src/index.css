@@ -22,6 +22,19 @@ body {
   outline-offset: 2px !important;
 }
 
+/* MUI inputs (OutlinedInput / InputBase: password fields, search bars)
+   already render their own focus indicator via border/fieldset color change.
+   Skip the forced outline so it does not create a double border box around them.
+   Also exclude the internal eye/toggle IconButton inside the field — otherwise
+   the global outline paints a separate ring around the button and the password
+   box looks like two joined frames. */
+.MuiInputBase-input:focus-visible,
+.MuiOutlinedInput-input:focus-visible,
+.MuiOutlinedInput-root .MuiIconButton-root:focus-visible,
+.MuiInputAdornment-root:focus-within .MuiIconButton-root:focus-visible {
+  outline: none !important;
+}
+
 /* --------------------------------------------------
    BOOKLOOP COZY STORY WORLD — Hero-Only Atmospheric System
    GPU-only: transform + opacity  |  Hero boundary: overflow:hidden

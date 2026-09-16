@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../Services/Http.php';
 
 define('USERS_FILE', DATA_PATH . '/users.json');
 define('TOKENS_FILE', DATA_PATH . '/tokens.json');
@@ -38,24 +39,45 @@ function saveJson(string $filePath, array $data): bool
         mkdir($dir, 0755, true);
     }
 
-    $fp = fopen($filePath, 'w');
+    // 'c' = สร้างไฟล์ถ้ายังไม่มี แต่ไม่ truncate ก่อนได้ lock (กันข้อมูลหายเมื่อ request ชนกัน)
+    $fp = fopen($filePath, 'c');
     if ($fp === false) {
         return false;
     }
 
     flock($fp, LOCK_EX);
+    ftruncate($fp, 0);
+    rewind($fp);
     fwrite($fp, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    fflush($fp);
+    flock($fp, LOCK_UN);
     fclose($fp);
 
     return true;
+}
+
+// ─── Password Hashing ─────────────────────────────────────────
+
+function hashPassword(string $password): string
+{
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+function verifyPassword(string $password, string $hash): bool
+{
+    return password_verify($password, $hash);
 }
 
 // ─── Token Management ─────────────────────────────────────────
 
 function generateToken(string $userId): string
 {
-    $token = 'bl_' . $userId . '_' . time();
+    // ใช้ค่าสุ่มที่ทายไม่ได้ (40 hex chars) แทน userId+timestamp ที่เดาได้
+    $token = 'bl_' . bin2hex(random_bytes(20));
     $tokens = loadJson(TOKENS_FILE);
+
+    // clean token หมดอายุตอนนี้เลย (ไม่ต้องทำทุก request แบบ validateToken เดิม)
+    $tokens = array_values(array_filter($tokens, fn($t) => strtotime($t['expiresAt'] ?? '') >= time()));
 
     $tokens[] = [
         'token' => $token,
@@ -71,13 +93,12 @@ function generateToken(string $userId): string
 function validateToken(string $token): ?string
 {
     $tokens = loadJson(TOKENS_FILE);
+    $now = time();
 
     foreach ($tokens as $entry) {
         if ($entry['token'] === $token) {
-            if (strtotime($entry['expiresAt']) < time()) {
-                return null;
-            }
-            return $entry['userId'];
+            // หมดอายุ = คืน null, ไม่ลบออก (ปล่อยให้ generateToken clean ตอนสร้าง token ใหม่)
+            return strtotime($entry['expiresAt']) >= $now ? $entry['userId'] : null;
         }
     }
 
@@ -139,7 +160,7 @@ function createUser(string $name, string $email, string $password): array
         'id' => $userId,
         'name' => trim($name),
         'email' => strtolower(trim($email)),
-        'password' => $password,
+        'password' => hashPassword($password),
         'avatar' => 'https://api.dicebear.com/7.x/initials/svg?seed=' . urlencode(trim($name)) . '&backgroundColor=0f2942,1565c0',
         'phone' => '',
         'bio' => 'สมาชิกรักการอ่านแห่ง BookLoop',
@@ -175,47 +196,21 @@ function updateUser(string $userId, array $updates): ?array
     return null;
 }
 
-// ─── CORS & Response ─────────────────────────────────────────
-
-function corsHeaders(): void
+function deleteUser(string $userId): bool
 {
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
-    header("Access-Control-Allow-Origin: " . $origin);
-    header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-    header("Content-Type: application/json; charset=utf-8");
+    $users = loadUsers();
+    $filtered = array_values(array_filter($users, fn($u) => $u['id'] !== $userId));
 
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
-}
-
-function jsonResponse(array $data, int $statusCode = 200): void
-{
-    http_response_code($statusCode);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
-    exit();
-}
-
-function getRequestData(): array
-{
-    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-
-    if (strpos($contentType, 'application/json') !== false) {
-        return json_decode(file_get_contents('php://input'), true) ?? [];
+    if (count($filtered) === count($users)) {
+        return false;
     }
 
-    return $_POST;
-}
+    saveUsers($filtered);
 
-function getBearerToken(): ?string
-{
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    // ลบ tokens ทั้งหมดของ user
+    $tokens = loadJson(TOKENS_FILE);
+    $tokens = array_values(array_filter($tokens, fn($t) => $t['userId'] !== $userId));
+    saveJson(TOKENS_FILE, $tokens);
 
-    if (preg_match('/Bearer\s+(.+)$/i', $header, $matches)) {
-        return trim($matches[1]);
-    }
-
-    return null;
+    return true;
 }

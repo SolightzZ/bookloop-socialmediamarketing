@@ -5,9 +5,9 @@ import { books } from '../data/books';
 
 export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<User>;
-  loginWithGoogle: () => Promise<User>;
-  register: (name: string, email: string, password: string) => Promise<User>;
+  register: (name: string, email: string, password: string, subscribeNewsletter?: boolean) => Promise<User>;
   logout: () => void;
+  deleteAccount: (password: string) => Promise<void>;
   getCurrentUser: () => Promise<User | null>;
   refreshSession: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<User>;
@@ -127,22 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [handlePostAuthSync]
   );
 
-  const loginWithGoogle = useCallback(async (): Promise<User> => {
-    setIsLoading(true);
-    try {
-      const { user: authUser } = await authService.loginWithGoogle();
-      handlePostAuthSync(authUser);
-      return authUser;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [handlePostAuthSync]);
-
   const register = useCallback(
-    async (name: string, email: string, pass: string): Promise<User> => {
+    async (name: string, email: string, pass: string, subscribeNewsletter: boolean = false): Promise<User> => {
       setIsLoading(true);
       try {
-        const { user: authUser } = await authService.register(name, email, pass);
+        const { user: authUser } = await authService.register(name, email, pass, subscribeNewsletter);
         handlePostAuthSync(authUser);
         return authUser;
       } finally {
@@ -158,6 +147,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.dispatchEvent(new Event('bookloop_cart_updated'));
     window.dispatchEvent(new Event('bookloop_wishlist_updated'));
   }, []);
+
+  const deleteAccount = useCallback(
+    async (password: string) => {
+      await authService.deleteAccount(password);
+      const userId = user?.id;
+      setUser(null);
+      if (userId) {
+        try {
+          localStorage.removeItem(`bookloop_user_data_${userId}`);
+        } catch {
+          // ignore storage errors
+        }
+      }
+      window.dispatchEvent(new Event('bookloop_cart_updated'));
+      window.dispatchEvent(new Event('bookloop_wishlist_updated'));
+    },
+    [user]
+  );
 
   const getCurrentUser = useCallback(async (): Promise<User | null> => {
     return authService.getCurrentSessionUser();
@@ -198,9 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: Boolean(user),
     isLoading,
     login,
-    loginWithGoogle,
     register,
     logout,
+    deleteAccount,
     getCurrentUser,
     refreshSession,
     updateProfile,

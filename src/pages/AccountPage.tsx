@@ -53,7 +53,7 @@ import { PasswordInput } from '../components/auth/PasswordInput';
 import { BookCard } from '../components/BookCard';
 
 export default function AccountPage() {
-  const { user, updateProfile, changePassword, logout } = useAuth();
+  const { user, updateProfile, changePassword, logout, deleteAccount } = useAuth();
   const { addToCart } = useCart();
   const { wishlist, toggleWishlist } = useWishlist();
   const location = useLocation();
@@ -100,6 +100,11 @@ export default function AccountPage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeMessage, setSubscribeMessage] = useState('');
+
+  // Delete Account State
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Seller Listing Management State
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
@@ -310,6 +315,37 @@ export default function AccountPage() {
       setSubscribeMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
     } finally {
       setIsSubscribing(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDeleteError(null);
+
+    if (!deletePassword) {
+      setDeleteError('กรุณากรอกรหัสผ่านเพื่อยืนยันการลบบัญชี');
+      return;
+    }
+
+    const result = await showConfirm(
+      'ลบบัญชีถาวร?',
+      'การลบบัญชีจะลบข้อมูลส่วนตัว ประวัติคำสั่งซื้อ รายการโปรด และหนังสือที่ลงขายทั้งหมดออกจากระบบอย่างถาวร การดำเนินการนี้ไม่สามารถย้อนกลับได้',
+      'ลบบัญชีถาวร',
+      'ยกเลิก'
+    );
+
+    if (!result.isConfirmed) return;
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword);
+      setDeletePassword('');
+      showSuccess('ลบบัญชีสำเร็จ', 'ขอบคุณที่ใช้บริการ BookLoop ของเรา');
+      navigate('/');
+    } catch (err: any) {
+      setDeleteError(err.message || 'ไม่สามารถลบบัญชีได้ รหัสผ่านอาจไม่ถูกต้อง');
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -1102,7 +1138,7 @@ export default function AccountPage() {
               </Typography>
 
               <Grid container spacing={{ xs: 2.5, sm: 3, md: 4 }}>
-                {/* Password Change Section */}
+                {/* Row 1: Password Change | Email Notifications */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Paper
                     elevation={0}
@@ -1111,6 +1147,7 @@ export default function AccountPage() {
                       borderRadius: 2.5,
                       border: '1px solid #E2E8F0',
                       bgcolor: '#FFFFFF',
+                      height: '100%',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -1181,16 +1218,15 @@ export default function AccountPage() {
                   </Paper>
                 </Grid>
 
-                {/* Notifications & Account Actions */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2, sm: 3 },
                       borderRadius: 2.5,
                       border: '1px solid #E2E8F0',
                       bgcolor: '#FFFFFF',
-                      mb: 3,
+                      height: '100%',
                     }}
                   >
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
@@ -1272,16 +1308,18 @@ export default function AccountPage() {
                       />
                     </Stack>
                   </Paper>
+                </Grid>
 
-                  {/* Newsletter Subscribe Section */}
+                {/* Row 2: Newsletter | Logout */}
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2.5, sm: 3 },
                       borderRadius: 2.5,
                       border: '1px solid #E2E8F0',
                       bgcolor: '#FFFFFF',
-                      mb: 3,
+                      height: '100%',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -1311,6 +1349,9 @@ export default function AccountPage() {
                       </Box>
                     ) : (
                       <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+                          สมัครบัญชีครั้งแรกจะปิดไว้ — กดปุ่มด้านล่างเพื่อเปิดรับข่าวสารเอง
+                        </Typography>
                         <Button
                           variant="contained"
                           color="primary"
@@ -1329,28 +1370,27 @@ export default function AccountPage() {
                       </Box>
                     )}
                   </Paper>
+                </Grid>
 
-                  {/* Logout Button */}
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2.5,
+                      p: { xs: 2.5, sm: 3 },
                       borderRadius: 2.5,
                       border: '1px solid #FEE2E2',
                       bgcolor: '#FEF2F2',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+                      height: '100%',
                     }}
                   >
-                    <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'error.main' }}>
                         ออกจากระบบ
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        สิ้นสุดเซสชันการใช้งานปัจจุบันบนอุปกรณ์นี้
-                      </Typography>
                     </Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+                      สิ้นสุดเซสชันการใช้งานปัจจุบันบนอุปกรณ์นี้
+                    </Typography>
                     <Button
                       variant="outlined"
                       color="error"
@@ -1367,6 +1407,63 @@ export default function AccountPage() {
                     >
                       ออกจากระบบ
                     </Button>
+                  </Paper>
+                </Grid>
+
+                {/* Row 3: Danger Zone - full width */}
+                <Grid size={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: { xs: 2.5, sm: 3 },
+                      borderRadius: 2.5,
+                      border: '1px solid #FECACA',
+                      bgcolor: '#FFFFFF',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <DeleteIcon sx={{ color: 'error.main', fontSize: 22 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'error.main' }}>
+                        โซนอันตราย
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                      การลบบัญชีจะลบข้อมูลทั้งหมดของคุณออกจาก BookLoop อย่างถาวร รวมถึงประวัติคำสั่งซื้อ รายการโปรด และหนังสือที่ลงขาย
+                    </Typography>
+
+                    {deleteError && (
+                      <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem' }}>
+                        {deleteError}
+                      </Alert>
+                    )}
+
+                    <Box
+                      component="form"
+                      onSubmit={handleDeleteAccount}
+                      sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-end' }, gap: 2 }}
+                    >
+                      <Box sx={{ flexGrow: 1 }}>
+                        <PasswordInput
+                          id="setting-delete-password"
+                          name="deletePassword"
+                          label="กรอกรหัสผ่านเพื่อยืนยัน"
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          required
+                        />
+                      </Box>
+
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="error"
+                        disabled={isDeletingAccount}
+                        startIcon={isDeletingAccount ? <CircularProgress size={18} color="inherit" /> : <DeleteIcon />}
+                        sx={{ borderRadius: 2, py: 1, px: 3, fontWeight: 700, flexShrink: 0 }}
+                      >
+                        {isDeletingAccount ? 'กำลังลบบัญชี...' : 'ลบบัญชีถาวร'}
+                      </Button>
+                    </Box>
                   </Paper>
                 </Grid>
               </Grid>

@@ -9,6 +9,7 @@ export default function ResetPasswordPage() {
     <AuthLayout
       title="ตั้งรหัสผ่านใหม่"
       subtitle="กำหนดรหัสผ่านใหม่สำหรับเข้าสู่ระบบ BookLoop"
+      hideBrandHeader
       footerText={
         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
           กลับไปยังหน้า{' '}

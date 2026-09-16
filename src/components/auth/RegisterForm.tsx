@@ -3,11 +3,9 @@ import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   TextField,
-  Button,
   Typography,
   Link,
   Alert,
-  CircularProgress,
   FormControlLabel,
   Checkbox,
   InputAdornment,
@@ -15,11 +13,11 @@ import {
 } from '@mui/material';
 import { Person as PersonIcon, Mail as EmailIcon, HowToReg as RegisterIcon } from '@mui/icons-material';
 import { PasswordInput } from './PasswordInput';
-import { SocialLogin } from './SocialLogin';
-import { AuthDivider } from './AuthDivider';
 import { useAuth } from '../../hooks/useAuth';
 import { showSuccess } from '../../utils/alerts';
 import { trackEvent } from '../../utils/analytics';
+import { getEmailError, getPasswordError, getPasswordMatchError } from '../../utils/validation';
+import { SubmitButton } from '../common/SubmitButton';
 
 interface RegisterFormProps {
   onSuccessRedirect?: string;
@@ -28,13 +26,14 @@ interface RegisterFormProps {
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
 
   const [errors, setErrors] = useState<{
     name?: string;
@@ -45,7 +44,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
     general?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const queryParams = new URLSearchParams(location.search);
   const redirectPath = onSuccessRedirect || queryParams.get('redirect') || '/';
@@ -59,23 +57,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
       newErrors.name = 'ชื่อต้องมีความยาวอย่างน้อย 2 ตัวอักษร';
     }
 
-    if (!email.trim()) {
-      newErrors.email = 'กรุณากรอกอีเมล';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
-    }
+    const emailErr = getEmailError(email);
+    if (emailErr) newErrors.email = emailErr;
 
-    if (!password) {
-      newErrors.password = 'กรุณากรอกรหัสผ่าน';
-    } else if (password.length < 6) {
-      newErrors.password = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
-    }
+    const passwordErr = getPasswordError(password);
+    if (passwordErr) newErrors.password = passwordErr;
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'กรุณายืนยันรหัสผ่าน';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'รหัสผ่านยืนยันไม่ตรงกัน';
-    }
+    const confirmErr = getPasswordMatchError(password, confirmPassword);
+    if (confirmErr) newErrors.confirmPassword = confirmErr;
 
     if (!agreeTerms) {
       newErrors.terms = 'กรุณายอมรับเงื่อนไขการใช้บริการและนโยบายความเป็นส่วนตัว';
@@ -93,7 +82,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
 
     setIsLoading(true);
     try {
-      const user = await register(name, email, password);
+      const user = await register(name, email, password, subscribeNewsletter);
       trackEvent('user_register', { method: 'email', userId: user.id });
       showSuccess('สมัครสมาชิกสำเร็จ', `ยินดีต้อนรับคุณ ${user.name} สู่ครอบครัว BookLoop`);
       navigate(redirectPath, { replace: true });
@@ -103,23 +92,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    setErrors({});
-    setIsGoogleLoading(true);
-    try {
-      const user = await loginWithGoogle();
-      trackEvent('user_register', { method: 'google', userId: user.id });
-      showSuccess('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับคุณ ${user.name}`);
-      navigate(redirectPath, { replace: true });
-    } catch (err: any) {
-      setErrors({
-        general: err.message || 'ไม่สามารถสมัครผ่าน Google ได้',
-      });
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -140,16 +112,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         </Alert>
       )}
 
-      {/* Google Signup Button */}
-      <SocialLogin
-        onGoogleClick={handleGoogleSignup}
-        isLoading={isGoogleLoading}
-        disabled={isLoading}
-        text="สมัครสมาชิกด้วย Google"
-      />
-
-      <AuthDivider label="หรือกรอกข้อมูลสมัครสมาชิก" />
-
       {/* Full Name */}
       <TextField
         fullWidth
@@ -166,7 +128,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         placeholder="เช่น ชานนท์ นักอ่าน"
         autoComplete="name"
         required
-        disabled={isLoading || isGoogleLoading}
+        disabled={isLoading}
         slotProps={{
           input: {
             startAdornment: (
@@ -199,7 +161,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         placeholder="example@domain.com"
         autoComplete="email"
         required
-        disabled={isLoading || isGoogleLoading}
+        disabled={isLoading}
         slotProps={{
           input: {
             startAdornment: (
@@ -228,7 +190,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         error={Boolean(errors.password)}
         helperText={errors.password}
         required
-        disabled={isLoading || isGoogleLoading}
+        disabled={isLoading}
         autoComplete="new-password"
         showStrengthMeter={true}
       />
@@ -246,7 +208,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         error={Boolean(errors.confirmPassword)}
         helperText={errors.confirmPassword}
         required
-        disabled={isLoading || isGoogleLoading}
+        disabled={isLoading}
         autoComplete="new-password"
       />
 
@@ -262,7 +224,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
                 if (errors.terms) setErrors((prev) => ({ ...prev, terms: undefined }));
               }}
               color="primary"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading}
               size="small"
               sx={{ pt: 0.25 }}
             />
@@ -289,28 +251,43 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
         )}
       </Box>
 
+      {/* Newsletter opt-in — ปิดไว้เป็นค่าเริ่มต้น ให้ผู้ใช้กดเปิดเอง */}
+      <Box sx={{ mb: 2 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              id="register-newsletter-checkbox"
+              checked={subscribeNewsletter}
+              onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+              color="primary"
+              disabled={isLoading}
+              size="small"
+              sx={{ pt: 0.25 }}
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body2" sx={{ fontSize: '0.825rem', color: 'text.primary', lineHeight: 1.4 }}>
+                ติดตามข่าวสาร BookLoop (หนังสือแนะนำและโปรโมชั่นพิเศษ)
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.4, display: 'block' }}>
+                สมัครบัญชีครั้งแรกจะปิดไว้ — ติ๊กเพื่อรับข่าวสารเอง
+              </Typography>
+            </Box>
+          }
+          sx={{ alignItems: 'flex-start', m: 0 }}
+        />
+      </Box>
+
       {/* Submit Register Button */}
-      <Button
-        fullWidth
-        type="submit"
-        variant="contained"
+      <SubmitButton
+        isLoading={isLoading}
+        loadingLabel="กำลังสร้างบัญชี..."
         color="primary"
-        size="large"
-        disabled={isLoading || isGoogleLoading}
-        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <RegisterIcon />}
-        sx={{
-          py: 1.25,
-          borderRadius: 2,
-          fontWeight: 700,
-          fontSize: '0.95rem',
-          bgcolor: 'primary.main',
-          '&:hover': {
-            bgcolor: 'primary.dark',
-          },
-        }}
+        startIcon={<RegisterIcon />}
       >
-        {isLoading ? 'กำลังสร้างบัญชี...' : 'สมัครสมาชิก'}
-      </Button>
+        สมัครสมาชิก
+      </SubmitButton>
     </Box>
   );
 };

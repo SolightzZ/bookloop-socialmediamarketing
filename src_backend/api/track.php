@@ -1,32 +1,21 @@
 <?php
 
-// โหลด config
+// โหลด config + helpers กลาง
 require_once __DIR__ . '/../config/config.php';
+require_once BASE_PATH . '/Services/Http.php';
 
-// CORS Headers
-header("Access-Control-Allow-Origin: " . ALLOWED_ORIGIN);
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=utf-8");
-
-// จัดการ OPTIONS request (CORS preflight)
-if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
-    http_response_code(200);
-    exit();
-}
+corsHeaders();
 
 // ตรวจสอบ request method
 if ($_SERVER["REQUEST_METHOD"] != "POST") {
-    http_response_code(405);
-    echo json_encode([
+    jsonResponse([
         "success" => false,
         "message" => "Method not allowed"
-    ]);
-    exit();
+    ], 405);
 }
 
 // รับข้อมูลจาก request
-$input = json_decode(file_get_contents("php://input"), true);
+$input = getRequestData();
 
 $event = $input["event"] ?? '';
 $email = $input["email"] ?? '';
@@ -38,13 +27,11 @@ $metadata = $input["metadata"] ?? [];
 
 // Validate event
 $validEvents = ['page_view', 'book_view', 'add_to_cart', 'purchase', 'wishlist'];
-if (empty($event) || !in_array($event, $validEvents)) {
-    http_response_code(400);
-    echo json_encode([
+if (empty($event) || !in_array($event, $validEvents, true)) {
+    jsonResponse([
         "success" => false,
         "message" => "Invalid event type"
-    ]);
-    exit();
+    ], 400);
 }
 
 // บันทึกข้อมูลกิจกรรม
@@ -69,27 +56,27 @@ file_put_contents(
     FILE_APPEND | LOCK_EX
 );
 
-// ส่ง email แจ้งเตือนสำหรับกิจกรรมสำคัญ
-require_once EMAIL_PATH . '/sendMail.php';
+// ส่ง email แจ้งเตือนสำหรับกิจกรรมสำคัญ (orderEmails.php โหลด sendMail.php ภายใน)
+require_once EMAIL_PATH . '/orderEmails.php';
 
+// การส่งเมลต้องไม่ทำให้การบันทึกกิจกรรมล้มเหลว (catch Throwable กัน fatal จาก mail)
 if ($event === 'purchase' && !empty($email)) {
     try {
         $userName = $input["user_name"] ?? 'ลูกค้า';
         $orderId = $input["order_id"] ?? uniqid('ORD-');
         sendPurchaseEmail($email, $userName, $orderId, $bookTitle, $bookPrice);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
     }
 } elseif ($event === 'add_to_cart' && !empty($email)) {
     try {
         $userName = $input["user_name"] ?? 'ลูกค้า';
         sendAddToCartEmail($email, $userName, $bookTitle, $bookPrice);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
     }
 }
 
 // ส่ง response
-echo json_encode([
+jsonResponse([
     "success" => true,
     "message" => "บันทึกกิจกรรมสำเร็จ"
 ]);
-?>

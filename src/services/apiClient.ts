@@ -56,4 +56,11 @@ export const apiClient = {
       body: data ? JSON.stringify(data) : undefined,
     });
   },
+
+  delete<T>(endpoint: string, data?: unknown): Promise<T> {
+    return request<T>(endpoint, {
+      method: 'DELETE',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  },
 };

@@ -23,6 +23,7 @@ export default function LoginPage() {
     <AuthLayout
       title="เข้าสู่ระบบ BookLoop"
       subtitle="ยินดีต้อนรับกลับสู่อาณาจักรหนังสือและการแบ่งปัน"
+      hideBrandHeader
       footerText={
         <Typography variant="body2" sx={{ color: '#627D98', fontSize: '0.875rem' }}>
           ยังไม่มีบัญชี BookLoop?{' '}

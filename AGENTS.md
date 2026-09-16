@@ -21,7 +21,7 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Tailwind CSS v4 + React Router 7
 
 - **Entry:** `src/main.tsx` → `src/App.tsx` → `src/app/router.tsx` → `src/app/providers.tsx`
 - **Routing:** All pages lazy-loaded via `React.lazy()`. `RequireAuth` wraps checkout/orders. `ProtectedRoute` wraps account pages.
-- **Auth:** Client-side only using localStorage. Demo accounts pre-seeded in `src/services/authService.ts`. Passwords hashed with Web Crypto SHA-256 + salt `_bookloop_salt_2025`. Guest cart merges into user cart on login.
+- **Auth:** Client-side using localStorage for session; backend (`src_backend/api/`) for user/token persistence. Demo accounts seeded in `src/services/authService.ts` but no longer shown on the login form. Passwords hashed with Web Crypto SHA-256 + salt `_bookloop_salt_2025`. Guest cart merges into user cart on login.
 - **State:** React Context providers (Cart, Wishlist, Notification, RecentlyViewed, PriceAlert) nested inside `src/app/providers.tsx`.
 - **Data:** Book data in `src/data/books.ts` — hardcoded demo data, no API.
 

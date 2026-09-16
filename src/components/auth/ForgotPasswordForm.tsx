@@ -7,18 +7,19 @@ import {
   Typography,
   Link,
   Alert,
-  CircularProgress,
   InputAdornment,
   Paper,
 } from '@mui/material';
 import {
   Mail as EmailIcon,
   ArrowBack as BackIcon,
-  CheckCircleOutlined as SuccessIcon,
   Send as SendIcon,
   BoltRounded as BoltIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import { getEmailError } from '../../utils/validation';
+import { SubmitButton } from '../common/SubmitButton';
+import { SuccessPanel } from '../common/SuccessPanel';
 
 export const ForgotPasswordForm: React.FC = () => {
   const navigate = useNavigate();
@@ -33,13 +34,9 @@ export const ForgotPasswordForm: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim()) {
-      setError('กรุณากรอกอีเมลของคุณ');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('รูปแบบอีเมลไม่ถูกต้อง');
+    const emailErr = getEmailError(email);
+    if (emailErr) {
+      setError(emailErr);
       return;
     }
 
@@ -56,32 +53,15 @@ export const ForgotPasswordForm: React.FC = () => {
 
   if (successInfo) {
     return (
-      <Box sx={{ textAlign: 'center' }}>
-        <Box
-          sx={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            bgcolor: 'rgba(46, 125, 91, 0.1)',
-            color: 'success.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 2,
-          }}
-        >
-          <SuccessIcon sx={{ fontSize: 32 }} />
-        </Box>
-
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
-          ส่งคำขอเรียบร้อยแล้ว
-        </Typography>
-
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
-          {successInfo.message}
-        </Typography>
-
+      <SuccessPanel
+        title="ส่งคำขอเรียบร้อยแล้ว"
+        message={successInfo.message}
+        primaryAction={{
+          label: 'กลับไปหน้าเข้าสู่ระบบ',
+          to: '/login',
+          variant: 'outlined',
+        }}
+      >
         {/* Demo shortcut helper for testing within browser */}
         {successInfo.resetToken && (
           <Paper
@@ -124,18 +104,7 @@ export const ForgotPasswordForm: React.FC = () => {
             </Button>
           </Paper>
         )}
-
-        <Button
-          component={RouterLink}
-          to="/login"
-          variant="outlined"
-          fullWidth
-          startIcon={<BackIcon />}
-          sx={{ borderRadius: 2, py: 1 }}
-        >
-          กลับไปหน้าเข้าสู่ระบบ
-        </Button>
-      </Box>
+      </SuccessPanel>
     );
   }
 
@@ -182,27 +151,14 @@ export const ForgotPasswordForm: React.FC = () => {
         }}
       />
 
-      <Button
-        fullWidth
-        type="submit"
-        variant="contained"
+      <SubmitButton
+        isLoading={isLoading}
+        loadingLabel="กำลังส่งข้อมูล..."
         color="primary"
-        size="large"
-        disabled={isLoading}
-        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
-        sx={{
-          py: 1.25,
-          borderRadius: 2,
-          fontWeight: 700,
-          fontSize: '0.95rem',
-          bgcolor: 'primary.main',
-          '&:hover': {
-            bgcolor: 'primary.dark',
-          },
-        }}
+        startIcon={<SendIcon />}
       >
-        {isLoading ? 'กำลังส่งข้อมูล...' : 'ส่งคำขอรีเซ็ตรหัสผ่าน'}
-      </Button>
+        ส่งคำขอรีเซ็ตรหัสผ่าน
+      </SubmitButton>
 
       <Box sx={{ mt: 2.5, textAlign: 'center' }}>
         <Link

@@ -18,7 +18,18 @@ if (empty($email) || empty($password)) {
 
 $user = findUserByEmail($email);
 
-if (!$user || $user['password'] !== $password) {
+// ตรวจด้วย password_verify ก่อน ถ้าไม่ผ่านค่อยเทียบตรงสำหรับบัญชีเก่า (plaintext) แล้วอัปเกรดเป็น hash
+$passwordOk = false;
+if ($user) {
+    if (verifyPassword($password, $user['password'])) {
+        $passwordOk = true;
+    } elseif ($user['password'] === $password) {
+        $passwordOk = true;
+        updateUser($user['id'], ['password' => hashPassword($password)]);
+    }
+}
+
+if (!$passwordOk) {
     jsonResponse(['success' => false, 'message' => 'อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'], 401);
 }
 

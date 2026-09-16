@@ -92,14 +92,29 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         autoComplete={autoComplete}
         required={required}
         endAdornment={
-          <InputAdornment position="end">
+          <InputAdornment position="end" sx={{ ml: 0 }}>
             <IconButton
               aria-label={showPassword ? `ซ่อน${label}` : `แสดง${label}`}
               onClick={handleClickShowPassword}
               onMouseDown={handleMouseDownPassword}
               edge="end"
               size="small"
-              sx={{ color: 'text.secondary' }}
+              disableRipple
+              sx={{
+                color: 'text.secondary',
+                p: 0.5,
+                border: 'none',
+                backgroundColor: 'transparent',
+                borderRadius: '50%',
+                '&:hover, &:active, &.Mui-focusVisible': {
+                  backgroundColor: 'transparent',
+                },
+                '&:hover': { color: '#1976D2' },
+                '&:focus-visible': {
+                  outline: 'none',
+                  boxShadow: 'inset 0 0 0 2px rgba(25, 118, 210, 0.35)',
+                },
+              }}
             >
               {showPassword ? <VisibilityOff sx={{ fontSize: 20 }} /> : <Visibility sx={{ fontSize: 20 }} />}
             </IconButton>

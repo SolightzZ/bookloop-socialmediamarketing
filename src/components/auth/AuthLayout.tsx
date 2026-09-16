@@ -11,6 +11,7 @@ interface AuthLayoutProps {
   title: string;
   subtitle?: string;
   footerText?: React.ReactNode;
+  hideBrandHeader?: boolean;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
@@ -18,6 +19,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   title,
   subtitle,
   footerText,
+  hideBrandHeader = false,
 }) => {
   const navigate = useNavigate();
 
@@ -52,65 +54,67 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         }}
       >
         {/* Brand Logo Header (z-index: 10) */}
-        <Box
-          onClick={() => navigate('/')}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'pointer',
-            userSelect: 'none',
-            mb: 3,
-            gap: 1.25,
-            transition: 'transform 0.15s ease-in-out',
-            '&:hover': {
-              transform: 'scale(1.02)',
-            },
-          }}
-          role="button"
-          aria-label="กลับสู่หน้าหลัก BookLoop"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              navigate('/');
-            }
-          }}
-        >
+        {!hideBrandHeader && (
           <Box
-            component="img"
-            src={logoImg}
-            alt="BookLoop Logo"
-            referrerPolicy="no-referrer"
+            onClick={() => navigate('/')}
             sx={{
-              width: 42,
-              height: 42,
-              borderRadius: 2,
-              objectFit: 'contain',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              userSelect: 'none',
+              mb: 3,
+              gap: 1.25,
+              transition: 'transform 0.15s ease-in-out',
+              '&:hover': {
+                transform: 'scale(1.02)',
+              },
             }}
-          />
-          <Box>
-            <Typography
-              variant="h5"
+            role="button"
+            aria-label="กลับสู่หน้าหลัก BookLoop"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate('/');
+              }
+            }}
+          >
+            <Box
+              component="img"
+              src={logoImg}
+              alt="BookLoop Logo"
+              referrerPolicy="no-referrer"
               sx={{
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                color: '#0F2D4A',
-                lineHeight: 1.1,
+                width: 42,
+                height: 42,
+                borderRadius: 2,
+                objectFit: 'contain',
               }}
-            >
-              BookLoop
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#627D98',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-              }}
-            >
-              แพลตฟอร์มส่งต่อหนังสือมือสอง
-            </Typography>
+            />
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 800,
+                  letterSpacing: '-0.5px',
+                  color: '#0F2D4A',
+                  lineHeight: 1.1,
+                }}
+              >
+                BookLoop
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#627D98',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                }}
+              >
+                แพลตฟอร์มส่งต่อหนังสือมือสอง
+              </Typography>
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* Main Login Card (z-index: 20, stable, no animation) */}
         <Paper

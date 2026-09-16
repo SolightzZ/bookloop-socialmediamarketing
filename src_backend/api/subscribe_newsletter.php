@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../auth/auth.php';
+require_once BASE_PATH . '/Services/Subscribers.php';
 require_once __DIR__ . '/../Services/emailService.php';
 
 corsHeaders();
@@ -16,33 +17,23 @@ if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(['success' => false, 'message' => 'รูปแบบอีเมลไม่ถูกต้อง'], 400);
 }
 
-// ตรวจสอบ email ซ้ำใน subscribers.txt
+// ตรวจสอบ email ซ้ำ + บันทึก ผ่าน helper กลาง (Subscribers.php)
 $subscriberFile = EMAIL_PATH . '/subscribers.txt';
-if (file_exists($subscriberFile)) {
-    $lines = file($subscriberFile, FILE_IGNORE_NEW_LINES);
-    foreach ($lines as $line) {
-        if (trim($line) === $email) {
-            jsonResponse(['success' => false, 'message' => 'อีเมลนี้สมัครรับข่าวสารไว้แล้ว'], 409);
-        }
-    }
+if (isEmailSubscribed($email, $subscriberFile)) {
+    jsonResponse(['success' => false, 'message' => 'อีเมลนี้สมัครรับข่าวสารไว้แล้ว'], 409);
 }
 
-// บันทึกลง subscribers.txt
-file_put_contents(
-    $subscriberFile,
-    $email . "\n",
-    FILE_APPEND
-);
+appendSubscriber($subscriberFile, $email);
 
 // ดึงชื่อจาก users.json ถ้ามี
 $user = findUserByEmail($email);
 $userName = $user ? $user['name'] : 'สมาชิก BookLoop';
 
-// ส่ง Confirmation Email
+// ส่ง Confirmation Email (catch Throwable เพราะ TimeoutException เป็น Error ไม่ใช่ Exception)
 $emailResult = ['success' => false, 'error' => ''];
 try {
     $emailResult = sendConfirmationEmailService($email, $userName);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $emailResult['error'] = $e->getMessage();
 }
 
