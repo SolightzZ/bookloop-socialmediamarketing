@@ -218,6 +218,119 @@ function createImpactSpokesTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+/**
+ * Mystery Book Cover Texture for Shuffle phase (? ? ?)
+ * Pure crisp vector graphic on dark cobalt blue canvas, NO GLOW
+ */
+function createMysteryCoverTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 420;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    // Rich indigo background
+    ctx.fillStyle = '#0F2D4A';
+    ctx.fillRect(0, 0, 300, 420);
+
+    // Subtle geometrical pattern
+    ctx.fillStyle = '#1E3A8A';
+    for (let x = 15; x < 300; x += 30) {
+      for (let y = 15; y < 420; y += 30) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Inner gold border
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(16, 16, 268, 388);
+
+    // Secondary crisp border
+    ctx.strokeStyle = '#38BDF8';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(24, 24, 252, 372);
+
+    // Center circular medallion
+    ctx.fillStyle = '#1E293B';
+    ctx.beginPath();
+    ctx.arc(150, 190, 68, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // Central Question Mark "?"
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = '900 86px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('?', 150, 186);
+
+    // "BOOKLOOP" branding banner
+    ctx.fillStyle = '#38BDF8';
+    ctx.font = '800 16px sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('BOOKLOOP', 150, 296);
+
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '700 13px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.fillText('SURPRISE PICK', 150, 324);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/**
+ * Dynamic Light Streak / Speed lines texture (inspired by motion.dev crisp anime/comic speed lines)
+ * Clean solid crisp lines on transparent canvas, NO BLUR/GLOW
+ */
+function createLightStreaksTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    ctx.clearRect(0, 0, 512, 512);
+    ctx.translate(256, 256);
+
+    // 16 dynamic radial speed streak needles
+    const streakCount = 16;
+    const colors = ['#38BDF8', '#F59E0B', '#60A5FA', '#FBBF24', '#93C5FD'];
+
+    for (let i = 0; i < streakCount; i++) {
+      ctx.save();
+      ctx.rotate((Math.PI * 2 * i) / streakCount + (i % 2 === 0 ? 0.08 : -0.05));
+      ctx.fillStyle = colors[i % colors.length];
+
+      // Elongated tapered needle streak
+      const rInner = 80 + (i % 3) * 25;
+      const rOuter = 230 + (i % 4) * 18;
+      const width = (i % 2 === 0) ? 5 : 3;
+
+      ctx.beginPath();
+      ctx.moveTo(-width / 2, rInner);
+      ctx.lineTo(width / 2, rInner);
+      ctx.lineTo(0, rOuter);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
   state,
   selectedBook,
@@ -253,10 +366,10 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     if (!container) return;
 
     // Viewport dimensions
-    const width = container.clientWidth || 540;
-    const height = container.clientHeight || 300;
+    const width = container.clientWidth || 450;
+    const height = container.clientHeight || 220;
     const aspect = width / height;
-    const frustumSize = 5.4;
+    const frustumSize = 4.2;
 
     const camera = new THREE.OrthographicCamera(
       (-frustumSize * aspect) / 2,
@@ -296,12 +409,49 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     scene.add(ringGroup);
 
     // Outer Ring (Counter-Clockwise)
-    const outerRingGeo = new THREE.PlaneGeometry(4.8, 2.4);
+    // Particle stars & spark particles (Clean, crisp, dazzling)
+    const starCount = 36;
+    const starGeo = new THREE.PlaneGeometry(0.1, 0.1);
+    const starGroup = new THREE.Group();
+    scene.add(starGroup);
+
+    interface StarParticle {
+      mesh: THREE.Mesh;
+      angle: number;
+      dist: number;
+      speed: number;
+      baseScale: number;
+      phase: number;
+    }
+    const starList: StarParticle[] = [];
+    const starColors = ['#F59E0B', '#38BDF8', '#60A5FA', '#F43F5E', '#10B981', '#FBBF24'];
+
+    for (let s = 0; s < starCount; s++) {
+      const sMat = new THREE.MeshBasicMaterial({
+        color: starColors[s % starColors.length],
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const sMesh = new THREE.Mesh(starGeo, sMat);
+      starGroup.add(sMesh);
+      starList.push({
+        mesh: sMesh,
+        angle: Math.random() * Math.PI * 2,
+        dist: 0.8 + Math.random() * 1.5,
+        speed: 0.6 + Math.random() * 1.4,
+        baseScale: 0.5 + Math.random() * 0.9,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // Outer Ring (Counter-clockwise, dashed)
+    const outerRingGeo = new THREE.PlaneGeometry(4.4, 2.2);
     const outerRingTex = createOrbitRingTexture(230, 100, [10, 8], '#93C5FD');
     const outerRingMat = new THREE.MeshBasicMaterial({
       map: outerRingTex,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       depthWrite: false,
     });
     const outerRingMesh = new THREE.Mesh(outerRingGeo, outerRingMat);
@@ -313,12 +463,25 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     const innerRingMat = new THREE.MeshBasicMaterial({
       map: innerRingTex,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.75,
       depthWrite: false,
     });
     const innerRingMesh = new THREE.Mesh(innerRingGeo, innerRingMat);
     innerRingMesh.rotation.z = -0.08;
     ringGroup.add(innerRingMesh);
+
+    // Tertiary Energetic Golden Ring
+    const goldRingGeo = new THREE.PlaneGeometry(2.8, 1.4);
+    const goldRingTex = createOrbitRingTexture(125, 58, [4, 4], '#F59E0B');
+    const goldRingMat = new THREE.MeshBasicMaterial({
+      map: goldRingTex,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+    });
+    const goldRingMesh = new THREE.Mesh(goldRingGeo, goldRingMat);
+    goldRingMesh.rotation.z = 0.12;
+    ringGroup.add(goldRingMesh);
 
     // =========================================================================
     // 2. SIX CANDIDATE BOOKS WITH DYNAMIC 3D WAVE FLIGHT PATH
@@ -361,6 +524,9 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     shadowMesh.position.set(0, -1.02, -0.1);
     centerBookGroup.add(shadowMesh);
+
+    // Mystery Book Cover Texture for suspense shuffle
+    const mysteryCoverTex = createMysteryCoverTexture();
 
     // Main cover book mesh
     const coverWidth = 1.25;
@@ -454,6 +620,21 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     scene.add(impactMesh);
 
     // =========================================================================
+    // 4.1. DYNAMIC LIGHT STREAKS / SPEED LINES (Active during high-velocity shuffle)
+    // =========================================================================
+    const streakGeo = new THREE.PlaneGeometry(3.6, 3.6);
+    const streakTex = createLightStreaksTexture();
+    const streakMat = new THREE.MeshBasicMaterial({
+      map: streakTex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    const streakMesh = new THREE.Mesh(streakGeo, streakMat);
+    streakMesh.position.set(0, 0.1, 0.12);
+    scene.add(streakMesh);
+
+    // =========================================================================
     // 5. 24 COLORFUL FLAT PAPER CONFETTI STRIPS (Burst on Reveal, ZERO GLOW)
     // =========================================================================
     const confettiGroup = new THREE.Group();
@@ -472,10 +653,10 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     }
 
     const confettiList: ConfettiParticle[] = [];
-    const confettiColors = ['#F43F5E', '#F59E0B', '#1D4ED8', '#10B981', '#38BDF8', '#8B5CF6', '#EC4899'];
-    const confettiGeo = new THREE.PlaneGeometry(0.12, 0.18);
+    const confettiColors = ['#F43F5E', '#F59E0B', '#1D4ED8', '#10B981', '#38BDF8', '#8B5CF6', '#EC4899', '#FBBF24', '#06B6D4'];
+    const confettiGeo = new THREE.PlaneGeometry(0.14, 0.22);
 
-    for (let c = 0; c < 24; c++) {
+    for (let c = 0; c < 48; c++) {
       const cMat = new THREE.MeshBasicMaterial({
         color: confettiColors[c % confettiColors.length],
         side: THREE.DoubleSide,
@@ -489,9 +670,9 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
         vx: 0,
         vy: 0,
         vz: 0,
-        rotSpeedX: (Math.random() - 0.5) * 12,
-        rotSpeedY: (Math.random() - 0.5) * 14,
-        rotSpeedZ: (Math.random() - 0.5) * 8,
+        rotSpeedX: (Math.random() - 0.5) * 16,
+        rotSpeedY: (Math.random() - 0.5) * 18,
+        rotSpeedZ: (Math.random() - 0.5) * 12,
         active: false,
         life: 0,
       });
@@ -500,21 +681,21 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     const triggerConfettiBurst = () => {
       confettiList.forEach((p, idx) => {
         p.active = true;
-        p.life = 1.0;
-        p.mesh.position.set(0, 0.2, 0.7);
+        p.life = 1.2;
+        p.mesh.position.set(0, 0.15, 0.75);
 
-        // Explosive radial spread
-        const angle = (idx / 24) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-        const speed = 1.8 + Math.random() * 2.2;
+        // Spectacular explosive radial fireworks spread
+        const angle = (idx / 48) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const speed = 2.2 + Math.random() * 2.8;
         p.vx = Math.cos(angle) * speed;
-        p.vy = Math.sin(angle) * speed * 0.85 + 1.2; // upward lift
-        p.vz = (Math.random() - 0.5) * 0.4;
+        p.vy = Math.sin(angle) * speed * 0.9 + 1.4; // majestic upward lift
+        p.vz = (Math.random() - 0.5) * 0.6;
         (p.mesh.material as THREE.MeshBasicMaterial).opacity = 1;
       });
 
       // Impact spokes flash
-      impactMat.opacity = 0.9;
-      impactMesh.scale.set(0.5, 0.5, 1);
+      impactMat.opacity = 1.0;
+      impactMesh.scale.set(0.4, 0.4, 1);
     };
 
     // =========================================================================
@@ -541,6 +722,7 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     let lastTimestamp = performance.now();
     let elapsedTime = 0;
     let currentCoverUrl = '';
+    let loadedWinnerTex: THREE.Texture | null = null;
     let orbitAngleOffset = 0;
     let prevSceneState = '';
 
@@ -567,18 +749,27 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       if (currentBook?.cover && currentBook.cover !== currentCoverUrl) {
         currentCoverUrl = currentBook.cover;
         if (coverTextureCacheRef.current.has(currentCoverUrl)) {
-          mainCoverMat.map = coverTextureCacheRef.current.get(currentCoverUrl)!;
-          mainCoverMat.color.setHex(0xffffff);
-          mainCoverMat.needsUpdate = true;
+          loadedWinnerTex = coverTextureCacheRef.current.get(currentCoverUrl)!;
+          if (curState !== 'starting' && curState !== 'shuffling' && curState !== 'slowing' && curState !== 'fake-stop') {
+            mainCoverMat.map = loadedWinnerTex;
+            mainCoverMat.color.setHex(0xffffff);
+            mainCoverMat.needsUpdate = true;
+          }
         } else {
           textureLoader.load(
             currentCoverUrl,
             (loadedTex) => {
               loadedTex.colorSpace = THREE.SRGBColorSpace;
               coverTextureCacheRef.current.set(currentCoverUrl, loadedTex);
-              mainCoverMat.map = loadedTex;
-              mainCoverMat.color.setHex(0xffffff);
-              mainCoverMat.needsUpdate = true;
+              loadedWinnerTex = loadedTex;
+              if (sceneStateRef.current.state !== 'starting' &&
+                  sceneStateRef.current.state !== 'shuffling' &&
+                  sceneStateRef.current.state !== 'slowing' &&
+                  sceneStateRef.current.state !== 'fake-stop') {
+                mainCoverMat.map = loadedTex;
+                mainCoverMat.color.setHex(0xffffff);
+                mainCoverMat.needsUpdate = true;
+              }
             },
             undefined,
             () => {
@@ -594,6 +785,14 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       if (reduced) {
         centerBookGroup.position.set(0, 0, 0.6);
         centerBookGroup.scale.set(1, 1, 1);
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        streakMat.opacity = 0;
+        if (loadedWinnerTex) {
+          mainCoverMat.map = loadedWinnerTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
         renderer.render(scene, camera);
         return;
       }
@@ -625,6 +824,24 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       // Rotate dual concentric rings in opposite directions!
       outerRingMesh.rotation.z -= delta * orbitSpeed * 0.6;
       innerRingMesh.rotation.z += delta * orbitSpeed * 0.8;
+      goldRingMesh.rotation.z += delta * orbitSpeed * 1.2;
+
+      // Animate Star Sparkles in cosmic swarm
+      starList.forEach((star, sIdx) => {
+        star.angle += delta * star.speed * (curState === 'shuffling' ? 3.5 : 1.0);
+        const curDist = star.dist + Math.sin(elapsedTime * 3 + star.phase) * 0.15;
+        const sx = Math.cos(star.angle) * curDist * 1.4;
+        const sy = Math.sin(star.angle) * curDist * 0.75;
+        const sz = 0.2 + Math.sin(elapsedTime * 4 + sIdx) * 0.1;
+        star.mesh.position.set(sx, sy, sz);
+
+        // Twinkle scale & spin
+        const twinkle = star.baseScale * (0.7 + Math.sin(elapsedTime * 6 + star.phase) * 0.4);
+        star.mesh.scale.set(twinkle, twinkle, 1);
+        star.mesh.rotation.z += delta * 2.5;
+        (star.mesh.material as THREE.MeshBasicMaterial).opacity =
+          curState === 'revealing' || curState === 'result' ? 0.95 : 0.65 + Math.sin(elapsedTime * 5 + star.phase) * 0.3;
+      });
 
       // Orbit candidate books with 3D banking and undulating wave
       const xRadius = 2.05;
@@ -667,10 +884,14 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
         centerBookGroup.rotation.z = Math.sin(elapsedTime * 1.2) * 0.018;
         centerBookGroup.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
 
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
         leftPage1.visible = false;
         leftPage2.visible = false;
         rightPage1.visible = false;
         rightPage2.visible = false;
+
+        streakMat.opacity = 0;
 
         mascotMesh.position.y = -0.4 + Math.sin(elapsedTime * 2) * 0.03;
         mascotMat.map = mascotTexNormal;
@@ -678,12 +899,30 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
         // Anticipation squash & stretch!
         centerBookGroup.position.y = -0.06;
         centerBookGroup.scale.lerp(new THREE.Vector3(1.06, 0.95, 1), 0.2);
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        streakMat.opacity = 0;
         mascotMat.map = mascotTexAmazed;
       } else if (curState === 'shuffling') {
+        // Surprise Mode: Switch book cover to Mystery Question Mark (? BookLoop)
         // High-velocity flight: Book hovers up, rapid multi-page flutter!
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        if (mainCoverMat.map !== mysteryCoverTex) {
+          mainCoverMat.map = mysteryCoverTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
+
         centerBookGroup.position.y = 0.12 + Math.sin(elapsedTime * 22) * 0.05;
         centerBookGroup.rotation.z = Math.sin(elapsedTime * 18) * 0.03;
         centerBookGroup.scale.set(1.05, 1.05, 1);
+
+        // High velocity light streaks / speed lines animation
+        streakMat.opacity = 0.88;
+        streakMesh.rotation.z -= delta * 9.5; // Rapid dynamic rotation
+        const pulse = 1.0 + Math.sin(elapsedTime * 28) * 0.12;
+        streakMesh.scale.set(pulse, pulse, 1);
 
         // Multi-page thumb-flip flutter
         leftPage1.visible = true;
@@ -699,7 +938,18 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
         mascotMat.map = mascotTexAmazed;
         mascotMesh.position.y = -0.4 + Math.sin(elapsedTime * 12) * 0.04;
       } else if (curState === 'slowing') {
-        // Deceleration: Pages gently flutter slower
+        // Deceleration: Keep mystery cover on while speed streaks decay
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        if (mainCoverMat.map !== mysteryCoverTex) {
+          mainCoverMat.map = mysteryCoverTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
+
+        streakMat.opacity = Math.max(0, streakMat.opacity - delta * 2.2);
+        streakMesh.rotation.z -= delta * 4.0;
+
         centerBookGroup.position.y = 0.08 + Math.sin(elapsedTime * 8) * 0.03;
         centerBookGroup.rotation.z = Math.sin(elapsedTime * 6) * 0.015;
 
@@ -710,34 +960,63 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
 
         mascotMat.map = mascotTexAmazed;
       } else if (curState === 'fake-stop') {
-        // Suspense hesitation: complete freeze!
+        // Suspense hesitation: complete freeze with mystery cover!
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        if (mainCoverMat.map !== mysteryCoverTex) {
+          mainCoverMat.map = mysteryCoverTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
+        streakMat.opacity = 0;
+
         centerBookGroup.position.y = 0.05;
         centerBookGroup.rotation.z = 0;
         mascotMat.map = mascotTexAmazed;
       } else if (curState === 'revealing') {
-        // Epic Winner Reveal: Winner book leaps forward with celebratory page fan!
-        centerBookGroup.position.lerp(new THREE.Vector3(0, 0.14, 0.8), 0.15);
-        centerBookGroup.scale.lerp(new THREE.Vector3(1.18, 1.18, 1), 0.15);
-        centerBookGroup.rotation.z = 0;
+        // Spectacular Winner Reveal: Swap to REAL winner cover and leap toward user!
+        if (loadedWinnerTex && mainCoverMat.map !== loadedWinnerTex) {
+          mainCoverMat.map = loadedWinnerTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        streakMat.opacity = 0;
+
+        centerBookGroup.position.lerp(new THREE.Vector3(0, 0.2, 0.95), 0.18);
+        centerBookGroup.scale.lerp(new THREE.Vector3(1.24, 1.24, 1), 0.18);
+        centerBookGroup.rotation.z = Math.sin(elapsedTime * 6) * 0.04;
+        centerBookGroup.rotation.y = Math.sin(elapsedTime * 4) * 0.08;
 
         leftPage1.visible = true;
         leftPage2.visible = true;
         rightPage1.visible = true;
         rightPage2.visible = true;
 
-        leftPage1.rotation.y = THREE.MathUtils.lerp(leftPage1.rotation.y, -0.65, 0.15);
-        leftPage2.rotation.y = THREE.MathUtils.lerp(leftPage2.rotation.y, -0.85, 0.15);
-        rightPage1.rotation.y = THREE.MathUtils.lerp(rightPage1.rotation.y, 0.65, 0.15);
-        rightPage2.rotation.y = THREE.MathUtils.lerp(rightPage2.rotation.y, 0.85, 0.15);
+        leftPage1.rotation.y = THREE.MathUtils.lerp(leftPage1.rotation.y, -0.75, 0.18);
+        leftPage2.rotation.y = THREE.MathUtils.lerp(leftPage2.rotation.y, -0.95, 0.18);
+        rightPage1.rotation.y = THREE.MathUtils.lerp(rightPage1.rotation.y, 0.75, 0.18);
+        rightPage2.rotation.y = THREE.MathUtils.lerp(rightPage2.rotation.y, 0.95, 0.18);
 
         // Mascot jumps high in celebration!
         mascotMat.map = mascotTexHappy;
-        mascotMesh.position.y = -0.25 + Math.abs(Math.sin(elapsedTime * 6)) * 0.18;
+        mascotMesh.position.y = -0.2 + Math.abs(Math.sin(elapsedTime * 7)) * 0.24;
       } else if (curState === 'result') {
-        // Settled proud winner
-        centerBookGroup.position.y = 0.08 + Math.sin(elapsedTime * 1.5) * 0.03;
-        centerBookGroup.scale.lerp(new THREE.Vector3(1.1, 1.1, 1), 0.1);
-        centerBookGroup.rotation.z = 0;
+        // Settled proud winner with real book cover and gentle celebratory float
+        if (loadedWinnerTex && mainCoverMat.map !== loadedWinnerTex) {
+          mainCoverMat.map = loadedWinnerTex;
+          mainCoverMat.color.setHex(0xffffff);
+          mainCoverMat.needsUpdate = true;
+        }
+        mainCoverMesh.visible = true;
+        borderMesh.visible = true;
+        streakMat.opacity = 0;
+
+        centerBookGroup.position.y = 0.1 + Math.sin(elapsedTime * 1.8) * 0.035;
+        centerBookGroup.scale.lerp(new THREE.Vector3(1.12, 1.12, 1), 0.1);
+        centerBookGroup.rotation.z = Math.sin(elapsedTime * 1.2) * 0.015;
+        centerBookGroup.rotation.y = Math.sin(elapsedTime * 1.5) * 0.03;
 
         leftPage1.visible = false;
         leftPage2.visible = false;
@@ -745,7 +1024,7 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
         rightPage2.visible = false;
 
         mascotMat.map = mascotTexHappy;
-        mascotMesh.position.y = -0.38 + Math.sin(elapsedTime * 2) * 0.03;
+        mascotMesh.position.y = -0.36 + Math.sin(elapsedTime * 2.2) * 0.04;
       }
 
       // =======================================================================
@@ -822,6 +1101,7 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       halfPageGeo.dispose();
       ribbonGeo.dispose();
       impactGeo.dispose();
+      streakGeo.dispose();
       confettiGeo.dispose();
       mascotGeo.dispose();
 
@@ -834,6 +1114,7 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       pageMatCream.dispose();
       ribbonMat.dispose();
       impactMat.dispose();
+      streakMat.dispose();
       mascotMat.dispose();
 
       orbitMeshes.forEach((m) => (m.material as THREE.Material).dispose());
@@ -843,6 +1124,8 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       innerRingTex.dispose();
       borderTex.dispose();
       impactTex.dispose();
+      streakTex.dispose();
+      mysteryCoverTex.dispose();
       mascotTexNormal.dispose();
       mascotTexAmazed.dispose();
       mascotTexHappy.dispose();

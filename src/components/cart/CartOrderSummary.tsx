@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { AnimatedCounter } from '../common/AnimatedCounter';
 
 interface CartOrderSummaryProps {
   cartCount: number;
@@ -73,7 +74,7 @@ export const CartOrderSummary: React.FC<CartOrderSummaryProps> = ({
           ยอดชำระสุทธิ
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          {formatCurrency(subtotal)}
+          <AnimatedCounter value={subtotal} />
         </Typography>
       </Box>
 

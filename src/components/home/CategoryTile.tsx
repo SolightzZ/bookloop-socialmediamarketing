@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
+import { motion } from 'motion/react';
 
 export interface CategoryTileProps {
   name: string;
@@ -28,55 +29,63 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({
   const isLarge = sizeVariant === 'large';
 
   return (
-    <Box
-      component="article"
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      aria-label={`หมวดหมู่ ${name}, มีหนังสือ ${count} เล่ม`}
-      className={className}
-      sx={{
-        cursor: 'pointer',
-        borderRadius: 3,
-        border: '1px solid #E2E8F0',
-        bgcolor: isLarge ? '#FFFFFF' : '#FFFFFF',
-        p: isLarge ? { xs: 2.5, sm: 3.5 } : { xs: 2, sm: 2.5 },
-        display: 'flex',
-        flexDirection: isLarge ? { xs: 'column', sm: 'row' } : 'column',
-        alignItems: isLarge ? { xs: 'flex-start', sm: 'center' } : 'flex-start',
-        justifyContent: 'space-between',
-        gap: isLarge ? { xs: 2, sm: 3 } : 1.5,
-        height: '100%',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, border-color 0.2s ease',
-        boxShadow: isLarge
-          ? '0 4px 14px rgba(15, 41, 66, 0.05)'
-          : '0 2px 8px rgba(15, 41, 66, 0.03)',
-        '&:hover': {
-          transform: 'translateY(-3px)',
-          boxShadow: '0 12px 24px rgba(15, 41, 66, 0.08)',
-          borderColor: color,
-          '& .cat-arrow-icon': {
-            transform: 'translateX(4px)',
-            opacity: 1,
-          },
-          '& .cat-icon-wrapper': {
-            transform: 'scale(1.06)',
-          },
-        },
-        '&:focus-visible': {
-          outline: '2px solid #1565C0',
-          outlineOffset: '2px',
-        },
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.975 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+      className="h-full"
     >
+      <Box
+        component="article"
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        aria-label={`หมวดหมู่ ${name}, มีหนังสือ ${count} เล่ม`}
+        className={className}
+        sx={{
+          cursor: 'pointer',
+          borderRadius: 3,
+          border: '1px solid #E2E8F0',
+          bgcolor: isLarge ? '#FFFFFF' : '#FFFFFF',
+          p: isLarge ? { xs: 2.5, sm: 3.5 } : { xs: 2, sm: 2.5 },
+          display: 'flex',
+          flexDirection: isLarge ? { xs: 'column', sm: 'row' } : 'column',
+          alignItems: isLarge ? { xs: 'flex-start', sm: 'center' } : 'flex-start',
+          justifyContent: 'space-between',
+          gap: isLarge ? { xs: 2, sm: 3 } : 1.5,
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          boxShadow: isLarge
+            ? '0 4px 14px rgba(15, 41, 66, 0.05)'
+            : '0 2px 8px rgba(15, 41, 66, 0.03)',
+          '&:hover': {
+            boxShadow: '0 12px 24px rgba(15, 41, 66, 0.08)',
+            borderColor: color,
+            '& .cat-arrow-icon': {
+              transform: 'translateX(4px)',
+              opacity: 1,
+            },
+            '& .cat-icon-wrapper': {
+              transform: 'scale(1.06)',
+            },
+          },
+          '&:focus-visible': {
+            outline: '2px solid #1565C0',
+            outlineOffset: '2px',
+          },
+        }}
+      >
       {/* Decorative subtle background tint for large tiles */}
       {isLarge && (
         <Box
@@ -147,6 +156,7 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({
                   fontWeight: 700,
                   fontSize: '0.685rem',
                   height: 22,
+                  whiteSpace: 'nowrap',
                 }}
               />
             )}
@@ -193,6 +203,7 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({
             fontWeight: 700,
             fontSize: '0.75rem',
             border: '1px solid #E2E8F0',
+            whiteSpace: 'nowrap',
           }}
         />
 
@@ -210,5 +221,6 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({
         </Box>
       </Box>
     </Box>
+    </motion.div>
   );
 };

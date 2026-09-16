@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, CircularProgress } from '@mui/material';
+import { CircularProgress } from '@mui/material';
 import { CasinoRounded, RefreshRounded } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'motion/react';
 import { BookDiscoveryButtonProps } from './bookDiscovery.types';
 
 export const BookDiscoveryButton: React.FC<BookDiscoveryButtonProps> = ({
@@ -20,52 +21,76 @@ export const BookDiscoveryButton: React.FC<BookDiscoveryButtonProps> = ({
 
   const isDisabled = disabled || isRunning;
 
-  let label = 'สุ่มหนังสือให้ฉัน';
+  let labelKey = 'idle';
+  let labelText = 'สุ่มหนังสือให้ฉัน';
   let icon = <CasinoRounded sx={{ fontSize: 20 }} />;
 
   if (isRunning) {
-    label = 'กำลังสุ่ม...';
-    icon = <CircularProgress size={16} color="inherit" thickness={4} />;
+    labelKey = 'running';
+    labelText = 'กำลังสุ่มในวงโคจร...';
+    icon = <CircularProgress size={17} color="inherit" thickness={4} />;
   } else if (state === 'result') {
-    label = 'สุ่มอีกครั้ง';
+    labelKey = 'result';
+    labelText = 'สุ่มอีกครั้ง';
     icon = <RefreshRounded sx={{ fontSize: 20 }} />;
   }
 
   return (
-    <Button
-      variant="contained"
+    <motion.button
+      type="button"
       onClick={onClick}
       disabled={isDisabled}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      aria-label={isRunning ? 'กำลังค้นหาและสุ่มหนังสือ' : label}
+      whileHover={!isDisabled ? { scale: 1.03, y: -2 } : undefined}
+      whileTap={!isDisabled ? { scale: 0.96, y: 0 } : undefined}
+      transition={{ type: 'spring', stiffness: 450, damping: 24 }}
+      aria-label={isRunning ? 'กำลังค้นหาและสุ่มหนังสือ' : labelText}
       aria-busy={isRunning}
       aria-disabled={isDisabled}
-      startIcon={icon}
-      sx={{
-        width: { xs: '100%', sm: '210px' }, // Target 180–220px width
-        height: 46,
-        fontSize: '0.95rem',
-        fontWeight: 700,
-        borderRadius: '9999px',
-        textTransform: 'none',
-        bgcolor: state === 'result' ? '#0F2D4A' : '#1976D2',
-        color: '#FFFFFF',
-        boxShadow: '0 2px 6px rgba(15, 45, 74, 0.12)', // Clean subtle shadow, NO GLOW
-        transition: 'all 0.2s ease-out',
-        '&:hover': {
-          bgcolor: state === 'result' ? '#1E3A5F' : '#1565C0',
-          boxShadow: '0 4px 10px rgba(15, 45, 74, 0.18)',
-        },
-        '&.Mui-disabled': {
-          bgcolor: '#94A3B8',
-          color: '#F8FAFC',
-          opacity: 0.85,
-        },
-      }}
-      className={`select-none ${className}`}
+      className={`relative flex items-center justify-center gap-2 w-full sm:w-[215px] h-[46px] rounded-full text-[0.95rem] font-bold text-white outline-none select-none cursor-pointer transition-colors shadow-md overflow-hidden ${
+        isDisabled
+          ? 'bg-slate-400 opacity-80 cursor-not-allowed shadow-none'
+          : state === 'result'
+          ? 'bg-[#0F2D4A] hover:bg-[#1E3A5F] shadow-[0_4px_14px_rgba(15,45,74,0.25)]'
+          : 'bg-[#1976D2] hover:bg-[#1565C0] shadow-[0_4px_16px_rgba(25,118,210,0.3)]'
+      } ${className}`}
     >
-      {label}
-    </Button>
+      {/* Subtle background light sweep / shimmer when not running */}
+      {!isDisabled && (
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
+          initial={{ x: '-100%' }}
+          animate={{ x: '100%' }}
+          transition={{
+            repeat: Infinity,
+            duration: 2.8,
+            ease: 'linear',
+            repeatDelay: 1.2,
+          }}
+        />
+      )}
+
+      {/* Icon with spin reaction */}
+      <span className="relative z-10 flex items-center justify-center">
+        {icon}
+      </span>
+
+      {/* Rolling text animation */}
+      <div className="relative z-10 h-5 overflow-hidden flex items-center">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={labelKey}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="block whitespace-nowrap"
+          >
+            {labelText}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+    </motion.button>
   );
 };

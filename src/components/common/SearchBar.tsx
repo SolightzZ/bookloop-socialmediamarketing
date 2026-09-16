@@ -168,9 +168,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           backgroundColor: '#F8FAFC',
           border: '1px solid #E2E8F0',
           transition: 'all 0.2s ease',
-          width: '100%',
-          maxWidth: { xs: '100%', md: 220, lg: 280 },
-          px: 1.5,
+          width: { md: 145, lg: 195, xl: 250 },
+          maxWidth: { xs: '100%', md: 175, lg: 240, xl: 280 },
+          flexShrink: 1,
+          px: { md: 1.25, lg: 1.5 },
           py: 0.4,
           '&:hover': {
             backgroundColor: '#FFFFFF',
@@ -187,14 +188,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           sx={{
             color: '#627D98',
             fontSize: 18,
-            mr: 1,
+            mr: 0.75,
             flexShrink: 0,
           }}
         />
         <InputBase
           id={id || 'header-search-input'}
           fullWidth
-          placeholder={placeholder || 'ค้นหาชื่อหนังสือ, ผู้เขียน...'}
+          placeholder={placeholder || 'ค้นหาชื่อหนังสือ...'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           inputProps={{
@@ -202,12 +203,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           }}
           sx={{
             color: '#0F2D4A',
-            fontSize: '0.85rem',
+            fontSize: { md: '0.8125rem', lg: '0.85rem' },
             '& .MuiInputBase-input': {
               py: 0.5,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
               '&::placeholder': {
                 color: '#627D98',
                 opacity: 0.85,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               },
             },
           }}

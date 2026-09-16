@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import {
   AutoAwesomeRounded,
   FavoriteRounded,
@@ -8,6 +8,7 @@ import {
   RocketLaunchRounded,
   SpaRounded,
 } from '@mui/icons-material';
+import { motion } from 'motion/react';
 import { BookMoodSelectorProps, DiscoveryMood } from './bookDiscovery.types';
 
 const MOODS: DiscoveryMood[] = [
@@ -87,48 +88,45 @@ export const BookMoodSelector: React.FC<BookMoodSelectorProps> = ({
           flexWrap: 'wrap',
           justifyContent: 'center',
           gap: 1,
-          maxWidth: '640px',
+          maxWidth: '660px',
         }}
       >
         {MOODS.map((mood) => {
           const isSelected = selectedMood === mood.id;
           return (
-            <Chip
+            <motion.button
               key={mood.id}
-              label={mood.label}
-              icon={
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: isSelected ? '#FFFFFF' : '#1976D2',
-                  }}
-                >
-                  {mood.icon}
-                </Box>
-              }
-              clickable={!disabled}
+              type="button"
               disabled={disabled}
               onClick={() => onSelectMood(mood.id)}
               aria-pressed={isSelected}
-              sx={{
-                height: 32, // Target compact 32-36px height
-                px: 1.2,
-                fontSize: '0.8rem',
-                fontWeight: isSelected ? 700 : 600,
-                borderRadius: '9999px',
-                transition: 'all 0.18s ease-out',
-                bgcolor: isSelected ? '#1976D2' : '#FFFFFF',
-                color: isSelected ? '#FFFFFF' : '#334155',
-                border: isSelected ? '1px solid #1976D2' : '1px solid #CBD5E1',
-                boxShadow: 'none', // NO GLOW
-                '&:hover': {
-                  bgcolor: isSelected ? '#1565C0' : '#F1F5F9',
-                  borderColor: isSelected ? '#1565C0' : '#94A3B8',
-                },
-              }}
-            />
+              whileHover={!disabled ? { y: -2, scale: 1.02 } : undefined}
+              whileTap={!disabled ? { scale: 0.95 } : undefined}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className={`relative flex items-center gap-1.5 h-[34px] px-3.5 rounded-full text-[0.82rem] font-semibold select-none cursor-pointer outline-none transition-colors border ${
+                isSelected
+                  ? 'text-white border-[#1976D2] font-bold shadow-[0_3px_12px_rgba(25,118,210,0.25)]'
+                  : 'text-slate-700 bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50 shadow-[0_1px_3px_rgba(15,45,74,0.04)]'
+              } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              {isSelected && (
+                <motion.span
+                  layoutId="activeMoodPillIndicator"
+                  className="absolute inset-0 bg-[#1976D2] rounded-full z-0"
+                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                />
+              )}
+              <span
+                className={`relative z-10 flex items-center transition-colors duration-200 ${
+                  isSelected ? 'text-white' : 'text-[#1976D2]'
+                }`}
+              >
+                {mood.icon}
+              </span>
+              <span className="relative z-10 whitespace-nowrap">
+                {mood.label}
+              </span>
+            </motion.button>
           );
         })}
       </Box>

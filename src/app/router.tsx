@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
 import { RequireAuth } from '../components/auth/RequireAuth';
 import { ProtectedRoute } from '../routes/ProtectedRoute';
@@ -44,6 +44,7 @@ const router = createBrowserRouter([
       children: [
          { index: true, element: withSuspense(HomePage) },
          { path: 'books', element: withSuspense(BooksPage) },
+         { path: 'wishlist', element: <Navigate to="/books?favorite=true" replace /> },
          { path: 'books/:id', element: withSuspense(BookDetailPage) },
          { path: 'seller/:sellerId', element: withSuspense(SellerProfilePage) },
          { path: 'sell', element: withSuspense(SellPage) },

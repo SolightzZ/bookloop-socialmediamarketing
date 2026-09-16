@@ -19,16 +19,19 @@ import {
   Search as SearchIcon,
   ShoppingCartOutlined as CartIcon,
   FavoriteBorder as WishlistIcon,
+  Favorite as WishlistActiveIcon,
   Menu as MenuIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
+import { motion, AnimatePresence } from 'motion/react';
 import { NAV_ITEMS } from './navItems';
 import { useAuth } from '../../hooks/useAuth';
 import { AuthButton } from '../navbar/AuthButton';
 import { UserMenu } from '../navbar/UserMenu';
 import { SearchBar } from '../common/SearchBar';
 import { NotificationBell } from '../notification/NotificationBell';
+import { AnimatedBadge } from '../common/AnimatedBadge';
 
 const logoImg = '/images/logo.png';
 export interface HeaderProps {
@@ -53,11 +56,33 @@ export const Header: React.FC<HeaderProps> = ({
   const { isAuthenticated, isLoading } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+
+  const isWishlistActive =
+    (location.pathname === '/books' && new URLSearchParams(location.search).get('favorite') === 'true') ||
+    location.pathname === '/wishlist' ||
+    location.pathname === '/account/wishlist';
 
   useEffect(() => {
+    let lastScrollY = window.scrollY;
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 20);
+
+      if (currentScrollY > 80) {
+        if (currentScrollY > lastScrollY + 6) {
+          setIsHeaderVisible(false);
+        } else if (currentScrollY < lastScrollY - 6) {
+          setIsHeaderVisible(true);
+        }
+      } else {
+        setIsHeaderVisible(true);
+      }
+
+      lastScrollY = currentScrollY;
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -75,9 +100,28 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <>
+    <motion.div
+      animate={{
+        y: isHeaderVisible ? 0 : -95,
+        opacity: isHeaderVisible ? 1 : 0,
+      }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 28,
+      }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        zIndex: 1200,
+        pointerEvents: 'none',
+      }}
+    >
       <AppBar
-        position="fixed"
+        position="static"
         component="header"
         color="transparent"
         elevation={0}
@@ -86,11 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
           backgroundColor: 'transparent',
           backgroundImage: 'none',
           boxShadow: 'none',
-          top: 0,
-          left: 0,
-          right: 0,
           width: '100%',
-          zIndex: (theme) => theme.zIndex.appBar + 100,
           pt: { xs: 1, sm: 1.25, md: isScrolled ? 1 : 1.5 },
           pb: { xs: 0.75, sm: 1, md: 1 },
           px: { xs: 1.25, sm: 2, md: 3 },
@@ -112,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
           boxShadow: isScrolled
             ? '0 1px 3px 0 rgba(15, 45, 74, 0.04), 0 1px 2px -1px rgba(15, 45, 74, 0.03)'
             : '0 1px 2px 0 rgba(15, 45, 74, 0.02)',
-          px: { xs: 1.5, sm: 2.25, md: 3 },
+          px: { xs: 1.5, sm: 2, md: 1.75, lg: 2.5, xl: 3 },
           py: 0,
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
@@ -129,7 +169,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: { xs: 1, md: 2 },
+            gap: { xs: 1, md: 0.75, lg: 1.5 },
             width: '100%',
           }}
         >
@@ -154,6 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
               borderRadius: 2,
               p: 0.5,
               flexShrink: 0,
+              whiteSpace: 'nowrap',
               '&:focus-visible': {
                 outline: '2px solid #1976D2',
                 outlineOffset: '2px',
@@ -167,11 +208,12 @@ export const Header: React.FC<HeaderProps> = ({
               aria-hidden="true"
               referrerPolicy="no-referrer"
               sx={{
-                width: { xs: 32, md: 38 },
-                height: { xs: 32, md: 38 },
-                mr: { xs: 1, md: 1.25 },
+                width: { xs: 32, md: 34, lg: 38 },
+                height: { xs: 32, md: 34, lg: 38 },
+                mr: { xs: 0.75, md: 0.85, lg: 1.25 },
                 borderRadius: 1.5,
                 objectFit: 'contain',
+                flexShrink: 0,
               }}
             />
             <Typography
@@ -181,8 +223,9 @@ export const Header: React.FC<HeaderProps> = ({
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
                 color: '#0F2D4A',
-                fontSize: { xs: '1.25rem', md: '1.45rem' },
+                fontSize: { xs: '1.2rem', md: '1.25rem', lg: '1.45rem' },
                 lineHeight: 1,
+                whiteSpace: 'nowrap',
               }}
             >
               BookLoop
@@ -196,35 +239,32 @@ export const Header: React.FC<HeaderProps> = ({
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: { md: 0.5, lg: 1.25 },
+              flexShrink: 0,
+              gap: { md: 0.25, lg: 0.5, xl: 0.75 },
             }}
           >
             {NAV_ITEMS.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = !isWishlistActive && location.pathname === item.path;
               return (
-                <Button
+                <motion.button
                   key={item.label}
-                  color="inherit"
+                  type="button"
                   onClick={() => handleNavigation(item.path)}
-                  sx={{
-                    fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#1976D2' : '#627D98',
-                    borderRadius: 50,
-                    px: { md: 1.2, lg: 2 },
-                    py: 0.65,
-                    fontSize: { md: '0.85rem', lg: '0.9rem' },
-                    bgcolor: isActive ? '#EAF4FF' : 'transparent',
-                    '&:hover': {
-                      bgcolor: isActive ? '#EAF4FF' : 'rgba(25, 118, 210, 0.06)',
-                      color: '#1976D2',
-                    },
-                    '&:focus-visible': {
-                      outline: '2px solid #1976D2',
-                    },
-                  }}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  className={`relative px-3.5 py-1.5 rounded-full text-[0.85rem] lg:text-[0.88rem] font-medium whitespace-nowrap outline-none select-none cursor-pointer transition-colors duration-200 ${
+                    isActive ? 'text-[#1976D2] font-bold' : 'text-[#627D98] hover:text-[#1976D2]'
+                  }`}
                 >
-                  {item.label}
-                </Button>
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeNavIndicator"
+                      className="absolute inset-0 bg-[#EAF4FF] rounded-full z-0"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{item.label}</span>
+                </motion.button>
               );
             })}
           </Box>
@@ -234,7 +274,7 @@ export const Header: React.FC<HeaderProps> = ({
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: { md: 1, lg: 1.5 },
+              gap: { md: 0.5, lg: 1, xl: 1.25 },
               flexShrink: 0,
             }}
           >
@@ -244,52 +284,67 @@ export const Header: React.FC<HeaderProps> = ({
               value={searchQuery}
               onChange={onSearchQueryChange}
               onSubmit={onSearchSubmit}
+              placeholder="ค้นหาชื่อหนังสือ..."
             />
 
-            {/* Wishlist */}
-            <Tooltip title="รายการโปรดของคุณ">
+            {/* Wishlist with AnimatedBadge */}
+            <Tooltip title={isWishlistActive ? 'กำลังดูรายการโปรด' : 'รายการโปรดของคุณ'}>
               <IconButton
+                size="small"
                 color="inherit"
                 onClick={() => navigate('/books?favorite=true')}
                 aria-label={`รายการโปรด (${wishlistCount} เล่ม)`}
                 sx={{
-                  color: '#627D98',
-                  '&:hover': { color: '#0F2D4A', bgcolor: 'rgba(15, 45, 74, 0.05)' },
+                  color: isWishlistActive ? '#E11D48' : '#627D98',
+                  bgcolor: isWishlistActive ? '#FFF1F2' : 'transparent',
+                  border: isWishlistActive ? '1px solid #FFE4E6' : '1px solid transparent',
+                  borderRadius: '10px',
+                  p: { md: 0.6, lg: 0.8 },
+                  '&:hover': {
+                    color: isWishlistActive ? '#BE123C' : '#0F2D4A',
+                    bgcolor: isWishlistActive ? '#FFE4E6' : 'rgba(15, 45, 74, 0.05)',
+                  },
                   '&:focus-visible': { outline: '2px solid #1976D2' },
                 }}
               >
-                <Badge badgeContent={wishlistCount} color="error" max={99}>
-                  <WishlistIcon sx={{ fontSize: 22 }} />
-                </Badge>
+                <AnimatedBadge count={wishlistCount} color="error" max={99}>
+                  {isWishlistActive ? (
+                    <WishlistActiveIcon sx={{ fontSize: { md: 20, lg: 22 }, color: '#E11D48' }} />
+                  ) : (
+                    <WishlistIcon sx={{ fontSize: { md: 20, lg: 22 } }} />
+                  )}
+                </AnimatedBadge>
               </IconButton>
             </Tooltip>
 
-            {/* Cart */}
+            {/* Cart with Apple Intelligence style Pop & Ripple Badge */}
             <Tooltip title="ตะกร้าสินค้า">
               <IconButton
+                size="small"
                 color="inherit"
                 onClick={() => navigate('/cart')}
                 aria-label={`ตะกร้าสินค้า (${cartCount} รายการ)`}
                 sx={{
                   color: '#627D98',
+                  p: { md: 0.6, lg: 1 },
                   '&:hover': { color: '#0F2D4A', bgcolor: 'rgba(15, 45, 74, 0.05)' },
                   '&:focus-visible': { outline: '2px solid #1976D2' },
                 }}
               >
-                <Badge badgeContent={cartCount} color="primary" max={99}>
-                  <CartIcon sx={{ fontSize: 22 }} />
-                </Badge>
+                <AnimatedBadge count={cartCount} color="primary" max={99}>
+                  <CartIcon sx={{ fontSize: { md: 20, lg: 22 } }} />
+                </AnimatedBadge>
               </IconButton>
             </Tooltip>
 
             {/* Notification Bell */}
             <NotificationBell />
 
-            <Divider orientation="vertical" flexItem sx={{ height: 24, my: 'auto', borderColor: '#D9E2EC' }} />
+            <Divider orientation="vertical" flexItem sx={{ height: 22, my: 'auto', mx: { md: 0.25, lg: 0.5 }, borderColor: '#D9E2EC' }} />
 
             {/* Auth / User Menu with No Flicker */}
             {isLoading ? (
-              <Box sx={{ minWidth: 148, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ minWidth: { md: 80, lg: 110 }, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CircularProgress size={18} sx={{ color: '#1976D2' }} />
               </Box>
             ) : isAuthenticated ? (
@@ -331,9 +386,9 @@ export const Header: React.FC<HeaderProps> = ({
                 '&:focus-visible': { outline: '2px solid #1976D2' },
               }}
             >
-              <Badge badgeContent={cartCount} color="primary" max={99}>
+              <AnimatedBadge count={cartCount} color="primary" max={99}>
                 <CartIcon sx={{ fontSize: 22 }} />
-              </Badge>
+              </AnimatedBadge>
             </IconButton>
 
             {/* Mobile Menu Button */}
@@ -373,16 +428,6 @@ export const Header: React.FC<HeaderProps> = ({
         </Collapse>
       </Container>
     </AppBar>
-
-    {/* Responsive spacer to ensure page content starts below the fixed floating navbar */}
-    <Box
-      aria-hidden="true"
-      sx={{
-        height: { xs: 70, sm: 76, md: 84 },
-        width: '100%',
-        flexShrink: 0,
-      }}
-    />
-  </>
+    </motion.div>
   );
 };

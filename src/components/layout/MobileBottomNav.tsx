@@ -91,6 +91,7 @@ export const MobileBottomNav: React.FC = () => {
                 fontWeight: active ? 700 : 500,
                 lineHeight: 1,
                 color: 'inherit',
+                whiteSpace: 'nowrap',
               }}
             >
               {item.label}

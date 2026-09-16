@@ -6,7 +6,10 @@ import {
   RocketLaunchRounded,
   ShieldOutlined,
   TaskAltRounded,
+  LockOutlined,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SubmitSectionProps {
   isFormValid: boolean;
@@ -21,6 +24,8 @@ export const SubmitSection: React.FC<SubmitSectionProps> = ({
   submitStatus,
   errorMessage,
 }) => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const isBusy = isSubmitting || submitStatus === 'loading';
   const isDisabled = !isFormValid || isBusy;
 
@@ -84,45 +89,76 @@ export const SubmitSection: React.FC<SubmitSectionProps> = ({
         </Box>
       </Box>
 
-      {/* Main Submit Button */}
-      <Button
-        type="submit"
-        variant="contained"
-        size="large"
-        fullWidth
-        disabled={isDisabled}
-        startIcon={
-          isBusy ? (
-            <CircularProgress size={20} color="inherit" />
-          ) : submitStatus === 'success' ? (
-            <SuccessIcon sx={{ color: '#2E7D5B' }} />
-          ) : (
-            <RocketLaunchRounded sx={{ fontSize: 20 }} />
-          )
-        }
-        sx={{
-          py: 1.6,
-          fontSize: '1.05rem',
-          fontWeight: 800,
-          borderRadius: 3,
-          bgcolor: submitStatus === 'success' ? '#16A34A' : isFormValid ? '#1976D2' : '#94A3B8',
-          color: '#FFFFFF',
-          textTransform: 'none',
-          boxShadow: isFormValid && !isDisabled ? '0 4px 16px rgba(25, 118, 210, 0.3)' : 'none',
-          '&:hover': {
-            bgcolor: submitStatus === 'success' ? '#16A34A' : '#1565C0',
-            transform: isFormValid && !isBusy ? 'translateY(-1px)' : 'none',
-            boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
-          },
-          transition: 'all 0.2s ease',
-        }}
-      >
-        {isBusy
-          ? 'กำลังบันทึกข้อมูล...'
-          : submitStatus === 'success'
-          ? 'ส่งหนังสือสำเร็จ'
-          : 'ส่งต่อหนังสือขึ้นระบบ BookLoop'}
-      </Button>
+      {/* Main Submit Button - Auth Gated */}
+      {isAuthenticated ? (
+        <Button
+          id="submit-sell-book-btn"
+          type="submit"
+          variant="contained"
+          size="large"
+          fullWidth
+          disabled={isDisabled}
+          startIcon={
+            isBusy ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : submitStatus === 'success' ? (
+              <SuccessIcon sx={{ color: '#2E7D5B' }} />
+            ) : (
+              <RocketLaunchRounded sx={{ fontSize: 20 }} />
+            )
+          }
+          sx={{
+            py: 1.6,
+            fontSize: '1.05rem',
+            fontWeight: 800,
+            borderRadius: 3,
+            bgcolor: submitStatus === 'success' ? '#16A34A' : isFormValid ? '#1976D2' : '#94A3B8',
+            color: '#FFFFFF',
+            textTransform: 'none',
+            boxShadow: isFormValid && !isDisabled ? '0 4px 16px rgba(25, 118, 210, 0.3)' : 'none',
+            '&:hover': {
+              bgcolor: submitStatus === 'success' ? '#16A34A' : '#1565C0',
+              transform: isFormValid && !isBusy ? 'translateY(-1px)' : 'none',
+              boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
+            },
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {isBusy
+            ? 'กำลังบันทึกข้อมูล...'
+            : submitStatus === 'success'
+            ? 'ส่งหนังสือสำเร็จ'
+            : 'ส่งต่อหนังสือ'}
+        </Button>
+      ) : (
+        <Button
+          id="login-to-sell-btn"
+          type="button"
+          variant="contained"
+          size="large"
+          fullWidth
+          onClick={() => navigate('/login', { state: { from: { pathname: '/sell' } } })}
+          startIcon={<LockOutlined sx={{ fontSize: 20 }} />}
+          sx={{
+            py: 1.6,
+            fontSize: '1.05rem',
+            fontWeight: 800,
+            borderRadius: 3,
+            bgcolor: '#0F2D4A',
+            color: '#FFFFFF',
+            textTransform: 'none',
+            boxShadow: '0 4px 16px rgba(15, 45, 74, 0.2)',
+            '&:hover': {
+              bgcolor: '#1976D2',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 6px 20px rgba(25, 118, 210, 0.35)',
+            },
+            transition: 'all 0.2s ease',
+          }}
+        >
+          เข้าสู่ระบบเพื่อส่งต่อหนังสือ
+        </Button>
+      )}
 
       {/* Helper text or Security reassurance */}
       {!isFormValid ? (

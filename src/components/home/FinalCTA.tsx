@@ -2,9 +2,11 @@ import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AppContainer } from '../common/Container';
+import { useAuth } from '../../hooks/useAuth';
 
 export const FinalCTA: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Box
@@ -134,30 +136,59 @@ export const FinalCTA: React.FC = () => {
               ค้นหาหนังสือ
             </Button>
 
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/sell')}
-              sx={{
-                borderColor: 'rgba(255, 255, 255, 0.4)',
-                color: '#FFFFFF',
-                px: { xs: 4, sm: 4.5 },
-                py: 1.4,
-                borderRadius: 2,
-                fontWeight: 700,
-                fontSize: { xs: '0.95rem', sm: '1rem' },
-                width: { xs: '100%', sm: 'auto' },
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                '&:hover': {
-                  borderColor: '#FFFFFF',
-                  bgcolor: 'rgba(255, 255, 255, 0.15)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              ส่งต่อหนังสือ
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                id="final-cta-sell-btn"
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/sell')}
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.4)',
+                  color: '#FFFFFF',
+                  px: { xs: 4, sm: 4.5 },
+                  py: 1.4,
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: { xs: '0.95rem', sm: '1rem' },
+                  width: { xs: '100%', sm: 'auto' },
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '&:hover': {
+                    borderColor: '#FFFFFF',
+                    bgcolor: 'rgba(255, 255, 255, 0.15)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                ส่งต่อหนังสือ
+              </Button>
+            ) : (
+              <Button
+                id="final-cta-login-btn"
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/login', { state: { from: { pathname: '/sell' } } })}
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.4)',
+                  color: '#FFFFFF',
+                  px: { xs: 4, sm: 4.5 },
+                  py: 1.4,
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: { xs: '0.95rem', sm: '1rem' },
+                  width: { xs: '100%', sm: 'auto' },
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '&:hover': {
+                    borderColor: '#FFFFFF',
+                    bgcolor: 'rgba(255, 255, 255, 0.15)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                เข้าสู่ระบบเพื่อส่งต่อหนังสือ
+              </Button>
+            )}
           </Box>
         </Box>
       </AppContainer>

@@ -22,6 +22,7 @@ import {
   BlockOutlined,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Book } from '../data/books';
 import { ConditionBadge } from './ConditionBadge';
 import { PriceComparison } from './PriceComparison';
@@ -115,39 +116,47 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
 
   return (
     <>
-      <Card
-      tabIndex={0}
-      role="article"
-      aria-label={`${book.title} โดย ${book.author} ราคา ${book.price} บาท`}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          handleCardClick();
-        }
-      }}
-      onClick={handleCardClick}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        borderRadius: 3,
-        border: '1px solid #E2E8F0',
-        bgcolor: '#FFFFFF',
-        cursor: 'pointer',
-        overflow: 'hidden',
-        transition: 'transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s cubic-bezier(0.2, 0, 0, 1), border-color 0.25s ease',
-        boxShadow: '0 2px 8px rgba(15, 41, 66, 0.04)',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 12px 28px rgba(15, 41, 66, 0.1)',
-          borderColor: '#CBD5E1',
-        },
-        '&:focus-visible': {
-          outline: '2px solid #1565C0',
-          outlineOffset: '2px',
-        },
-      }}
-    >
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-20px' }}
+        whileTap={{ scale: 0.985 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+        className="h-full flex flex-col"
+      >
+        <Card
+          tabIndex={0}
+          role="article"
+          aria-label={`${book.title} โดย ${book.author} ราคา ${book.price} บาท`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCardClick();
+            }
+          }}
+          onClick={handleCardClick}
+          sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            borderRadius: 3,
+            border: '1px solid #E2E8F0',
+            bgcolor: '#FFFFFF',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            transition: 'transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s cubic-bezier(0.2, 0, 0, 1), border-color 0.25s ease',
+            boxShadow: '0 2px 8px rgba(15, 41, 66, 0.04)',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 12px 28px rgba(15, 41, 66, 0.1)',
+              borderColor: '#CBD5E1',
+            },
+            '&:focus-visible': {
+              outline: '2px solid #1565C0',
+              outlineOffset: '2px',
+            },
+          }}
+        >
       {/* 3:4 PORTRAIT BOOK COVER CONTAINER */}
       <Box
         sx={{
@@ -454,6 +463,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
         </Box>
       </CardContent>
     </Card>
+    </motion.div>
 
     {/* Authentication Gate Dialog */}
     <LoginRequiredDialog

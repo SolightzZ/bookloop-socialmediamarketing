@@ -128,10 +128,11 @@ export const Hero: React.FC<HeroProps> = ({
         position: 'relative',
         overflow: 'hidden',
         bgcolor: '#F7FAFC',
-        minHeight: { xs: 'auto', md: 620, lg: 660 },
+        minHeight: 'auto',
         display: 'flex',
         alignItems: 'center',
-        py: { xs: 5, sm: 6, md: 8, lg: 9 },
+        pt: { xs: 10, sm: 11, md: 12.5, lg: 13 },
+        pb: { xs: 4, sm: 4.5, md: 5 },
       }}
     >
       {/* Hero-only background — absolute inset-0, pointer-events none, z-0 */}

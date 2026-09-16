@@ -25,8 +25,6 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   const Icon = isLoginPage ? RegisterIcon : LoginIcon;
 
   const handleClick = () => {
-    if (loading) return;
-    setLoading(true);
     if (onClick) {
       onClick();
     } else {
@@ -52,15 +50,15 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 0.625,
-        height: 36,
-        px: 1.75,
+        height: { xs: 34, md: 34, lg: 36 },
+        px: { xs: 1.25, md: 1.4, lg: 1.75 },
         py: 0,
         borderRadius: '10px',
         fontWeight: 600,
-        fontSize: '0.8125rem',
+        fontSize: { xs: '0.78rem', md: '0.8rem', lg: '0.8125rem' },
         lineHeight: 1,
         whiteSpace: 'nowrap',
-        minWidth: 0,
+        minWidth: 'max-content',
         flexShrink: 0,
         textTransform: 'none',
         letterSpacing: 0,

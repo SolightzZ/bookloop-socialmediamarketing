@@ -8,12 +8,14 @@ import { Header } from '../components/layout/Header';
 import { AppMobileDrawer } from '../components/layout/AppMobileDrawer';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { Footer } from '../components/layout/Footer';
+import { ScrollProgressBar } from '../components/common/ScrollProgressBar';
 
 export const AppLayout: React.FC = () => {
    const { cartCount } = useCart();
   const { wishlist } = useWishlist();
   const navigate = useNavigate();
   const location = useLocation();
+  const isHomePage = location.pathname === '/';
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -36,6 +38,7 @@ export const AppLayout: React.FC = () => {
 
    return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+         <ScrollProgressBar />
          <Header
             cartCount={cartCount}
             wishlistCount={wishlist.length}
@@ -47,7 +50,14 @@ export const AppLayout: React.FC = () => {
 
          <AppMobileDrawer open={mobileOpen} onClose={handleDrawerToggle} searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onSearchSubmit={handleSearch} />
 
-         <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+         <Box
+            component="main"
+            sx={{
+               flexGrow: 1,
+               display: 'flex',
+               flexDirection: 'column',
+               pt: isHomePage ? 0 : { xs: '68px', sm: '76px', md: '84px' },
+            }}>
             <Outlet />
          </Box>
 

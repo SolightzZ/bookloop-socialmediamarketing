@@ -9,6 +9,7 @@ import {
 } from '@mui/icons-material';
 import { HeroSearch } from './HeroSearch';
 import { HeroActions } from './HeroActions';
+import { motion } from 'motion/react';
 
 export interface HeroContentProps {
   searchQuery: string;
@@ -106,7 +107,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
             }}
           >
             มีเรื่องราว
-            {/* Yellow Curved Underline Swoosh — tiny accent */}
+            {/* Yellow Curved Underline Swoosh — tiny accent with SVG Path Drawing */}
             <Box
               component="svg"
               viewBox="0 0 160 16"
@@ -120,12 +121,15 @@ export const HeroContent: React.FC<HeroContentProps> = ({
                 overflow: 'visible',
               }}
             >
-              <path
+              <motion.path
                 d="M 2 8 C 45 15, 115 14, 158 4"
                 stroke="#F59E0B"
                 strokeWidth="3.5"
                 strokeLinecap="round"
                 fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
               />
             </Box>
           </Box>

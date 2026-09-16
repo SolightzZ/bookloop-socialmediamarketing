@@ -190,6 +190,7 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
 
   return (
     <Paper
+      id="sell-book-form"
       elevation={0}
       component="form"
       onSubmit={handleSubmit}

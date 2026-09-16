@@ -22,7 +22,7 @@ export const PriceComparison: React.FC<PriceComparisonProps> = ({
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-      <Typography variant={priceVariant} sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+      <Typography variant={priceVariant} sx={{ fontWeight: 'bold', color: 'primary.main', whiteSpace: 'nowrap' }}>
         {formatCurrency(price)}
       </Typography>
 
@@ -34,6 +34,7 @@ export const PriceComparison: React.FC<PriceComparisonProps> = ({
               textDecoration: 'line-through',
               color: 'text.secondary',
               opacity: 0.8,
+              whiteSpace: 'nowrap',
             }}
           >
             {formatCurrency(originalPrice)}
@@ -44,7 +45,7 @@ export const PriceComparison: React.FC<PriceComparisonProps> = ({
               label={`ประหยัด ${percentage}% (-${formatCurrency(savings)})`}
               color="success"
               size="small"
-              sx={{ fontWeight: 700, fontSize: '0.75rem', height: 22 }}
+              sx={{ fontWeight: 700, fontSize: '0.75rem', height: 22, whiteSpace: 'nowrap' }}
             />
           )}
         </>

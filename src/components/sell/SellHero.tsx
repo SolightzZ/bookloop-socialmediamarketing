@@ -1,13 +1,20 @@
 import React from 'react';
-import { Box, Typography, Chip, Container } from '@mui/material';
+import { Box, Typography, Chip, Container, Button } from '@mui/material';
 import {
   BoltRounded,
   MonetizationOnOutlined,
   RecyclingRounded,
   AutoStoriesRounded,
+  LockOutlined,
+  ArrowForwardRounded,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { MagneticButton } from '../common/MagneticButton';
 
 export const SellHero: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   return (
     <Box
       component="header"
@@ -160,6 +167,72 @@ export const SellHero: React.FC = () => {
                 หมุนเวียนและลดขยะกระดาษ
               </Typography>
             </Box>
+          </Box>
+
+          {/* Auth-gated CTA Area */}
+          <Box sx={{ mt: 3.5, display: 'flex', justifyContent: 'center' }}>
+            {isAuthenticated ? (
+              <MagneticButton strength={0.22}>
+                <Button
+                  id="sell-hero-pass-on-btn"
+                  variant="contained"
+                  size="large"
+                  onClick={() => {
+                    const formElement = document.getElementById('sell-book-form');
+                    if (formElement) {
+                      formElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  endIcon={<ArrowForwardRounded />}
+                  sx={{
+                    bgcolor: '#38BDF8',
+                    color: '#0A1E33',
+                    px: { xs: 3.5, sm: 4.5 },
+                    py: 1.3,
+                    borderRadius: 2.5,
+                    fontWeight: 800,
+                    fontSize: { xs: '0.95rem', sm: '1.02rem' },
+                    boxShadow: '0 8px 24px -4px rgba(56, 189, 248, 0.4)',
+                    textTransform: 'none',
+                    '&:hover': {
+                      bgcolor: '#7DD3FC',
+                      boxShadow: '0 12px 28px -4px rgba(56, 189, 248, 0.5)',
+                      transform: 'translateY(-2px)',
+                    },
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  ส่งต่อหนังสือ
+                </Button>
+              </MagneticButton>
+            ) : (
+              <Button
+                id="sell-hero-login-btn"
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/login', { state: { from: { pathname: '/sell' } } })}
+                startIcon={<LockOutlined sx={{ fontSize: 18 }} />}
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  bgcolor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#FFFFFF',
+                  px: { xs: 3, sm: 4 },
+                  py: 1.2,
+                  borderRadius: 2.5,
+                  fontWeight: 700,
+                  fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: '#38BDF8',
+                    bgcolor: 'rgba(255, 255, 255, 0.16)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                เข้าสู่ระบบเพื่อเริ่มส่งต่อหนังสือ
+              </Button>
+            )}
           </Box>
         </Box>
       </Container>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, Button, Container } from '@mui/material';
+import React, { useMemo } from 'react';
+import { Box, Typography, Button, Container, Paper } from '@mui/material';
 import {
   AutoAwesomeRounded,
   MenuBookRounded,
@@ -15,6 +15,7 @@ import { BookMoodSelector } from './BookMoodSelector';
 import { DiscoveryEffects } from './DiscoveryEffects';
 import { BookOrbit } from './BookOrbit';
 import { trackEvent } from '../../utils/analytics';
+import { books as defaultBooks } from '../../data/books';
 
 export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
   books,
@@ -42,6 +43,16 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
     testMode,
   });
 
+  const availableBooks = books || defaultBooks;
+  const defaultBook = useMemo(() => {
+    if (!availableBooks || availableBooks.length === 0) return defaultBooks[0];
+    const featuredBook = availableBooks.find((b) => b.featured && (b.stock ?? 1) > 0);
+    return featuredBook || availableBooks[0];
+  }, [availableBooks]);
+
+  const activeDisplayBook = selectedBook || (isRunning ? currentCyclingBook : null) || defaultBook;
+  const isInitialRecommendation = !selectedBook && state === 'idle';
+
   const handleStart = () => {
     trackEvent('random_book_click', {
       previousState: state,
@@ -53,9 +64,9 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
   return (
     <section
       aria-labelledby="book-discovery-heading"
-      className={`relative w-full py-12 md:py-16 bg-[#F8FAFC] border-y border-slate-200/80 overflow-hidden ${className}`}
+      className={`relative w-full py-7 sm:py-9 md:py-10 bg-[#F8FAFC] border-y border-slate-200/80 overflow-hidden ${className}`}
     >
-      {/* Clean subtle dot pattern (Zero glow, zero blur) */}
+      {/* Clean subtle dot pattern */}
       <DiscoveryEffects isReducedMotion={isReducedMotion} />
 
       {/* Screen reader live announcements */}
@@ -65,9 +76,9 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
         {error && error}
       </div>
 
-      <Container maxWidth="lg" sx={{ maxWidth: '1080px !important' }} className="relative z-10 px-4 sm:px-6">
-        {/* 1. Header (Compact 32–38px Heading) */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 2.5, sm: 3 } }}>
+      <Container maxWidth="lg" sx={{ maxWidth: '1120px !important' }} className="relative z-10 px-4 sm:px-6">
+        {/* 1. Header (Compact, Professional) */}
+        <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 2.5 } }}>
           <Box
             sx={{
               display: 'inline-flex',
@@ -76,12 +87,12 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
               bgcolor: '#FFFFFF',
               border: '1px solid #BFDBFE',
               borderRadius: 9999,
-              py: 0.4,
-              px: 1.6,
-              mb: 1,
+              py: 0.35,
+              px: 1.5,
+              mb: 0.8,
             }}
           >
-            <AutoAwesomeRounded sx={{ fontSize: 14, color: '#1976D2' }} />
+            <AutoAwesomeRounded sx={{ fontSize: 13, color: '#1976D2' }} />
             <Typography
               variant="caption"
               sx={{
@@ -89,10 +100,10 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
                 color: '#1976D2',
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                fontSize: '0.72rem',
+                fontSize: '0.7rem',
               }}
             >
-              DISCOVER SOMETHING NEW
+              DISCOVER WITH BOOKLOOP
             </Typography>
           </Box>
 
@@ -102,32 +113,18 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
             component="h2"
             sx={{
               fontWeight: 800,
-              fontSize: { xs: '1.65rem', sm: '2rem', md: '2.25rem' },
+              fontSize: { xs: '1.35rem', sm: '1.65rem', md: '1.85rem' },
               color: '#0F2D4A',
               letterSpacing: '-0.02em',
               lineHeight: 1.25,
-              mb: 0.8,
             }}
           >
-            วันนี้ไม่รู้จะอ่านอะไร? <span className="text-[#1976D2]">ให้ BookLoop เลือกให้คุณ</span>
-          </Typography>
-
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#64748B',
-              fontSize: { xs: '0.875rem', sm: '0.95rem' },
-              maxWidth: 540,
-              mx: 'auto',
-              lineHeight: 1.5,
-            }}
-          >
-            ค้นพบหนังสือเล่มถัดไปในวงโคจรการอ่าน พร้อมส่งต่อความรู้สึกดีๆ
+            วันนี้ไม่รู้จะอ่านอะไร? <Box component="span" sx={{ color: '#1976D2' }}>ให้ BookLoop เลือกให้คุณ</Box>
           </Typography>
         </Box>
 
         {/* 2. Compact Mood Selector */}
-        <Box sx={{ mb: { xs: 2, sm: 2.5 } }}>
+        <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>
           <BookMoodSelector
             selectedMood={selectedMood}
             onSelectMood={setSelectedMood}
@@ -174,72 +171,138 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
           </Box>
         )}
 
-        {/* 4. Compact Interactive Scene & Button */}
+        {/* 4. Professional Two-Column Layout: Left = Randomizer, Right = Selected Book */}
         {(!error || state !== 'error') && (
           <Box
             sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              width: '100%',
-              maxWidth: '840px',
-              mx: 'auto',
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1.15fr', lg: '4.8fr 7.2fr' },
+              gap: { xs: 2, sm: 2.5, md: 3 },
+              alignItems: 'stretch',
             }}
           >
-            {/* Compact Three.js Scene: 480–560px × 260–320px */}
-            <Box
+            {/* LEFT COLUMN: Randomizer Scene & Controls (สุ่มวางไว้ที่ทางซ้าย) */}
+            <Paper
+              elevation={0}
               sx={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: '560px',
-                height: { xs: 260, sm: 290, md: 310 },
+                height: '100%',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                p: { xs: 2, sm: 2.5 },
+                borderRadius: 3.5,
+                border: '1px solid #E2E8F0',
+                bgcolor: '#FFFFFF',
+                boxShadow: '0 2px 10px rgba(15, 45, 74, 0.04)',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
-              <BookDiscoveryScene
-                state={state}
-                selectedBook={selectedBook}
-                currentCyclingBook={currentCyclingBook}
-                candidateBooks={candidateBooks}
-                isReducedMotion={isReducedMotion}
-                onSceneClick={handleStart}
-                onPointerEnter={() => setHoverState(true)}
-                onPointerLeave={() => setHoverState(false)}
-              />
+              {/* Stage Top Bar */}
+              <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: isRunning ? '#F59E0B' : state === 'result' ? '#10B981' : '#1976D2',
+                      animation: isRunning ? 'pulse 1s infinite' : 'none',
+                      '@keyframes pulse': {
+                        '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                        '50%': { opacity: 0.4, transform: 'scale(1.3)' },
+                      },
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.75rem' }}>
+                    {isRunning
+                      ? 'กำลังค้นหาในวงโคจร...'
+                      : state === 'result'
+                      ? 'สุ่มหนังสือสำเร็จ'
+                      : 'วงโคจรสุ่มหนังสือ'}
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    bgcolor: '#F1F5F9',
+                    color: '#64748B',
+                    px: 1,
+                    py: 0.2,
+                    borderRadius: 9999,
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Interactive 3D
+                </Typography>
+              </Box>
 
-              {/* Orbit Overlay */}
-              <BookOrbit state={state} isReducedMotion={isReducedMotion} />
-            </Box>
-
-            {/* Primary Action Button (180–220px width) */}
-            <Box sx={{ mt: 1.5, zIndex: 10 }}>
-              <BookDiscoveryButton
-                state={state}
-                onClick={handleStart}
-                onMouseEnter={() => setHoverState(true)}
-                onMouseLeave={() => setHoverState(false)}
-              />
-            </Box>
-
-            {/* Compact Result Card (520–640px) */}
-            {selectedBook && state === 'result' && (
+              {/* 3D Orbit Stage */}
               <Box
                 sx={{
+                  position: 'relative',
                   width: '100%',
-                  mt: 3,
-                  zIndex: 20,
+                  height: { xs: 190, sm: 210, md: 225 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  my: 'auto',
+                  cursor: isRunning ? 'default' : 'pointer',
+                }}
+                onClick={!isRunning ? handleStart : undefined}
+                role="button"
+                tabIndex={0}
+                aria-label="คลิกเพื่อสุ่มหนังสือในวงโคจร"
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !isRunning) {
+                    e.preventDefault();
+                    handleStart();
+                  }
                 }}
               >
-                <BookDiscoveryResult
-                  book={selectedBook}
-                  onRollAgain={handleStart}
+                <BookDiscoveryScene
+                  state={state}
+                  selectedBook={selectedBook}
+                  currentCyclingBook={currentCyclingBook}
+                  candidateBooks={candidateBooks}
                   isReducedMotion={isReducedMotion}
-                  mood={selectedMood}
+                  onSceneClick={handleStart}
+                  onPointerEnter={() => setHoverState(true)}
+                  onPointerLeave={() => setHoverState(false)}
                 />
+                <BookOrbit state={state} isReducedMotion={isReducedMotion} />
               </Box>
-            )}
+
+              {/* Action Button & Hint */}
+              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 1.5 }}>
+                <BookDiscoveryButton
+                  state={state}
+                  onClick={handleStart}
+                  onMouseEnter={() => setHoverState(true)}
+                  onMouseLeave={() => setHoverState(false)}
+                  className="w-full sm:w-auto"
+                />
+                <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.72rem', textAlign: 'center' }}>
+                  {state === 'result'
+                    ? '💡 หากยังไม่โดนใจ กดสุ่มอีกครั้งเพื่อค้นพบเล่มใหม่'
+                    : '💡 คลิกที่วงโคจรหรือกดปุ่มเพื่อเริ่มค้นพบหนังสือ'}
+                </Typography>
+              </Box>
+            </Paper>
+
+            {/* RIGHT COLUMN: Book Selected by BookLoop (หนังสือที่ได้ BookLoop เลือกให้คุณ อยู่ทางด้านขวา) */}
+            <Box sx={{ height: '100%' }}>
+              <BookDiscoveryResult
+                book={activeDisplayBook}
+                onRollAgain={handleStart}
+                isReducedMotion={isReducedMotion}
+                mood={selectedMood}
+                state={state}
+                isInitial={isInitialRecommendation}
+                isRunning={isRunning}
+              />
+            </Box>
           </Box>
         )}
       </Container>

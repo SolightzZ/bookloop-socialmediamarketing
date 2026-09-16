@@ -219,8 +219,9 @@ export default function BooksPage() {
                            px: 1.2,
                            py: 0.35,
                            borderRadius: 9999,
-                           bgcolor: '#EAF4FF',
-                           color: '#1976D2',
+                           bgcolor: onlyFavorites ? '#FFF1F2' : '#EAF4FF',
+                           color: onlyFavorites ? '#E11D48' : '#1976D2',
+                           border: onlyFavorites ? '1px solid #FFE4E6' : '1px solid #DBEAFE',
                            fontWeight: 800,
                            fontSize: '0.75rem',
                         }}>
@@ -253,6 +254,35 @@ export default function BooksPage() {
                      พบหนังสือทั้งหมด <strong>{filteredBooks.length}</strong> เล่ม จากชุมชนนักอ่าน BookLoop
                   </Typography>
                </Box>
+
+               {onlyFavorites && (
+                  <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+                     <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                           searchParams.delete('favorite');
+                           searchParams.delete('page');
+                           setSearchParams(searchParams);
+                        }}
+                        sx={{
+                           borderRadius: 2.5,
+                           textTransform: 'none',
+                           fontWeight: 700,
+                           fontSize: '0.85rem',
+                           color: '#1976D2',
+                           borderColor: '#CBD5E1',
+                           bgcolor: '#FFFFFF',
+                           px: 2,
+                           py: 0.75,
+                           whiteSpace: 'nowrap',
+                           '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
+                        }}
+                     >
+                        ← ดูหนังสือทั้งหมดในคลัง
+                     </Button>
+                  </Box>
+               )}
 
                <Box sx={{ display: { xs: 'block', md: 'none' }, width: { xs: '100%', sm: 'auto' } }}>
                   <Button
@@ -490,51 +520,127 @@ export default function BooksPage() {
 
                   {/* Books Grid */}
                   {filteredBooks.length === 0 ? (
-                     <Paper
-                        elevation={0}
-                        sx={{
-                           p: { xs: 4, sm: 6 },
-                           textAlign: 'center',
-                           borderRadius: 3.5,
-                           border: '1.5px solid #E2E8F0',
-                           bgcolor: '#FFFFFF',
-                        }}>
-                        <Box
+                     onlyFavorites ? (
+                        <Paper
+                           elevation={0}
                            sx={{
-                              width: 72,
-                              height: 72,
-                              borderRadius: '50%',
-                              bgcolor: '#F1F5F9',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mx: 'auto',
-                              mb: 2,
+                              p: { xs: 4, sm: 6 },
+                              textAlign: 'center',
+                              borderRadius: 3.5,
+                              border: '1.5px solid #FFE4E6',
+                              bgcolor: '#FFFFFF',
                            }}>
-                           <SearchOffRounded sx={{ fontSize: 36, color: '#64748B' }} />
-                        </Box>
-                        <Typography variant="h6" sx={{ color: '#0F2D4A', fontWeight: 800, mb: 0.8, fontSize: '1.15rem' }}>
-                           ไม่พบหนังสือที่ตรงกับเงื่อนไขการค้นหา
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 440, mx: 'auto', fontSize: '0.85rem' }}>
-                           ลองปรับเปลี่ยนคำค้นหา ขยายช่วงราคา หรือล้างตัวกรองทั้งหมดเพื่อดูหนังสือรายการอื่นในคลัง
-                        </Typography>
-                        <Button
-                           variant="contained"
-                           startIcon={<RestartAltRounded />}
-                           onClick={clearAllFilters}
+                           <Box
+                              sx={{
+                                 width: 72,
+                                 height: 72,
+                                 borderRadius: '50%',
+                                 bgcolor: '#FFF1F2',
+                                 display: 'flex',
+                                 alignItems: 'center',
+                                 justifyContent: 'center',
+                                 mx: 'auto',
+                                 mb: 2,
+                              }}>
+                              <FavoriteRounded sx={{ fontSize: 36, color: '#E11D48' }} />
+                           </Box>
+                           <Typography variant="h6" sx={{ color: '#0F2D4A', fontWeight: 800, mb: 0.8, fontSize: '1.15rem' }}>
+                              {wishlist.length === 0
+                                 ? 'ยังไม่มีหนังสือในรายการโปรด'
+                                 : 'ไม่พบหนังสือที่ตรงกับตัวกรองในรายการโปรด'}
+                           </Typography>
+                           <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 460, mx: 'auto', fontSize: '0.85rem' }}>
+                              {wishlist.length === 0
+                                 ? 'กดไอคอนหัวใจ ❤️ บนหนังสือที่คุณสนใจ เพื่อบันทึกเก็บไว้ดู เปรียบเทียบราคา หรือสั่งซื้อในภายหลัง'
+                                 : 'ลองปรับเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูหนังสือเล่มอื่นที่คุณบันทึกไว้ในรายการโปรด'}
+                           </Typography>
+                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                              {wishlist.length > 0 && (
+                                 <Button
+                                    variant="outlined"
+                                    onClick={() => {
+                                       setSearchInput('');
+                                       setSearchParams({ favorite: 'true' });
+                                    }}
+                                    sx={{
+                                       borderRadius: 2.5,
+                                       px: 2.5,
+                                       py: 1,
+                                       fontWeight: 700,
+                                       textTransform: 'none',
+                                       borderColor: '#CBD5E1',
+                                       color: '#0F2D4A',
+                                    }}>
+                                    แสดงรายการโปรดทั้งหมด ({wishlist.length})
+                                 </Button>
+                              )}
+                              <Button
+                                 variant="contained"
+                                 onClick={() => {
+                                    searchParams.delete('favorite');
+                                    searchParams.delete('page');
+                                    setSearchParams(searchParams);
+                                 }}
+                                 sx={{
+                                    borderRadius: 2.5,
+                                    px: 3,
+                                    py: 1,
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                    bgcolor: '#1976D2',
+                                    boxShadow: 'none',
+                                 }}>
+                                 สำรวจหนังสือทั้งหมดในคลัง
+                              </Button>
+                           </Box>
+                        </Paper>
+                     ) : (
+                        <Paper
+                           elevation={0}
                            sx={{
-                              borderRadius: 2.5,
-                              px: 3,
-                              py: 1,
-                              fontWeight: 700,
-                              textTransform: 'none',
-                              bgcolor: '#1976D2',
-                              boxShadow: 'none',
+                              p: { xs: 4, sm: 6 },
+                              textAlign: 'center',
+                              borderRadius: 3.5,
+                              border: '1.5px solid #E2E8F0',
+                              bgcolor: '#FFFFFF',
                            }}>
-                           ล้างตัวกรองทั้งหมด
-                        </Button>
-                     </Paper>
+                           <Box
+                              sx={{
+                                 width: 72,
+                                 height: 72,
+                                 borderRadius: '50%',
+                                 bgcolor: '#F1F5F9',
+                                 display: 'flex',
+                                 alignItems: 'center',
+                                 justifyContent: 'center',
+                                 mx: 'auto',
+                                 mb: 2,
+                              }}>
+                              <SearchOffRounded sx={{ fontSize: 36, color: '#64748B' }} />
+                           </Box>
+                           <Typography variant="h6" sx={{ color: '#0F2D4A', fontWeight: 800, mb: 0.8, fontSize: '1.15rem' }}>
+                              ไม่พบหนังสือที่ตรงกับเงื่อนไขการค้นหา
+                           </Typography>
+                           <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 440, mx: 'auto', fontSize: '0.85rem' }}>
+                              ลองปรับเปลี่ยนคำค้นหา ขยายช่วงราคา หรือล้างตัวกรองทั้งหมดเพื่อดูหนังสือรายการอื่นในคลัง
+                           </Typography>
+                           <Button
+                              variant="contained"
+                              startIcon={<RestartAltRounded />}
+                              onClick={clearAllFilters}
+                              sx={{
+                                 borderRadius: 2.5,
+                                 px: 3,
+                                 py: 1,
+                                 fontWeight: 700,
+                                 textTransform: 'none',
+                                 bgcolor: '#1976D2',
+                                 boxShadow: 'none',
+                              }}>
+                              ล้างตัวกรองทั้งหมด
+                           </Button>
+                        </Paper>
+                     )
                   ) : (
                      <>
                         <Box

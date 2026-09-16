@@ -11,6 +11,7 @@ import { HomeValueProps } from '../components/home/HomeValueProps';
 import { BookLoopJourney } from '../components/BookLoopJourney';
 import { BookStoriesSection } from '../components/BookStoriesSection';
 import { SocialUgcSection } from '../components/SocialUgcSection';
+import { HomePassOnSection } from '../components/home/HomePassOnSection';
 import { FinalCTA } from '../components/home/FinalCTA';
 import { RecentlyViewedSection } from '../components/home/RecentlyViewedSection';
 
@@ -61,6 +62,9 @@ export default function HomePage() {
 
       {/* 9. Social Community */}
       <SocialUgcSection />
+
+      {/* 9.5 Community Book Pass-On Gated Section */}
+      <HomePassOnSection />
 
       {/* 10. Final CTA */}
       <FinalCTA />

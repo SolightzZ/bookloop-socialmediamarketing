@@ -77,6 +77,7 @@ export const theme = createTheme({
     button: {
       textTransform: 'none',
       fontWeight: 600,
+      whiteSpace: 'nowrap',
     },
   },
   shape: {
@@ -102,6 +103,7 @@ export const theme = createTheme({
           fontWeight: 600,
           padding: '8px 20px',
           boxShadow: 'none',
+          whiteSpace: 'nowrap',
           '&:hover': {
             boxShadow: 'none',
           },
@@ -138,6 +140,16 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: '8px',
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          whiteSpace: 'nowrap',
           fontWeight: 600,
         },
       },

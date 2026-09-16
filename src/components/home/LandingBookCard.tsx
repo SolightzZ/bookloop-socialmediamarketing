@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { Book } from '../../data/books';
 import { ConditionBadge } from '../ConditionBadge';
 import { SafeImage } from '../common/SafeImage';
+import { TiltCard } from '../common/TiltCard';
 import { useWishlist } from '../../hooks/useWishlist';
 import { trackEvent } from '../../utils/analytics';
 
@@ -44,39 +45,39 @@ export const LandingBookCard: React.FC<LandingBookCardProps> = ({ book }) => {
   };
 
   return (
-    <Card
-      tabIndex={0}
-      role="article"
-      aria-label={`${book.title} ราคา ${book.price} บาท สภาพ ${book.condition}`}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          handleCardClick();
-        }
-      }}
-      onClick={handleCardClick}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        borderRadius: 3,
-        border: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
-        cursor: 'pointer',
-        overflow: 'hidden',
-        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
-        boxShadow: '0 2px 8px rgba(15, 45, 74, 0.04)',
-        '&:hover': {
-          transform: 'translateY(-3px)',
-          boxShadow: '0 10px 24px rgba(15, 45, 74, 0.08)',
-          borderColor: '#CBD5E1',
-        },
-        '&:focus-visible': {
-          outline: '2px solid #1976D2',
-          outlineOffset: '2px',
-        },
-      }}
-    >
+    <TiltCard className="h-full group">
+      <Card
+        tabIndex={0}
+        role="article"
+        aria-label={`${book.title} ราคา ${book.price} บาท สภาพ ${book.condition}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCardClick();
+          }
+        }}
+        onClick={handleCardClick}
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          borderRadius: 3,
+          border: '1px solid #D9E2EC',
+          bgcolor: '#FFFFFF',
+          cursor: 'pointer',
+          overflow: 'hidden',
+          transition: 'box-shadow 200ms ease, border-color 200ms ease',
+          boxShadow: '0 2px 8px rgba(15, 45, 74, 0.04)',
+          '&:hover': {
+            boxShadow: '0 12px 28px rgba(15, 45, 74, 0.1)',
+            borderColor: '#CBD5E1',
+          },
+          '&:focus-visible': {
+            outline: '2px solid #1976D2',
+            outlineOffset: '2px',
+          },
+        }}
+      >
       {/* 3:4 Portrait Book Image Container */}
       <Box
         sx={{
@@ -261,5 +262,6 @@ export const LandingBookCard: React.FC<LandingBookCardProps> = ({ book }) => {
         </Box>
       </CardContent>
     </Card>
+    </TiltCard>
   );
 };

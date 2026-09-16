@@ -85,6 +85,9 @@ export interface BookDiscoveryResultProps {
   isReducedMotion?: boolean;
   className?: string;
   mood?: DiscoveryMoodId;
+  state?: DiscoveryState;
+  isInitial?: boolean;
+  isRunning?: boolean;
 }
 
 export interface BookMoodSelectorProps {
