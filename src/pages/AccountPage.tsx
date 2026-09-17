@@ -96,8 +96,8 @@ export default function AccountPage() {
   const [notifyPromo, setNotifyPromo] = useState(false);
   const [notifyBookUpdates, setNotifyBookUpdates] = useState(true);
 
-  // Newsletter Subscribe State
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  // Newsletter Subscribe State — ปิดไว้เป็นค่าเริ่มต้น ให้ผู้ใช้กดเปิดเอง
+  const [isEmailSubscribed, setIsEmailSubscribed] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeMessage, setSubscribeMessage] = useState('');
 
@@ -195,7 +195,7 @@ export default function AccountPage() {
         .then((res) => res.json())
         .then((result) => {
           if (result.success) {
-            setIsSubscribed(result.subscribed);
+            setIsEmailSubscribed(result.subscribed);
           }
         })
         .catch(() => {});
@@ -280,7 +280,7 @@ export default function AccountPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setIsSubscribed(true);
+        setIsEmailSubscribed(true);
         setSubscribeMessage('สมัครสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ');
         showSuccess('สมัครสำเร็จ', 'ส่งอีเมลต้อนรับไปยังกล่องจดหมายของคุณแล้ว');
       } else {
@@ -305,7 +305,7 @@ export default function AccountPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setIsSubscribed(false);
+        setIsEmailSubscribed(false);
         setSubscribeMessage('ยกเลิกการสมัครรับข่าวสารแล้ว');
         showSuccess('ยกเลิกสำเร็จ', 'คุณจะไม่ได้รับข่าวสารจาก BookLoop อีก');
       } else {
@@ -1331,7 +1331,7 @@ export default function AccountPage() {
                       รับข่าวสาร หนังสือแนะนำ และโปรโมชั่นพิเศษจาก BookLoop ทางอีเมล
                     </Typography>
 
-                    {isSubscribed ? (
+                    {isEmailSubscribed ? (
                       <Box>
                         <Alert severity="success" sx={{ borderRadius: 2, mb: 1.5 }}>
                           สมัครรับข่าวสารแล้ว คุณจะได้รับข่าวสารและโปรโมชั่นพิเศษทางอีเมล
