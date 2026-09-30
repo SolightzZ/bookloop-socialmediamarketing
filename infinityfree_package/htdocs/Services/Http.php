@@ -126,8 +126,8 @@ if (!function_exists('jsonResponse')) {
 if (!function_exists('getRequestData')) {
     /**
      * อ่านข้อมูล request รองรับทั้ง JSON body และ form-data
-     * หมายเหตุ: frontend บน GitHub Pages ส่ง body เป็น text/plain (เลี่ยง preflight
-     * ของ InfinityFree free) จึงต้องลอง parse JSON ก่อนเสมอ ไม่พึ่ง CONTENT_TYPE
+     * หมายเหตุ: frontend ส่ง body เป็น application/json แต่ต้องลอง parse JSON ก่อนเสมอ
+     * ไม่พึ่ง CONTENT_TYPE (client บางตัวส่ง content-type มาผิด/ไม่ส่งมา)
      */
     function getRequestData(): array
     {

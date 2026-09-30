@@ -1,5 +1,10 @@
 <?php
 
+// Backend นี้ตอบ application/json เท่านั้น — ห้ามปล่อย PHP warning/notice
+// ปนออกมาเป็น HTML (error ยังถูกเก็บผ่าน RequestLogger/error_log ตามปกติ)
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
 // โหลด .env ผ่านแคช (temp file) — ไม่ต้อง parse_ini_file ทุก request
 $envFile = __DIR__ . '/../.env';
 

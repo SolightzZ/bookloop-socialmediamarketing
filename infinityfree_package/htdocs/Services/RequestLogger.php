@@ -158,6 +158,15 @@ set_exception_handler(function (Throwable $e) {
     ]);
     RequestLogger::flushBuffer();
     http_response_code(500);
+    // รับประกัน Content-Type: application/json แม้ exception จะเกิดก่อน corsHeaders() ได้รัน
+    // (เช่น .env parse พังตอน require) — กันเคส "body เป็น JSON แต่ header เป็น text/html"
+    if (!headers_sent()) {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'OPTIONS' && function_exists('corsHeaders')) {
+            corsHeaders(); // ชุดเดียวกับทุก endpoint: CORS ตาม allow-list + application/json
+        } else {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+    }
     echo json_encode(['success' => false, 'message' => 'Internal server error']);
     exit();
 });

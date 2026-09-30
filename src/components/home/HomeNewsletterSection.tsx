@@ -91,7 +91,7 @@ export const HomeNewsletterSection: React.FC = () => {
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'text/plain;charset=UTF-8',
+          'Content-Type': 'application/json;charset=UTF-8',
         },
         body: JSON.stringify({
           email: trimmedEmail,

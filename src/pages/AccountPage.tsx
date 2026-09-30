@@ -276,7 +276,7 @@ export default function AccountPage() {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
       const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
         credentials: 'include',
         body: JSON.stringify({ email: user?.email }),
       });
@@ -302,7 +302,7 @@ export default function AccountPage() {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
       const response = await fetch(`${API_BASE_URL}/newsletter_status.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
         credentials: 'include',
         body: JSON.stringify({ email: user?.email, _method: 'DELETE' }),
       });

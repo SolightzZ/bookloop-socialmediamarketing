@@ -45,9 +45,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const token = readStoredToken();
   const method = (options.method ?? 'GET').toUpperCase();
 
-  // เลี่ยง preflight (InfinityFree free ดัก OPTIONS ที่ edge ก่อนถึง PHP):
-  // - ไม่ส่ง Authorization header เลย ส่ง token ใน query (GET/DELETE) หรือใน JSON body (POST) แทน
-  // - Content-Type: text/plain เข้าข่าย simple request ไม่เกิด preflight
+  // ส่ง token โดยไม่ใช้ Authorization header (shared host มักตัดทิ้ง):
+  // ส่ง token ใน query (GET/DELETE) หรือใน JSON body (POST) แทน
+  // Content-Type: application/json — production หลักคือ /app/ (same-origin) จึงไม่ติด preflight
   let url = `${API_BASE_URL}/${endpoint}`;
   if (token && (method === 'GET' || method === 'DELETE')) {
     url += `${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
@@ -72,7 +72,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   const headers: Record<string, string> = {
-    'Content-Type': 'text/plain;charset=UTF-8',
+    'Content-Type': 'application/json;charset=UTF-8',
     ...(options.headers as Record<string, string>),
   };
   delete headers['Authorization'];
@@ -135,8 +135,7 @@ export const apiClient = {
   },
 
   delete<T>(endpoint: string, data?: unknown): Promise<T> {
-    // DELETE ตรงๆ ไม่ใช่ simple method ยังไงก็เกิด preflight จึงส่งเป็น POST + _method แทน
-    // (backend ยอมรับทั้งสองแบบ) — body เป็น text/plain ไม่ preflight
+    // ส่ง DELETE เป็น POST + _method แทน (backend ยอมรับทั้งสองแบบ)
     const payload =
       data !== null && typeof data === 'object' && !Array.isArray(data)
         ? { ...(data as Record<string, unknown>), _method: 'DELETE' }
