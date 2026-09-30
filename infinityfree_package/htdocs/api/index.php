@@ -24,6 +24,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit();
 }
 
+// ?check-origin=https://example.com — ตรวจว่า origin นี้ผ่าน allow-list ของเซิร์ฟเวอร์หรือไม่
+// เปิดในเบราว์เซอร์ได้เลย (ไฟล์นี้ส่ง ACAO แบบเปิดจึงไม่ติด CORS) — ตอบ allowed:true/false พร้อมสาเหตุ
+// ใช้แยกให้ออกว่า "CORS error ใน console" มาจาก .env หาย vs ALLOWED_ORIGIN ขาด origin นี้
+if (isset($_GET['check-origin'])) {
+    $query = trim((string)$_GET['check-origin']);
+    $result = ['success' => true, 'origin' => $query, 'allowed' => false, 'reason' => ''];
+    try {
+        require_once __DIR__ . '/../config/config.php';
+        $allowed = array_map('trim', explode(',', ALLOWED_ORIGIN));
+        if (in_array('*', $allowed, true)) {
+            $result['allowed'] = true;
+        } elseif ($query !== '' && in_array($query, $allowed, true)) {
+            $result['allowed'] = true;
+        } else {
+            $result['reason'] = 'origin นี้ไม่อยู่ใน ALLOWED_ORIGIN บนเซิร์ฟเวอร์ — เพิ่มเข้าไฟล์ htdocs/.env แล้วลองใหม่';
+        }
+    } catch (Throwable $e) {
+        $result['reason'] = 'โหลด config ไม่ได้: ' . $e->getMessage();
+    }
+    http_response_code(200);
+    echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit();
+}
+
 // รายชื่อ endpoint จากไฟล์จริงในโฟลเดอร์นี้ (เพิ่มไฟล์ใหม่แล้วจะโผล่เอง)
 $files = glob(__DIR__ . '/*.php') ?: [];
 $endpoints = [];

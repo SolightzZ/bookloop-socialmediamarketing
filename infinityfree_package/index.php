@@ -271,7 +271,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
   <p class="meta">PHP <?= PHP_VERSION ?> · <span id="metaTime"><?= date('Y-m-d H:i:s') ?></span> · <a href="<?= $BASE_URL ?>/?format=json">?format=json</a> สำหรับ health check</p>
 </div>
 <script>
-// Realtime dashboard: poll ?format=json + api/auth_me.php โดยไม่ต้องรีเฟรชหน้า
+// Realtime dashboard: poll ?format=json + api/ โดยไม่ต้องรีเฟรชหน้า
 (function () {
   var BASE = <?= json_encode($BASE_URL, JSON_UNESCAPED_SLASHES) ?>;
   var badge = document.getElementById('liveBadge');
@@ -370,28 +370,30 @@ GENERATED_IMAGES_PATH=images/generated</div>
           try { metaTime.textContent = new Date(data.time).toLocaleString('th-TH'); }
           catch (e) { metaTime.textContent = data.time; }
         }
-        // 2) พิสูจน์ว่า API รับ request จริง: auth_me แบบไม่มี token ต้องได้ 401 JSON
-        // ถ้าได้ JSON (แม้ success:false) = เส้น API เชื่อมได้แล้ว
+        // 2) พิสูจน์ว่า API รับ request จริง: ยิง /api/ (public, ตอบ 200 JSON ไม่ต้องใช้ token)
+        // เดิมยิง auth_me.php ซึ่งตอบ 401 ตามปกติ แต่ browser จะ log "Failed to load resource: 401"
+        // ลง console ทุกครั้งที่ poll — ย้ายมา endpoint ที่ตอบ 200 เพื่อให้ console สะอาด
+        // ถ้าได้ JSON (มี success:true + endpoints) = เส้น API เชื่อมได้แล้ว
         try {
           var t1 = performance.now();
-          var r2 = await fetch(BASE + '/api/auth_me.php', { cache: 'no-store' });
+          var r2 = await fetch(BASE + '/api/', { cache: 'no-store' });
           var b2 = await r2.text();
           var j2 = null;
           try { j2 = b2 ? JSON.parse(b2) : null; } catch (e) { j2 = null; }
           var ms2 = Math.round(performance.now() - t1);
           if (r2.url && r2.url.indexOf('errors.infinityfree.net') !== -1) {
             // โฮสต์ redirect ไปหน้า 404 = ไฟล์นี้ยังไม่อยู่บนเซิร์ฟเวอร์ (อัปโหลดยังไม่ครบ)
-            setApi('bad', 'ไฟล์ api/auth_me.php ยังไม่อยู่บนเซิร์ฟเวอร์ (โฮสต์ส่งไปหน้า 404)', 'HTTP ' + r2.status,
+            setApi('bad', 'ไฟล์ api/ ยังไม่อยู่บนเซิร์ฟเวอร์ (โฮสต์ส่งไปหน้า 404)', 'HTTP ' + r2.status,
               'อัปโหลดโฟลเดอร์ api/ + auth/ + config/ + Services/ + vendor/ ขึ้น htdocs/ ให้ครบ แล้วสร้างไฟล์ .env');
-          } else if (j2 && typeof j2.success !== 'undefined') {
-            setApi('ok', 'เชื่อม API ได้แล้ว — auth_me ตอบกลับเป็น JSON (HTTP ' + r2.status + ')', ms2 + ' ms',
-              r2.status === 401 ? 'ไม่มี token จึงได้ 401 ตามปกติ = เส้นทาง API + CORS ใช้งานได้' : (j2.message || 'API ตอบกลับปกติ'));
+          } else if (j2 && j2.success === true && typeof j2.count !== 'undefined') {
+            setApi('ok', 'เชื่อม API ได้แล้ว — /api/ ตอบกลับเป็น JSON (HTTP ' + r2.status + ', ' + j2.count + ' endpoints)', ms2 + ' ms',
+              'เส้นทาง API ใช้งานได้ ( endpoint ที่ต้องใช้ token จะตรวจสิทธิ์ตามปกติ)');
           } else {
             setApi('bad', 'API ตอบกลับไม่ใช่ JSON (HTTP ' + r2.status + ')', ms2 + ' ms',
-              'อาจติด anti-bot ของโฮสต์ — ลองเปิด api/auth_me.php ตรงๆ ในเบราว์เซอร์');
+              'อาจติด anti-bot ของโฮสต์ — ลองเปิด /api/ ตรงๆ ในเบราว์เซอร์');
           }
         } catch (e2) {
-          setApi('bad', 'เรียก api/auth_me.php ไม่สำเร็จ', '—', String((e2 && e2.message) || e2));
+          setApi('bad', 'เรียก /api/ ไม่สำเร็จ', '—', String((e2 && e2.message) || e2));
         }
         var when = new Date().toLocaleTimeString('th-TH');
         line.innerHTML = '✅ อัปเดตล่าสุด <b>' + esc(when) + '</b> · ตอบใน <b>' + ms + ' ms</b> · รีเฟรชทุก <b>' + esc(secSel.value) + '</b> วินาที'

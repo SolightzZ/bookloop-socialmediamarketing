@@ -49,10 +49,19 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  // fetch ล้ม (เน็ตล่ม / DNS / CORS preflight ไม่ผ่าน) จะโยน TypeError ดิบๆ
+  // ("Failed to fetch") — แปลงเป็น ApiError ภาษาไทย ให้ฟอร์มแสดงรู้เรื่อง
+  // ใช้ status 0 = ระดับเครือข่าย (ไม่ใช่ HTTP status) caller ที่แยก 401/403
+  // ออกจาก 5xx จะได้ปฏิบัติกับเคสนี้แบบเดียวกับ "backend ชั่วคราวไม่พร้อม"
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new ApiError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง', 0);
+  }
 
   // body อาจไม่ใช่ JSON (PHP fatal / InfinityFree anti-bot ส่ง HTML มา) — กัน "Unexpected token '<'"
   const text = await response.text().catch(() => '');
