@@ -26,14 +26,27 @@ interface LocalAccount extends User {
    passHash: string;
 }
 
-function isBackendUnreachable(e: unknown): boolean {
+export function isBackendUnreachable(e: unknown): boolean {
    return (
       e instanceof ApiError &&
       (e.status === 0 || e.message.includes('HTML แทน JSON'))
    );
 }
 
-function notifyOfflineMode(): void {
+/** session ที่เก็บใน localStorage (ใช้หา userId ปัจจุบันโดยไม่ต้องพึ่ง backend) */
+export function getStoredSession(): { token: string; userId: string; expiresAt: number } | null {
+   try {
+      const raw = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (!raw) return null;
+      const session = JSON.parse(raw);
+      if (!session?.userId || !session?.token) return null;
+      return session;
+   } catch {
+      return null;
+   }
+}
+
+export function notifyOfflineMode(): void {
    try {
       if (sessionStorage.getItem(OFFLINE_NOTICE_KEY)) return;
       sessionStorage.setItem(OFFLINE_NOTICE_KEY, '1');
@@ -47,7 +60,7 @@ function notifyOfflineMode(): void {
    }
 }
 
-function loadLocalAccounts(): LocalAccount[] {
+export function loadLocalAccounts(): LocalAccount[] {
    try {
       const raw = localStorage.getItem(LOCAL_USERS_KEY);
       if (!raw) return [];
@@ -58,7 +71,7 @@ function loadLocalAccounts(): LocalAccount[] {
    }
 }
 
-function saveLocalAccounts(accounts: LocalAccount[]): void {
+export function saveLocalAccounts(accounts: LocalAccount[]): void {
    try {
       localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(accounts));
    } catch {
@@ -66,7 +79,7 @@ function saveLocalAccounts(accounts: LocalAccount[]): void {
    }
 }
 
-function toPublicUser(account: LocalAccount): User {
+export function toPublicUser(account: LocalAccount): User {
    const { passHash: _passHash, ...publicUser } = account;
    return publicUser as User;
 }
