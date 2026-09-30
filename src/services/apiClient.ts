@@ -42,27 +42,53 @@ function readStoredToken(): string | null {
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}/${endpoint}`;
+  const token = readStoredToken();
+  const method = (options.method ?? 'GET').toUpperCase();
+
+  // เลี่ยง preflight (InfinityFree free ดัก OPTIONS ที่ edge ก่อนถึง PHP):
+  // - ไม่ส่ง Authorization header เลย ส่ง token ใน query (GET/DELETE) หรือใน JSON body (POST) แทน
+  // - Content-Type: text/plain เข้าข่าย simple request ไม่เกิด preflight
+  let url = `${API_BASE_URL}/${endpoint}`;
+  if (token && (method === 'GET' || method === 'DELETE')) {
+    url += `${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+  }
+
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    const raw = options.body as string;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (token && method === 'POST' && parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        body = JSON.stringify({ ...(parsed as Record<string, unknown>), token });
+      } else {
+        body = raw;
+      }
+    } catch {
+      body = raw;
+    }
+  } else if (token && method === 'POST') {
+    // POST ตัวเปล่า (เช่น auth_logout) — ใส่ token ใน body ให้ backend หาเจอโดยไม่ต้องมี header
+    body = JSON.stringify({ token });
+  }
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'text/plain;charset=UTF-8',
     ...(options.headers as Record<string, string>),
   };
-
-  const token = readStoredToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  delete headers['Authorization'];
 
   // fetch ล้ม (เน็ตล่ม / DNS / CORS preflight ไม่ผ่าน) จะโยน TypeError ดิบๆ
   // ("Failed to fetch") — แปลงเป็น ApiError ภาษาไทย ให้ฟอร์มแสดงรู้เรื่อง
   // ใช้ status 0 = ระดับเครือข่าย (ไม่ใช่ HTTP status) caller ที่แยก 401/403
   // ออกจาก 5xx จะได้ปฏิบัติกับเคสนี้แบบเดียวกับ "backend ชั่วคราวไม่พร้อม"
+  // credentials:include = ส่ง __test cookie ของ InfinityFree ไปด้วย (ไม่มีแล้วโดนหน้า challenge)
   let response: Response;
   try {
     response = await fetch(url, {
       ...options,
       headers,
+      body,
+      credentials: 'include',
     });
   } catch {
     throw new ApiError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง', 0);
@@ -103,9 +129,15 @@ export const apiClient = {
   },
 
   delete<T>(endpoint: string, data?: unknown): Promise<T> {
+    // DELETE ตรงๆ ไม่ใช่ simple method ยังไงก็เกิด preflight จึงส่งเป็น POST + _method แทน
+    // (backend ยอมรับทั้งสองแบบ) — body เป็น text/plain ไม่ preflight
+    const payload =
+      data !== null && typeof data === 'object' && !Array.isArray(data)
+        ? { ...(data as Record<string, unknown>), _method: 'DELETE' }
+        : { _method: 'DELETE' };
     return request<T>(endpoint, {
-      method: 'DELETE',
-      body: data ? JSON.stringify(data) : undefined,
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 };

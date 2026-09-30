@@ -67,10 +67,10 @@ class AuthService {
             return null;
          }
 
-         const xhr = new XMLHttpRequest();
-         xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/auth_me.php`, false);
-         xhr.setRequestHeader('Authorization', `Bearer ${session.token}`);
-         xhr.send();
+          const xhr = new XMLHttpRequest();
+          // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
+          xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
+          xhr.send();
 
          if (xhr.status === 200) {
             const result = JSON.parse(xhr.responseText);

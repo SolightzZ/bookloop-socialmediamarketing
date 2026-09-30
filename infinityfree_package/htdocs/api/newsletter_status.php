@@ -6,6 +6,13 @@ require_once BASE_PATH . '/Services/Subscribers.php';
 corsHeaders();
 
 $method = $_SERVER['REQUEST_METHOD'];
+// รองรับ POST + _method=DELETE (frontend เลี่ยง preflight บน InfinityFree free)
+if ($method === 'POST') {
+    $probe = getRequestData();
+    if (($probe['_method'] ?? '') === 'DELETE') {
+        $method = 'DELETE';
+    }
+}
 $subscriberFile = EMAIL_PATH . '/subscribers.txt';
 
 if ($method === 'GET') {

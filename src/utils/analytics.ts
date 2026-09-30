@@ -59,7 +59,8 @@ export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): v
 
     fetch(`${API_BASE_URL}/track.php`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      credentials: 'include',
       body: JSON.stringify({
         event: 'purchase',
         email: payload.email || '',

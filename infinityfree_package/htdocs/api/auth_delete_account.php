@@ -4,7 +4,17 @@ require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+// รองรับ POST + _method=DELETE (frontend เลี่ยง preflight บน InfinityFree free:
+// DELETE ตรงๆ ไม่ใช่ simple method ยังไงก็โดนดัก OPTIONS ที่ edge)
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+if ($requestMethod === 'POST') {
+    $probe = getRequestData();
+    if (($probe['_method'] ?? '') === 'DELETE') {
+        $requestMethod = 'DELETE';
+    }
+}
+
+if ($requestMethod !== 'DELETE') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
 }
 

@@ -23,6 +23,8 @@ if (!function_exists('corsHeaders')) {
             header("Access-Control-Allow-Origin: *");
         } elseif ($origin !== '' && in_array($origin, $allowed, true)) {
             header("Access-Control-Allow-Origin: " . $origin);
+            // frontend ส่ง credentials:include (cookie __test) จึงต้องมีหัวนี้คู่กัน ไม่งั้น browser บล็อก response
+            header("Access-Control-Allow-Credentials: true");
             header("Vary: Origin");
         } elseif ($origin !== '') {
             // log เตือนเพื่อช่วย debug กรณีเปิดเว็บผ่าน origin ที่ยังไม่ได้เพิ่มใน ALLOWED_ORIGIN
@@ -61,13 +63,14 @@ if (!function_exists('jsonResponse')) {
 if (!function_exists('getRequestData')) {
     /**
      * อ่านข้อมูล request รองรับทั้ง JSON body และ form-data
+     * หมายเหตุ: frontend บน GitHub Pages ส่ง body เป็น text/plain (เลี่ยง preflight
+     * ของ InfinityFree free) จึงต้องลอง parse JSON ก่อนเสมอ ไม่พึ่ง CONTENT_TYPE
      */
     function getRequestData(): array
     {
-        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-
-        if (strpos($contentType, 'application/json') !== false) {
-            return json_decode(file_get_contents('php://input'), true) ?? [];
+        $raw = file_get_contents('php://input');
+        if ($raw !== false && $raw !== '' && ($decoded = json_decode($raw, true)) !== null) {
+            return is_array($decoded) ? $decoded : [];
         }
 
         return $_POST;
@@ -98,6 +101,20 @@ if (!function_exists('getBearerToken')) {
 
         if (preg_match('/Bearer\s+(.+)$/i', $header, $matches)) {
             return trim($matches[1]);
+        }
+
+        // Fallback สำหรับ frontend ที่เลี่ยง preflight (ไม่ส่ง Authorization header):
+        // รับ token จาก query (?token=...) หรือ field `token` ใน JSON body แทน
+        if (isset($_GET['token']) && is_string($_GET['token']) && $_GET['token'] !== '') {
+            return trim($_GET['token']);
+        }
+
+        $raw = file_get_contents('php://input');
+        if ($raw !== false && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && isset($decoded['token']) && is_string($decoded['token']) && $decoded['token'] !== '') {
+                return trim($decoded['token']);
+            }
         }
 
         return null;

@@ -12,6 +12,7 @@ header('Pragma: no-cache');
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin !== '') {
     header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
     header('Vary: Origin');
 } else {
     header('Access-Control-Allow-Origin: *');

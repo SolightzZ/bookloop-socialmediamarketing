@@ -87,6 +87,319 @@ if ($isLocal) {
 // config.php throw ข้อความ ".env file not found" เฉพาะกรณีไฟล์หลักครบแต่ขาด .env
 $isEnvMissing = !$appOk && str_contains($envError, '.env file not found');
 
+// ─── Request monitor: สรุป POST/GET ที่เข้ามา จาก access log ที่เซิร์ฟเวอร์เขียนอยู่แล้ว ──
+// Services/RequestLogger.php (โหลดอัตโนมัติผ่าน config.php) บันทึกทุก request ลง data/request.log
+// รูปแบบบรรทัด: [เวลา] [LEVEL] [METHOD /uri] ชื่อevent {json context}
+//   incoming_request {method,uri,ip,user_agent}  +  response {method,uri,status,duration_ms}
+// หน้านี้อ่านไฟล์นั้น (อ่านอย่างเดียว ไม่แก้ไฟล์ backend อื่น) มาจับคู่ให้เหลือ 1 แถวต่อ 1 request
+// ส่วน "เว็บไหนส่งมาแล้วถูกปฏิเสธ" ดึงจาก data/error.log (event cors_origin_not_allowed) เพราะ
+// origin ของ request จะถูกเช็กกับ ALLOWED_ORIGIN ตรงนั้น — คือคำตอบของ "ทำไม POST/GET ส่งมาไม่ได้"
+if (!function_exists('bl_read_log_tail')) {
+    /** อ่าน N บรรทัดท้ายไฟล์ log โดยไม่โหลดทั้งไฟล์ (log อาจโตเป็น MB) — คืน array เรียงเก่า→ใหม่ */
+    function bl_read_log_tail(string $file, int $maxLines): array
+    {
+        if (!is_file($file) || !is_readable($file)) {
+            return [];
+        }
+        $fp = @fopen($file, 'r');
+        if ($fp === false) {
+            return [];
+        }
+        fseek($fp, 0, SEEK_END);
+        $pos = (int) ftell($fp);
+        $buf = '';
+        $chunk = 65536;
+        while ($pos > 0 && substr_count($buf, "\n") <= $maxLines) {
+            $read = min($chunk, $pos);
+            $pos -= $read;
+            fseek($fp, $pos);
+            $part = fread($fp, $read);
+            $buf = ($part === false ? '' : $part) . $buf;
+        }
+        fclose($fp);
+        $lines = explode("\n", $buf);
+        $lines = array_values(array_filter(array_map('trim', $lines), fn($l) => $l !== ''));
+        return array_slice($lines, -$maxLines);
+    }
+}
+
+if (!function_exists('bl_parse_req_log_line')) {
+    /** แตกบรรทัด log ของ RequestLogger — คืน null ถ้าไม่ใช่รูปแบบ [METHOD /uri] event */
+    function bl_parse_req_log_line(string $line): ?array
+    {
+        if (!preg_match('/^\[([\d\- :]+)\] \[(\w+)\] \[([A-Z]+) ([^\]]+)\] (\S+)( \{.*\})?$/', $line, $m)) {
+            return null;
+        }
+        $ctx = [];
+        if (isset($m[6]) && trim($m[6]) !== '') {
+            $decoded = json_decode(trim($m[6]), true);
+            if (is_array($decoded)) {
+                $ctx = $decoded;
+            }
+        }
+        return ['time' => $m[1], 'level' => $m[2], 'method' => $m[3], 'uri' => $m[4], 'event' => $m[5], 'ctx' => $ctx];
+    }
+}
+
+if (!function_exists('bl_summarize_requests')) {
+    /**
+     * จับคู่ incoming_request + response ของ request เดียวกันให้เหลือ 1 แถวต่อ 1 request
+     * RequestLogger เขียน incoming ตอนเริ่ม request และ response ตอน shutdown — เวลา (วินาที)
+     * เดินข้ามได้ จึงจับคู่ด้วย key = METHOD|uri แบบคิว FIFO (log เรียงตามเวลาอยู่แล้ว)
+     * อันที่ไม่เจอคู่ = request ล่าสุดที่ยังไม่จบ / ถูกตัดท้ายไฟล์ — โชว์สถานะ "…"
+     */
+    function bl_summarize_requests(array $lines, int $limit): array
+    {
+        $entries = [];
+        $pending = [];
+        $totals = ['GET' => 0, 'POST' => 0, 'DELETE' => 0, 'OPTIONS' => 0, 'OTHER' => 0];
+        $errCount = 0;
+
+        foreach ($lines as $line) {
+            $p = bl_parse_req_log_line($line);
+            if ($p === null) {
+                continue;
+            }
+            $key = $p['method'] . '|' . $p['uri'];
+
+            if ($p['event'] === 'incoming_request') {
+                $method = $p['method'];
+                $totals[array_key_exists($method, $totals) ? $method : 'OTHER']++;
+                $pending[$key][] = [
+                    'time' => $p['time'],
+                    'method' => $method,
+                    'uri' => $p['uri'],
+                    'ip' => (string) ($p['ctx']['ip'] ?? ''),
+                    'ua' => (string) ($p['ctx']['user_agent'] ?? ''),
+                    'status' => null,
+                    'ms' => null,
+                ];
+            } elseif ($p['event'] === 'response') {
+                $queue = $pending[$key] ?? [];
+                $entry = array_shift($queue);
+                if (is_array($queue) && $queue !== []) {
+                    $pending[$key] = $queue;
+                } else {
+                    unset($pending[$key]);
+                }
+                if (!is_array($entry)) {
+                    $entry = [
+                        'time' => $p['time'],
+                        'method' => $p['method'],
+                        'uri' => $p['uri'],
+                        'ip' => '',
+                        'ua' => '',
+                    ];
+                }
+                $entry['status'] = (int) ($p['ctx']['status'] ?? 0);
+                $entry['ms'] = isset($p['ctx']['duration_ms']) ? round((float) $p['ctx']['duration_ms'], 1) : null;
+                if ($entry['status'] >= 400) {
+                    $errCount++;
+                }
+                $entries[] = $entry;
+            }
+        }
+
+        foreach ($pending as $queue) {
+            foreach ($queue as $entry) {
+                // request ที่ยังไม่เจอ response (เพิ่งเข้ามา / อยู่ท้ายไฟล์พอดี)
+                $entries[] = $entry;
+            }
+        }
+
+        usort($entries, fn($a, $b) => strcmp($b['time'], $a['time']));
+
+        return [
+            'entries' => array_slice($entries, 0, $limit),
+            'totals' => $totals,
+            'errorCount' => $errCount,
+        ];
+    }
+}
+
+if (!function_exists('bl_rejected_origins')) {
+    /** ดึง cors_origin_not_allowed จาก error.log — นี่คือ "เว็บที่ยิงเข้ามาแล้วโดนบล็อก" */
+    function bl_rejected_origins(array $errLines): array
+    {
+        $map = [];
+        foreach ($errLines as $line) {
+            if (strpos($line, 'cors_origin_not_allowed') === false) {
+                continue;
+            }
+            if (!preg_match('/^\[([\d\- :]+)\] \[\w+\] cors_origin_not_allowed (\{.*\})$/', $line, $m)) {
+                continue;
+            }
+            $ctx = json_decode($m[2], true);
+            $origin = is_array($ctx) ? (string) ($ctx['origin'] ?? '') : '';
+            if ($origin === '') {
+                continue;
+            }
+            if (!isset($map[$origin])) {
+                $map[$origin] = ['origin' => $origin, 'count' => 0, 'last' => $m[1]];
+            }
+            $map[$origin]['count']++;
+            if ($m[1] > $map[$origin]['last']) {
+                $map[$origin]['last'] = $m[1];
+            }
+        }
+        usort($map, fn($a, $b) => strcmp($b['last'], $a['last']));
+        return array_values($map);
+    }
+}
+
+if (!function_exists('bl_truncate_utf8')) {
+    /** ตัดข้อความยาวแบบไม่หักคนละครึ่งอักษรไทย (กัน json_encode คืน false) */
+    function bl_truncate_utf8(string $text, int $max): string
+    {
+        if (strlen($text) <= $max) {
+            return $text;
+        }
+        return (function_exists('mb_substr') ? mb_substr($text, 0, $max) : substr($text, 0, $max)) . '…';
+    }
+}
+
+if (!function_exists('bl_recent_log_events')) {
+    /** เหตุการณ์ WARNING/ERROR ล่าสุดจาก error.log (ช่วยตอบ "ทำไมส่งมาไม่ได้") */
+    function bl_recent_log_events(array $errLines, int $limit): array
+    {
+        $out = [];
+        foreach (array_reverse($errLines) as $line) {
+            if (!preg_match('/^\[([\d\- :]+)\] \[(\w+)\] (.+)$/', $line, $m)) {
+                continue;
+            }
+            if (strtoupper($m[2]) === 'INFO') {
+                continue;
+            }
+            $out[] = ['time' => $m[1], 'level' => strtoupper($m[2]), 'message' => bl_truncate_utf8($m[3], 200)];
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+        return $out;
+    }
+}
+
+// เตรียมข้อมูล monitor (หน้า HTML กับ ?format=json ใช้ชุดเดียวกัน)
+if ($appOk) {
+    $reqLogLines = bl_read_log_tail(DATA_PATH . '/' . REQUEST_LOG_FILE, 1200);
+    $errLogLines = bl_read_log_tail(DATA_PATH . '/' . LOG_FILE, 400);
+} else {
+    // config ยังโหลดไม่ได้ — ลอง path default ตาม template .env ถ้ามี log เก่าค้างอยู่
+    $reqLogLines = bl_read_log_tail(__DIR__ . '/data/request.log', 1200);
+    $errLogLines = bl_read_log_tail(__DIR__ . '/data/error.log', 400);
+}
+$reqSummary = bl_summarize_requests($reqLogLines, 50);
+$requestsData = [
+    'available' => $appOk || count($reqSummary['entries']) > 0,
+    'recent' => $reqSummary['entries'],
+    'totals' => $reqSummary['totals'],
+    'errorCount' => $reqSummary['errorCount'],
+    'rejectedOrigins' => bl_rejected_origins($errLogLines),
+    'warnings' => bl_recent_log_events($errLogLines, 5),
+];
+
+// ─── Self-test: พิสูจน์ว่า POST/GET ถึง PHP จริงไหม (หลักฐาน = marker ลง data/selftest.log) ──
+// ?selftest=1 → เซิร์ฟเวอร์ยิง GET+POST กลับเข้าตัวเอง (loopback) แล้วเช็กว่าแต่ละ request
+// เขียน marker ลงไฟล์จริง — marker ลง = request ถึง PHP แน่นอน (ไม่ใช่แค่ได้ 200 จาก cache)
+$selftestPing = (string) ($_GET['selftest_ping'] ?? '');
+if ($selftestPing !== '' && preg_match('/^[a-z0-9_]{4,32}$/', $selftestPing)) {
+    // request ping ที่ selftest ยิงเข้ามา: เขียน marker ตอน request จบ (shutdown)
+    register_shutdown_function(function () use ($selftestPing) {
+        $dir = defined('DATA_PATH') ? DATA_PATH : __DIR__ . '/data';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        @file_put_contents($dir . '/selftest.log', $selftestPing . '|' . date('Y-m-d H:i:s') . PHP_EOL, FILE_APPEND | LOCK_EX);
+    });
+}
+
+if (($_GET['selftest'] ?? '') === '1') {
+    if (!function_exists('bl_selftest_http')) {
+        /** ยิง HTTP แบบง่าย (cURL ก่อน, ไม่มีค่อยใช้ file_get_contents) — คืน [httpCode, body] */
+        function bl_selftest_http(string $url, string $method, ?string $body, int $timeout): array
+        {
+            if (function_exists('curl_init')) {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST => $method,
+                    CURLOPT_TIMEOUT => $timeout,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_HTTPHEADER => ['User-Agent: BookLoop-SelfTest/1.0', 'Content-Type: application/json'],
+                ]);
+                if ($body !== null) {
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+                }
+                $resp = curl_exec($ch);
+                $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                // ไม่เรียก curl_close() — no-op ตั้งแต่ PHP 8.0 และ deprecated บน 8.5 (warning หลงออกมาทำ JSON เป๊ะ)
+                return [$code, is_string($resp) ? $resp : false];
+            }
+            $ctx = stream_context_create(['http' => [
+                'method' => $method,
+                'timeout' => $timeout,
+                'ignore_errors' => true,
+                'header' => "User-Agent: BookLoop-SelfTest/1.0\r\nContent-Type: application/json\r\n",
+                'content' => (string) $body,
+            ]]);
+            $resp = @file_get_contents($url, false, $ctx);
+            $code = 0;
+            foreach (($http_response_header ?? []) as $h) {
+                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) {
+                    $code = (int) $m[1];
+                }
+            }
+            return [$code, is_string($resp) ? $resp : false];
+        }
+    }
+
+    // ล้าง output buffer กัน notice/warning หลงออกมาทำ JSON เป๊ะ (เหมือน jsonResponse ใน Http.php)
+    while (ob_get_level() > 0 && ob_get_length() > 0) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+    $results = [];
+    foreach (['get' => 'GET', 'post' => 'POST'] as $name => $method) {
+        $marker = 'st_' . bin2hex(random_bytes(4));
+        $body = $method === 'POST' ? json_encode(['selftest' => $marker]) : null;
+        $t0 = microtime(true);
+        [$code] = bl_selftest_http($BASE_URL . '/?selftest_ping=' . $marker, $method, $body, 8);
+        $ms = (int) round((microtime(true) - $t0) * 1000);
+
+        $dir = defined('DATA_PATH') ? DATA_PATH : __DIR__ . '/data';
+        $logContent = @file_get_contents($dir . '/selftest.log');
+        $verified = is_string($logContent) && strpos($logContent, $marker . '|') !== false;
+
+        $results[$name] = [
+            'ok' => $verified,
+            'http' => $code,
+            'ms' => $ms,
+            'detail' => $verified
+                ? ''
+                : ($code === 0
+                    ? 'ยิง request ออกจากเซิร์ฟเวอร์ไม่สำเร็จ — โฮสต์อาจบล็อกการเรียก loopback (ผลนี้ไม่ได้แปลว่า API พัง ให้ดูตาราง Request เข้าล่าสุดจากการใช้งานจริงแทน)'
+                    : 'request กลับมาเป็น HTTP ' . $code . ' แต่ไม่เจอ marker — อาจถูก redirect/ติดหน้า challenge ของโฮสต์ก่อนถึง PHP'),
+        ];
+    }
+
+    // เก็บกวาด selftest.log ให้ไม่โต (เหลือ 200 บรรทัดท้าย)
+    $stFile = (defined('DATA_PATH') ? DATA_PATH : __DIR__ . '/data') . '/selftest.log';
+    $stLines = @file($stFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (is_array($stLines) && count($stLines) > 200) {
+        @file_put_contents($stFile, implode("\n", array_slice($stLines, -200)) . "\n", LOCK_EX);
+    }
+
+    echo json_encode([
+        'success' => $results['get']['ok'] || $results['post']['ok'],
+        'time' => date('c'),
+        'results' => $results,
+        'note' => 'เทสนี้ยิงจากเซิร์ฟเวอร์เข้าตัวเอง (loopback) เพื่อพิสูจน์ว่า PHP รับ POST/GET ได้จริง — ส่วนเว็บอื่นเรียกข้ามโดเมนได้หรือไม่ ขึ้นกับ CORS/ALLOWED_ORIGIN (การ์ด Origin ด้านบน)',
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 if ($isJson) {
     // health check สำหรับ uptime monitor: พัง = 500 (จะได้ alert)
     // no-store กัน proxy/hosting cache สถานะเก่า — realtime ต้องได้ค่าสดทุกครั้ง
@@ -101,6 +414,7 @@ if ($isJson) {
         'time' => date('c'),
         'checks' => array_map(fn($c) => $c['ok'], $checks),
         'error' => $appOk ? null : $envError,
+        'requests' => $requestsData,
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -159,6 +473,15 @@ http_response_code(200);
   .row-flex button { cursor: pointer; background: #0369a1; border-color: #0369a1; font-weight: 700; }
   .row-flex button:hover { background: #0284c7; }
   .mono { font-family: monospace; }
+  .soft { color: #64748b; font-weight: 400; font-size: 12px; }
+  .hint { color: #94a3b8; font-size: 13px; margin-bottom: 10px; }
+  .chip { display: inline-block; background: #0f172a; border: 1px solid #334155; border-radius: 999px; padding: 4px 12px; font-size: 12px; margin: 0 8px 8px 0; color: #cbd5e1; }
+  .st-ok { color: #86efac; font-weight: 700; }
+  .st-warn { color: #fbbf24; font-weight: 700; }
+  .st-err { color: #fca5a5; font-weight: 700; }
+  .st-unknown { color: #64748b; }
+  .req-wrap { overflow-x: auto; }
+  .text-input { flex: 1; min-width: 220px; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -227,6 +550,40 @@ GENERATED_IMAGES_PATH=images/generated</div>
   </div>
 
   <div class="card">
+    <h2>📥 Request เข้าล่าสุด <span class="soft">POST/GET ที่เซิร์ฟเวอร์รับจริง (อัปเดตสด)</span></h2>
+    <p class="hint" id="reqHint">กำลังโหลดจาก data/request.log…</p>
+    <div id="reqStats" style="margin-bottom:8px"></div>
+    <div class="req-wrap">
+      <table>
+        <thead>
+          <tr><th>เวลา</th><th>Method</th><th>Path</th><th>ที่มา (IP · client)</th><th>สถานะ</th><th>ms</th></tr>
+        </thead>
+        <tbody id="reqBody">
+          <tr><td colspan="6" class="soft">กำลังโหลด…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="detail" id="reqDetail"></p>
+  </div>
+
+  <div class="card">
+    <h2>🚫 เว็บที่ยิงเข้ามาแล้วถูกปฏิเสธ <span class="soft">CORS — origin ไม่อยู่ใน ALLOWED_ORIGIN (จาก error.log)</span></h2>
+    <div id="originBox" class="hint">กำลังโหลด…</div>
+    <div class="row-flex" style="margin-top:12px">
+      <input type="text" id="originInput" class="text-input" placeholder="https://เว็บที่อยากรู้ว่ายิง POST/GET เข้ามาได้ไหม">
+      <button type="button" id="originCheck">🔎 เช็ก origin นี้</button>
+    </div>
+    <p class="detail" id="originResult"></p>
+  </div>
+
+  <div class="card">
+    <h2>🧪 พิสูจน์ว่า POST/GET ถึง PHP จริงไหม</h2>
+    <p class="hint">เซิร์ฟเวอร์จะยิง GET + POST เข้าหาตัวเอง แล้วเช็กว่าแต่ละ request ลง log จริง — ถ้าผ่านทั้งคู่ แปลว่าตัว API รับได้แน่นอน ปัญหาที่เหลือ (ถ้ามี) เป็นที่ CORS/เครือข่าย ไม่ใช่ตัว backend</p>
+    <button type="button" id="selfTestBtn" class="btn" style="border:none;cursor:pointer">▶ เริ่มเทส GET + POST</button>
+    <div id="selfTestOut" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
     <h2>สถานะระบบ <span style="color:#64748b;font-weight:400;font-size:13px">(อัปเดตสด)</span></h2>
     <div id="liveChecks">
     <?php foreach ($checks as $key => $c): ?>
@@ -286,6 +643,16 @@ GENERATED_IMAGES_PATH=images/generated</div>
   var autoBox = document.getElementById('autoRefresh');
   var secSel = document.getElementById('refreshSec');
   var nowBtn = document.getElementById('refreshNow');
+  var reqHint = document.getElementById('reqHint');
+  var reqStats = document.getElementById('reqStats');
+  var reqBody = document.getElementById('reqBody');
+  var reqDetail = document.getElementById('reqDetail');
+  var originBox = document.getElementById('originBox');
+  var originInput = document.getElementById('originInput');
+  var originCheckBtn = document.getElementById('originCheck');
+  var originResult = document.getElementById('originResult');
+  var selfTestBtn = document.getElementById('selfTestBtn');
+  var selfTestOut = document.getElementById('selfTestOut');
   var timer = null;
   var busy = false;
 
@@ -328,6 +695,90 @@ GENERATED_IMAGES_PATH=images/generated</div>
     apiDetail.textContent = detail || '';
   }
 
+  var METHOD_COLORS = { GET: '#7dd3fc', POST: '#86efac', DELETE: '#fca5a5', PUT: '#fbbf24', OPTIONS: '#94a3b8', HEAD: '#94a3b8' };
+
+  function statusCls(s) {
+    if (!s) return 'st-unknown';
+    if (s >= 500) return 'st-err';
+    if (s >= 400) return 'st-warn';
+    return 'st-ok';
+  }
+
+  function uaShort(ua) {
+    if (!ua) return '';
+    if (/curl/i.test(ua)) return 'curl';
+    if (/python|urllib|okhttp/i.test(ua)) return 'script';
+    if (/bot|spider|crawler|slurp|uptime|monitor|pingdom/i.test(ua)) return 'bot/monitor';
+    if (/mozilla/i.test(ua)) return 'browser';
+    return ua.slice(0, 20);
+  }
+
+  function maskIp(ip) {
+    if (!ip) return '—';
+    var p = ip.split('.');
+    if (p.length === 4) return p[0] + '.' + p[1] + '.' + p[2] + '.xxx';
+    return ip.slice(0, 10) + '…'; // IPv6 — ตัดสั้น
+  }
+
+  function renderRequests(req) {
+    if (!req || !reqHint) return;
+    reqHint.textContent = req.available
+      ? 'ข้อมูลจาก htdocs/data/request.log ที่ RequestLogger บันทึกทุก request เข้า backend · เรียงใหม่ → เก่า · ซ่อนท้าย IP เพื่อความเป็นส่วนตัว'
+      : 'ยังอ่าน request.log ไม่ได้ — ต้องสร้าง .env และโฟลเดอร์ data/ ให้ PHP เขียนได้ก่อน';
+    var t = req.totals || {};
+    var chips = [];
+    ['GET', 'POST', 'DELETE', 'OPTIONS', 'OTHER'].forEach(function (m) {
+      if (t[m]) chips.push('<span class="chip"><b style="color:' + (METHOD_COLORS[m] || '#e2e8f0') + '">' + m + '</b> × ' + t[m] + '</span>');
+    });
+    if (req.errorCount) chips.push('<span class="chip" style="border-color:#7f1d1d;color:#fca5a5">ติด 4xx/5xx × ' + req.errorCount + '</span>');
+    chips.push('<span class="chip">' + (req.recent || []).length + ' request ล่าสุด</span>');
+    reqStats.innerHTML = chips.join('');
+
+    var rows = (req.recent || []).slice(0, 15).map(function (r) {
+      var uri = String(r.uri || '');
+      if (uri.length > 60) uri = uri.slice(0, 57) + '…';
+      var ua = uaShort(r.ua);
+      var caller = esc(maskIp(r.ip));
+      if (ua) caller += ' <span class="soft">(' + esc(ua) + ')</span>';
+      return '<tr>' +
+        '<td class="mono" style="white-space:nowrap">' + esc(r.time) + '</td>' +
+        '<td class="mono" style="color:' + (METHOD_COLORS[r.method] || '#e2e8f0') + ';font-weight:700;white-space:nowrap">' + esc(r.method) + '</td>' +
+        '<td class="path">' + esc(uri) + '</td>' +
+        '<td>' + caller + '</td>' +
+        '<td class="' + statusCls(r.status) + '">' + (r.status ? r.status : '…') + '</td>' +
+        '<td class="mono">' + (r.ms != null ? r.ms : '—') + '</td>' +
+        '</tr>';
+    });
+    reqBody.innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="6" class="soft">ยังไม่มี request — เปิดเว็บ frontend หรือกดปุ่มเทสด้านล่าง แล้วรอรอบอัปเดตถัดไป</td></tr>';
+
+    var warns = req.warnings || [];
+    reqDetail.innerHTML = warns.length
+      ? '<b>⚠️ ' + warns.length + ' เหตุการณ์ล่าสุดจาก error.log</b>' + warns.slice(0, 3).map(function (w) {
+          return '<br>· <span class="mono">[' + esc(w.time) + ']</span> ' + esc(w.message);
+        }).join('')
+      : '';
+  }
+
+  function renderOrigins(req) {
+    if (!req || !originBox) return;
+    var list = req.rejectedOrigins || [];
+    if (!req.available) {
+      originBox.innerHTML = '<span class="soft">ยังอ่าน error.log ไม่ได้ (ต้องมี .env + data/ เขียนได้ก่อน)</span>';
+      return;
+    }
+    if (!list.length) {
+      originBox.innerHTML = '<span class="pass">✅ ไม่มีเว็บไหนถูกปฏิเสธช่วงนี้</span> <span class="soft">— origin ที่ยิงเข้ามาผ่าน allow-list (ALLOWED_ORIGIN ใน .env) ทั้งหมด</span>';
+      return;
+    }
+    originBox.innerHTML = list.map(function (o) {
+      return '<div class="check"><span class="mono">' + esc(o.origin) + '</span>' +
+        '<span class="fail">' + o.count + ' ครั้ง · ล่าสุด ' + esc(o.last) + '</span></div>';
+    }).join('') +
+      '<p class="detail">origin เหล่านี้เคยยิงเข้ามาจริง แต่ backend ปฏิเสธเพราะไม่อยู่ใน ALLOWED_ORIGIN ใน .env — เพิ่ม origin เข้าไปแล้ว request จะผ่าน (เช็กว่า origin ไหนผ่านได้ด้วยช่องด้านล่าง)</p>';
+  }
+
   async function refresh(manual) {
     if (busy) return;
     busy = true;
@@ -358,6 +809,8 @@ GENERATED_IMAGES_PATH=images/generated</div>
       } else {
         setBadge(!!data.success, true);
         renderChecks(data.checks || null);
+        renderRequests(data.requests);
+        renderOrigins(data.requests);
         // ระบบรายงานตัวเองว่าไม่พร้อม (success:false) — ยกสาเหตุขึ้นมาโชว์เป็นข้อความเลย ไม่ต้องเปิด console
         var sysHint = '';
         if (!data.success && data.error) {
@@ -418,6 +871,59 @@ GENERATED_IMAGES_PATH=images/generated</div>
   autoBox.addEventListener('change', restart);
   secSel.addEventListener('change', function () { restart(); refresh(true); });
   nowBtn.addEventListener('click', function () { refresh(true); });
+
+  originCheckBtn.addEventListener('click', async function () {
+    var o = originInput.value.trim().replace(/\/+$/, '');
+    if (!o) {
+      originResult.innerHTML = '<span class="soft">ใส่ origin ก่อน เช่น https://solightzz.github.io</span>';
+      return;
+    }
+    originResult.innerHTML = 'กำลังเช็ก…';
+    try {
+      // /api/index.php?check-origin= ตอบ allowed:true/false พร้อมสาเหตุ — ใช้ตอบว่าเว็บนี้ยิงเข้ามาได้หรือไม่
+      var r = await fetch(BASE + '/api/index.php?check-origin=' + encodeURIComponent(o), { cache: 'no-store' });
+      var text = await r.text();
+      var j = null;
+      try { j = JSON.parse(text); } catch (e) { j = null; }
+      if (!j) {
+        originResult.innerHTML = '<span class="fail">เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ') — อาจติด challenge ของโฮสต์</span>';
+        return;
+      }
+      originResult.innerHTML = j.allowed
+        ? '<span class="pass">✅ ' + esc(j.origin) + ' อยู่ใน allow-list — เว็บนี้ยิง POST/GET เข้ามาได้ (ส่วน endpoint ที่ต้องใช้ token ก็ต้องส่ง token ตามปกติ)</span>'
+        : '<span class="fail">❌ ' + esc(j.origin) + ' โดนบล็อก</span>' + (j.reason ? '<br><span class="detail">' + esc(j.reason) + '</span>' : '');
+    } catch (e) {
+      originResult.innerHTML = '<span class="fail">เรียกไม่สำเร็จ: ' + esc(String((e && e.message) || e)) + '</span>';
+    }
+  });
+
+  selfTestBtn.addEventListener('click', async function () {
+    selfTestBtn.disabled = true;
+    selfTestOut.innerHTML = '<span class="soft">กำลังยิง GET + POST จากเซิร์ฟเวอร์เข้าหาตัวเอง… (นานสุด ~25 วินาที)</span>';
+    try {
+      var r = await fetch(BASE + '/?selftest=1', { cache: 'no-store' });
+      var text = await r.text();
+      var j = null;
+      try { j = JSON.parse(text); } catch (e) { j = null; }
+      if (!j || !j.results) {
+        selfTestOut.innerHTML = '<span class="fail">อ่านผลเทสไม่ได้ — เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ')</span>';
+        return;
+      }
+      function testLine(name, x) {
+        if (!x) return '<div class="check"><span>' + name + '</span><span class="st-unknown">ไม่ทราบผล</span></div>';
+        var head = '<div class="check"><span>' + name + ' <span class="soft">HTTP ' + (x.http || '—') + ' · ' + x.ms + ' ms</span></span>' +
+          '<span class="' + (x.ok ? 'pass' : 'fail') + '">' + (x.ok ? 'ถึง PHP จริง ✅' : 'ไม่ถึง ❌') + '</span></div>';
+        return head + (x.detail ? '<p class="detail">' + esc(x.detail) + '</p>' : '');
+      }
+      selfTestOut.innerHTML = testLine('GET', j.results.get) + testLine('POST', j.results.post) +
+        '<p class="hint" style="margin-top:8px;margin-bottom:0">' + esc(j.note || '') + '</p>' +
+        '<p class="soft" style="margin-top:6px">ดู request ที่เพิ่งยิงได้ในตาราง "Request เข้าล่าสุด" ด้านบน (path จะมี selftest_ping=…)</p>';
+    } catch (e) {
+      selfTestOut.innerHTML = '<span class="fail">เรียก selftest ไม่สำเร็จ: ' + esc(String((e && e.message) || e)) + '</span>';
+    } finally {
+      selfTestBtn.disabled = false;
+    }
+  });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { if (timer) clearInterval(timer); timer = null; }
     else { restart(); refresh(true); }

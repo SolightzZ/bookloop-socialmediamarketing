@@ -89,8 +89,9 @@ export const HomeNewsletterSection: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=UTF-8',
         },
         body: JSON.stringify({
           email: trimmedEmail,
