@@ -2,6 +2,11 @@ const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 // ตัด trailing slash ท้ายกัน URL ซ้อนเป็น `//auth_me.php` (frontend อยู่ sub-path บน Pages)
 const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
+/** Base URL ของ backend ที่ build นี้ยิงไป (ให้ health check / debug UI ใช้อันเดียวกับ request จริง) */
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
 const SESSION_TOKEN_KEY = 'bookloop_auth_session_token';
 
 interface ApiResponse<T = unknown> {

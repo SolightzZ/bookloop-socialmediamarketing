@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Divider, Grid } from '@mui/material';
 import { AppContainer } from '../common/Container';
+import { ApiStatusBadge } from '../common/ApiStatusBadge';
 
 export const Footer: React.FC = () => {
   const navigate = useNavigate();
@@ -257,6 +258,7 @@ export const Footer: React.FC = () => {
           <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.8125rem' }}>
             © {new Date().getFullYear()} BookLoop. All rights reserved.
           </Typography>
+          <ApiStatusBadge />
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.8125rem' }}>
             สร้างขึ้นเพื่อชุมชน BookLoop
           </Typography>

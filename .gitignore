@@ -4,7 +4,6 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
 !.env.example
 activities.txt
 
@@ -19,6 +18,7 @@ src_backend/images/generated/
 skills-lock.json
 package-lock.json
 
+infinityfree_package/htdocs/.env
 .agents
 .claude
 .opencode
