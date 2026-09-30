@@ -30,12 +30,12 @@ const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<a
    </Suspense>
 );
 
-const githubPagesBasePath = '/bookloop-socialmediamarketing';
-const basename =
-   window.location.pathname === githubPagesBasePath ||
-   window.location.pathname.startsWith(`${githubPagesBasePath}/`)
-      ? githubPagesBasePath
-      : '/';
+// basename ตาม base ตอน build (vite แทนค่า import.meta.env.BASE_URL ให้เอง):
+// - dev (base '/') → '/'
+// - GitHub Pages (base '/bookloop-socialmediamarketing/') → '/bookloop-socialmediamarketing'
+// - InfinityFree same-origin (build:app, base '/app/') → '/app'
+// เปลี่ยนชื่อ repo/path ทีหลังไม่ต้องมาแก้ไฟล์นี้ แค่แก้ base ใน vite.config.ts หรือ --base ตอน build
+const basename = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 
 const router = createBrowserRouter([
    {

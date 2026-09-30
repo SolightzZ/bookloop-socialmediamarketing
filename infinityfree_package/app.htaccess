@@ -1,0 +1,10 @@
+# BookLoop frontend (same-origin) — อัปโหลดไฟล์นี้เป็น htdocs/app/.htaccess
+# (คู่กับ output ของ `npm run build:app` ที่อยู่ใน htdocs/app/)
+# SPA fallback: ทุก path ที่ไม่ใช่ไฟล์/โฟลเดอร์จริง (เช่น /app/register) ให้เสิร์ฟ index.html
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /app/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+</IfModule>
