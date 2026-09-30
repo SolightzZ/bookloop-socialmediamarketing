@@ -61,7 +61,7 @@ export const SellHero: React.FC = () => {
           {/* Badge */}
           <Chip
             icon={<AutoStoriesRounded sx={{ fontSize: 16, color: '#38BDF8 !important' }} />}
-            label="SELL & SHARE • ส่งต่อง่าย ได้คุณค่า"
+            label="ส่งต่อง่าย ได้คุณค่า"
             size="small"
             sx={{
               bgcolor: 'rgba(25, 118, 210, 0.25)',
@@ -88,7 +88,7 @@ export const SellHero: React.FC = () => {
               mb: 1.2,
             }}
           >
-            มีหนังสือที่อ่านจบแล้ว? <span className="text-[#38BDF8]">ส่งต่อได้ที่นี่</span>
+            หนังสือที่อ่านจบแล้ว <span className="text-[#38BDF8]">ส่งต่อได้ที่นี่</span>
           </Typography>
 
           <Typography
@@ -102,7 +102,7 @@ export const SellHero: React.FC = () => {
               mb: 3,
             }}
           >
-            เปลี่ยนหนังสือบนชั้นให้กลายเป็นรายได้และส่งต่อแรงบันดาลใจ สู่นักอ่านคนถัดไปในชุมชน BookLoop
+            ลงประกาศหนังสือที่อ่านจบ ตั้งราคาเอง แล้วรอผู้ซื้อที่สนใจติดต่อกลับ
           </Typography>
 
           {/* 3 Modern Trust Pillars with Icons */}
@@ -128,7 +128,7 @@ export const SellHero: React.FC = () => {
             >
               <BoltRounded sx={{ fontSize: 18, color: '#FBBF24' }} />
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#F1F5F9', fontSize: '0.8rem' }}>
-                ลงขายง่ายใน 3 นาที
+                ลงประกาศขายได้เอง
               </Typography>
             </Box>
 
@@ -146,7 +146,7 @@ export const SellHero: React.FC = () => {
             >
               <MonetizationOnOutlined sx={{ fontSize: 18, color: '#34D399' }} />
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#F1F5F9', fontSize: '0.8rem' }}>
-                รับเงินเต็มจำนวน ไม่มีค่าแอบแฝง
+                ผู้ซื้อเห็นราคาที่คุณตั้งไว้
               </Typography>
             </Box>
 
@@ -164,7 +164,7 @@ export const SellHero: React.FC = () => {
             >
               <RecyclingRounded sx={{ fontSize: 18, color: '#60A5FA' }} />
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#F1F5F9', fontSize: '0.8rem' }}>
-                หมุนเวียนและลดขยะกระดาษ
+                หนังสือถูกใช้ซ้ำ ลดขยะกระดาษ
               </Typography>
             </Box>
           </Box>

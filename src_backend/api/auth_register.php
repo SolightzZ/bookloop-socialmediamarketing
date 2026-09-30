@@ -1,11 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../auth/auth.php';
+require_once BASE_PATH . '/Services/RateLimiter.php';
 
 corsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
+}
+
+// กันสมัครรัว + เก็บเกี่ยว email oracle: สูงสุด 10 ครั้งต่อชั่วโมงต่อ IP
+if (!rateLimitCheck(clientRateLimitKey('register'), 10, 3600)) {
+    jsonResponse(['success' => false, 'message' => 'สมัครสมาชิกบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่'], 429);
 }
 
 $data = getRequestData();

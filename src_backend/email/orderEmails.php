@@ -5,12 +5,32 @@
 require_once __DIR__ . '/sendMail.php';
 
 // ส่งอีเมลยืนยันคำสั่งซื้อ
-function sendPurchaseEmail(string $to, string $userName, string $orderId, string $bookTitle = '', string $bookPrice = ''): array
-{
+function sendPurchaseEmail(
+    string $to,
+    string $userName,
+    string $orderId,
+    string $bookTitle = '',
+    string $bookPrice = '',
+    array $items = [],
+    string $total = '0.00',
+    string $shippingAddress = '',
+    string $paymentMethod = 'promptpay',
+    string $shippingMethod = 'standard'
+): array {
+    // ถ้าไม่ส่ง items มา ให้สร้างจาก single book
+    if (empty($items) && $bookTitle) {
+        $items = [['title' => $bookTitle, 'author' => '', 'price' => $bookPrice, 'quantity' => 1, 'image' => '']];
+    }
+
     return sendEmail($to, $userName, 'purchase', [
         'orderId' => $orderId,
         'bookTitle' => $bookTitle,
         'bookPrice' => $bookPrice,
+        'items' => $items,
+        'total' => $total,
+        'shippingAddress' => $shippingAddress,
+        'paymentMethod' => $paymentMethod,
+        'shippingMethod' => $shippingMethod,
     ]);
 }
 

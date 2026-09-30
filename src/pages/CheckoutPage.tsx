@@ -191,12 +191,26 @@ export default function CheckoutPage() {
 
       const createdOrder = orderService.createOrder(orderData);
 
-      // Track analytics
+      // Track analytics + send order confirmation email via backend
       trackEvent('purchase', {
         orderId: createdOrder.id,
+        email: user.email,
+        userId: user.id,
+        userName: user.name,
         total: finalTotal,
         itemsCount: cart.length,
         paymentMethod,
+        bookTitle: cart.length === 1 ? cart[0].title : '',
+        bookPrice: cart.length === 1 ? String(cart[0].price) : '',
+        items: cart.map((item) => ({
+          title: item.title,
+          author: item.author,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.cover,
+        })),
+        shippingAddress: `${address.name}, ${address.phone}, ${address.address} จ.${address.province} ${address.postalCode}`,
+        shippingMethod: selectedShipping.name,
       });
 
       // Clear cart only after success

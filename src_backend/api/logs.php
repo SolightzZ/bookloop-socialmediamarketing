@@ -3,8 +3,16 @@
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/Services/Logger.php';
 require_once BASE_PATH . '/Services/Http.php';
+require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
+
+// Log มี IP/UA/PII ปนอยู่ และ DELETE ทำลายหลักฐาน — ต้องมี session ที่ยัง valid เท่านั้น
+// (user model ไม่มี role แยก admin ฉะนั้น token ที่ valid ใดๆ คือ bar ขั้นต่ำ)
+$token = getBearerToken();
+if (!$token || !validateToken($token)) {
+    jsonResponse(['success' => false, 'message' => 'ต้องเข้าสู่ระบบก่อนใช้งาน'], 401);
+}
 
 $logger = Logger::getInstance();
 

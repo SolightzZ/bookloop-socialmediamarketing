@@ -26,7 +26,7 @@ export const FeaturedBooksSection: React.FC = () => {
           id="featured-books-heading"
           eyebrow="CURATED SELECTION"
           title="หนังสือแนะนำประจำสัปดาห์"
-          subtitle="คัดสรรหนังสือมือสองสภาพเยี่ยม คุ้มค่า และส่งต่อเรื่องราวดีๆ จากเพื่อนนักอ่าน"
+          subtitle="หนังสือมือสองสภาพดีที่ทีมงานคัดจากคลังของชุมชน BookLoop"
           align="left"
           action={{
             label: `ดูหนังสือทั้งหมด (${books.length})`,

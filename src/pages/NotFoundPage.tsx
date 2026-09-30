@@ -48,7 +48,7 @@ export const NotFoundPage: React.FC = () => {
             mb: 1,
           }}
         >
-          404 — ไม่พบหน้าที่ต้องการ
+          404 ไม่พบหน้าที่ต้องการ
         </Typography>
 
         <Typography

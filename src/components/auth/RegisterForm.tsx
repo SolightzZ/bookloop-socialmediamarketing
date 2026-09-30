@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   TextField,
@@ -23,9 +23,8 @@ interface RegisterFormProps {
   onSuccessRedirect?: string;
 }
 
-export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect }) => {
+export const RegisterForm: React.FC<RegisterFormProps> = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { register } = useAuth();
 
   const [name, setName] = useState('');
@@ -33,7 +32,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
 
   const [errors, setErrors] = useState<{
     name?: string;
@@ -44,9 +42,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
     general?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
-
-  const queryParams = new URLSearchParams(location.search);
-  const redirectPath = onSuccessRedirect || queryParams.get('redirect') || '/';
 
   const validate = () => {
     const newErrors: typeof errors = {};
@@ -82,10 +77,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
 
     setIsLoading(true);
     try {
-      const user = await register(name, email, password, subscribeNewsletter);
+      const user = await register(name, email, password);
       trackEvent('user_register', { method: 'email', userId: user.id });
       showSuccess('สมัครสมาชิกสำเร็จ', `ยินดีต้อนรับคุณ ${user.name} สู่ครอบครัว BookLoop`);
-      navigate(redirectPath, { replace: true });
+      // ผู้สมัครใหม่ → หน้าแรก แล้ว onboarding modal จะเด้งซ้อนให้เลือกความสนใจทันที
+      navigate('/', { replace: true });
     } catch (err: any) {
       setErrors({
         general: err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก กรุณาลองใหม่อีกครั้ง',
@@ -249,34 +245,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessRedirect })
             {errors.terms}
           </FormHelperText>
         )}
-      </Box>
-
-      {/* Newsletter opt-in — ปิดไว้เป็นค่าเริ่มต้น ให้ผู้ใช้กดเปิดเอง */}
-      <Box sx={{ mb: 2 }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              id="register-newsletter-checkbox"
-              checked={subscribeNewsletter}
-              onChange={(e) => setSubscribeNewsletter(e.target.checked)}
-              color="primary"
-              disabled={isLoading}
-              size="small"
-              sx={{ pt: 0.25 }}
-            />
-          }
-          label={
-            <Box>
-              <Typography variant="body2" sx={{ fontSize: '0.825rem', color: 'text.primary', lineHeight: 1.4 }}>
-                ติดตามข่าวสาร BookLoop (หนังสือแนะนำและโปรโมชั่นพิเศษ)
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.4, display: 'block' }}>
-                สมัครบัญชีครั้งแรกจะปิดไว้ — ติ๊กเพื่อรับข่าวสารเอง
-              </Typography>
-            </Box>
-          }
-          sx={{ alignItems: 'flex-start', m: 0 }}
-        />
       </Box>
 
       {/* Submit Register Button */}

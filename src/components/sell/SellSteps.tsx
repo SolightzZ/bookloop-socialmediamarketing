@@ -272,21 +272,21 @@ export const SellSteps: React.FC<SellStepsProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
             <GroupsRounded sx={{ fontSize: 18, color: '#1976D2', mt: 0.2 }} />
             <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.78rem', lineHeight: 1.4 }}>
-              <strong className="text-slate-800">ชุมชนคนรักหนังสือ:</strong> เข้าถึงผู้ซื้อที่รักและเห็นคุณค่าของหนังสือจริง
+              ผู้ซื้อในชุมชน BookLoop เป็นคนที่อ่านหนังสือจริง และสนใจสภาพของเล่มที่คุณลงขาย
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
             <ShieldOutlined sx={{ fontSize: 18, color: '#16A34A', mt: 0.2 }} />
             <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.78rem', lineHeight: 1.4 }}>
-              <strong className="text-slate-800">ปลอดภัย โปร่งใส:</strong> ซื้อขายผ่านระบบ ไม่หักค่าธรรมเนียมแอบแฝง
+              ซื้อขายผ่านระบบของ BookLoop และผู้ซื้อเห็นรายละเอียดสภาพที่คุณแจ้งไว้
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
             <ParkRounded sx={{ fontSize: 18, color: '#059669', mt: 0.2 }} />
             <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.78rem', lineHeight: 1.4 }}>
-              <strong className="text-slate-800">หมุนเวียนคุณค่า:</strong> ร่วมลดขยะกระดาษและส่งต่อเรื่องราวดีๆ สู่สังคม
+              หนังสือเล่มเดิมถูกใช้ซ้ำ ลดขยะกระดาษจากหนังสือที่วางไว้เฉยๆ
             </Typography>
           </Box>
         </Box>

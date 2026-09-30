@@ -1,161 +1,74 @@
-# AGENTS.md
-
-## Project Overview
-
-BookLoop Backend - ระบบ Newsletter Subscription สำหรับ BookLoop มาร์เก็ตเพลสหนังสือมือสอง
+# AGENTS.md — src_backend
 
 ## Commands
 
-- `./composer dump-autoload` - Regenerate autoloader
+- `composer install` / `composer dump-autoload` — PSR-4 `Services\` → `Services/` (`composer.json:10`). Binary is `composer` phar in this dir, not global.
+- `php -S localhost:8000 -t src_backend` — run backend so frontend `VITE_API_BASE_URL=http://localhost:8000/api` works. No npm scripts here.
+- No lint/test runner. Email preview only: open `email/orderConfirmEmail.test.php` in browser.
+
+## Stack
+
+PHP >=8.0 + PHPMailer 6.8 (`vendor/` gitignored). File-backed storage, no DB.
 
 ## Structure
 
-```
-src_backend/
-├── Services/
-│   ├── config.php                      # โหลด .env → define constants
-│   ├── Http.php                        # Reusable: corsHeaders, jsonResponse, getRequestData, getBearerToken
-│   ├── Subscribers.php                 # Reusable: isEmailSubscribed, removeEmail, appendSubscriber (subscribers.txt)
-│   ├── emailService.php                # PHPMailer SMTP functions
-│   ├── Logger.php                      # Logger service (error.log) + isValidLevel()/validLevels()
-│   ├── RequestLogger.php               # Auto request logging middleware (data/request.log)
-│   └── subscribers.txt                 # บันทึกอีเมลผู้สมัคร
-├── api/
-│   ├── auth_login.php                  # API เข้าสู่ระบบ
-│   ├── auth_register.php               # API สมัครสมาชิก
-│   ├── auth_me.php                     # API ข้อมูลผู้ใช้
-│   ├── auth_update_profile.php         # API อัพเดทโปรไฟล์
-│   ├── auth_delete_account.php         # API ลบบัญชี
-│   ├── subscribe.php                   # API สมัครสมาชิก
-│   ├── subscribe_newsletter.php        # API สมัคร newsletter
-│   ├── newsletter_status.php           # API สถานะ newsletter
-│   ├── track.php                       # API บันทึกกิจกรรม
-│   ├── log.php                         # API บันทึก log
-│   └── logs.php                        # API ดึง/ล้าง logs
-├── auth/                               # Auth middleware
-├── data/
-│   ├── users.json                      # ข้อมูลผู้ใช้
-│   ├── tokens.json                     # Auth tokens
-│   └── error.log                       # Log files
-├── email/ # โค้ดตรงนี้จะนำไปส่งให้อาจารย์                             # Email templates
-├── images/
-│   ├── welcome.png                     # รูปต้อนรับ
-│   ├── template.png                    # รูป template
-│   └── fonts/                          # ฟอนต์ NotoSansThai
-├── vendor/                             # PHPMailer (Composer)
-├── .env                                # SMTP, CORS config
-├── composer.json                       # PSR-4 autoload
-└── email_preview.html                  # ตัวอย่างอีเมล
-```
-
-## Email Flow
-
-```
-subscribe_form.php → POST → sendMail.php → PHPMailer → Gmail SMTP → MailBox
-                                                ↓
-                                    newsletterWelcomeEmail.php (CID: welcome_image)
-```
+- `config/config.php` — **must be required first**; loads `.env` (cached in `sys_get_temp_dir()/bookloop_env_<hash>.php`, invalidated by mtime), defines constants + `BASE_PATH/DATA_PATH/EMAIL_PATH`, and auto-requires `Services/RequestLogger.php`.
+- `Services/Http.php` — `corsHeaders()`, `jsonResponse()`, `getRequestData()`, `getBearerToken()`. All have `function_exists` guards; safe to include after `auth/auth.php` which already pulls `config.php` + `Http.php`.
+- `auth/auth.php` — `loadJson`/`saveJson` (flock), `hashPassword`/`verifyPassword` (`password_hash`), `generateToken`/`validateToken`/`removeToken`, `createUser`/`findUserBy*`/`updateUser`/`deleteUser`. Tokens `bl_<40 hex>` in `data/tokens.json`, 7-day expiry (`TOKEN_EXPIRY_DAYS:8`).
+- `Services/RateLimiter.php` — `rateLimitCheck(key, max, window)` + `clientRateLimitKey(scope)` (IP-scoped). **Requires `auth/auth.php` first** (uses `loadJson`/`saveJson`). State in `data/ratelimit.json` (gitignored, prunes >max(window,3600)).
+- `Services/Logger.php` / `Services/RequestLogger.php` — two separate logs. `Services/Subscribers.php` / `Services/emailService.php` — newsletter + SMTP.
+- `api/` — 13 endpoints: `auth_login|register|me|update_profile|delete_account|logout`, `subscribe|subscribe_newsletter|newsletter_status`, `track`, `log|logs|request_log`. See `api/*.php:1` for method + auth requirements.
+- `email/` — **frozen for submission, do not edit**. Templates use `cid:welcome_image` (test files use `../images/` path instead).
 
 ## Config (.env)
 
-```ini
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=xxxx@gmail.com
-SMTP_PASSWORD=xxxx xxxx xxxx xxxx
-SMTP_ENCRYPTION=tls
-MAIL_TIMEOUT=15
-MAIL_FROM_ADDRESS=xxxx@gmail.com
-MAIL_FROM_NAME=BookLoop
-ALLOWED_ORIGIN=http://localhost:3000
+Copy `.env.example` → `.env`. Never commit `.env` (gitignored).
+
 ```
+SMTP_HOST / PORT / USERNAME / PASSWORD / ENCRYPTION
+MAIL_TIMEOUT=15          # must be < PHP max_execution_time or timeout becomes uncatchable fatal — see config.php:33
+MAIL_FROM_ADDRESS / NAME
+ALLOWED_ORIGIN=          # comma-separated allow-list, supports `*`; corsHeaders() in Http.php:18 logs WARNING if origin not allowed
+SUBSCRIBERS_FILE / ACTIVITIES_FILE / LOG_FILE / REQUEST_LOG_FILE
+```
+
+## HTTP helpers
+
+- Always call `corsHeaders()` before any output. It sends `Access-Control-Allow-Origin` only if origin in allow-list (or `*`), adds `Vary: Origin`, and exits on `OPTIONS`.
+- `jsonResponse()` clears stray output buffers (`ob_end_clean`) before `json_encode(JSON_UNESCAPED_UNICODE)` + `exit()` — prevents `Unexpected token '<'` from PHP warnings leaking as HTML.
+- `getRequestData()` handles both `application/json` and `form-data`.
+
+## Auth & Storage
+
+- Users/tokens are JSON arrays in `data/users.json` / `data/tokens.json` with `flock` via `loadJson`/`saveJson` (`auth.php:12`). Use those helpers, not raw `file_put_contents`.
+- `generateToken` prunes expired tokens on each new token; `validateToken` does *not* prune.
+- `auth_login.php:12` rate-limits `login:20/600s` per IP; `auth_register.php:13` limits `register:10/3600s`. Return `429` with Thai message.
+- `auth_login.php:32` upgrades legacy plaintext passwords to `password_hash` on successful plain compare.
+
+## Logging
+
+- `Logger` (app log) → `data/<LOG_FILE>` (`error.log`). Singleton `Logger::getInstance()->log(level,msg,ctx)`; `isValidLevel`/`validLevels` reused by `api/logs.php` and `api/request_log.php`. Format: `[Y-m-d H:i:s] [LEVEL] msg {ctx}`.
+- `RequestLogger` (access log) → `data/<REQUEST_LOG_FILE>` (`request.log`). **Auto-bootstrapped** by `config.php:64`; no manual `require` needed. Buffers in `RequestLogger::$buffer` and flushes once via `register_shutdown_function` (`RequestLogger.php:19`) — reduces `LOCK_EX` to 1/request. Also registers fatal-error + exception handlers that write JSON `500` response.
+- `GET /api/logs.php` / `GET /api/request_log.php` require `Bearer` token (`validateToken`) — `401` without it, because logs contain IP/UA/PII. `DELETE` clears logs. Query: `?level=ERROR&limit=100&search=kw` (cap `500`).
+
+## Email
+
+- `Services/emailService.php` — `sendWelcomeEmailService`, `sendConfirmationEmailService`, `sendOrderConfirmationService`. All set `Timeout = MAIL_TIMEOUT`, `CharSet=UTF-8`, `isHTML(true)`.
+- `auth_register.php:52,66` and `subscribe*` send **non-blocking** via `register_shutdown_function` so SMTP does not delay HTTP response. Don't make them blocking.
+- `email/orderConfirmEmail.php` expects vars `$name,$orderId,$items,$total,$shippingAddress,$paymentMethod,$shippingMethod` and `echo`s HTML; `emailService` wraps it with `ob_start`/`include`.
+
+## Subscribers / Track
+
+- Newsletter file is `EMAIL_PATH/SUBSCRIBERS_FILE` (`email/subscribers.txt`), not `data/`. Use `isEmailSubscribed`/`appendSubscriber`/`removeEmail` from `Services/Subscribers.php` (case-insensitive on column before `|`).
+- `api/track.php` appends JSON lines to `data/<ACTIVITIES_FILE>` and, for `purchase`/`add_to_cart` events, sends email via `email/orderEmails.php` — catch `Throwable` so tracking never fails on mail error.
 
 ## Conventions
 
-- **Language:** Thai UI text, English code identifiers
-- **Email Templates:** ใช้ CID (`cid:welcome_image`) สำหรับ embedded images
-- **Test Files:** ใช้ `../images/` path แทน CID
-- **Font:** `'Sarabun', Tahoma, Arial, sans-serif` สำหรับภาษาไทย
-- **CSS Comments:** ใช้ `/* ... */` ไม่ใช้ `//` (ไม่แสดงใน email clients)
-- **PHP Variables:** รับ `$name` จาก sendMail.php
+- Thai messages, English identifiers. `function_exists` guards on all shared helpers to allow double-include via `auth.php`.
+- Email HTML: `/* ... */` comments only, table layout, `cid:welcome_image` for `images/welcome.png` / `newsletterConfirmation.png`.
 
-## Key Functions (sendMail.php)
+## Gotchas
 
-```php
-sendWelcomeEmail($to, $userName)           // อีเมลต้อนรับ
-sendPurchaseEmail($to, $userName, ...)     // ยืนยันคำสั่งซื้อ (email/orderEmails.php)
-sendAddToCartEmail($to, $userName, ...)    // แจ้งเตือนตะกร้า (email/orderEmails.php)
-```
-
-## Logger API
-
-### POST /api/log.php
-
-บันทึกลง error.log
-
-```json
-{
-    "level": "ERROR",
-    "message": "Error message",
-    "context": {"key": "value"}
-}
-```
-
-Levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-### GET /api/logs.php
-
-ดึง logs
-
-- `?level=ERROR` - กรองตาม level
-- `?limit=50` - จำนวน log สูงสุด
-
-### DELETE /api/logs.php
-
-ล้าง logs ทั้งหมด
-
-## Usage (PHP)
-
-```php
-require_once BASE_PATH . '/Services/Logger.php';
-
-$logger = Logger::getInstance();
-$logger->error('เกิดข้อผิดพลาด', ['user_id' => 123]);
-$logger->info('ข้อมูลทั่วไป');
-```
-
-## RequestLogger (Auto Logging)
-
-ใส่ `require_once` ในไฟล์ API ทุกไฟล์เพื่อบันทึก request อัตโนมัติ
-
-```php
-require_once BASE_PATH . '/Services/RequestLogger.php';
-```
-
-ระบบจะ:
-- บันทึก incoming request (method, URI, IP)
-- บันทึก response (status code, duration_ms)
-- จับ PHP errors, warnings, exceptions
-- บันทึก fatal errors
-
-**Performance:** log ถูกเก็บใน memory buffer แล้วเขียนลงไฟล์**ครั้งเดียวตอน shutdown** (ลด disk I/O จาก 2 ครั้งเหลือ 1 ครั้ง/request)
-
-> **Note:** email ถูกส่งแบบ non-blocking ผ่าน `register_shutdown_function`
-> (ใน `api/auth_register.php` + `api/subscribe.php`) — response คืนทันที
-> ไม่รอ SMTP (< `src_backend/email/` หยุดแก้ตามคำสั่ง)
-
-### GET /api/request_log.php
-
-ดึง request logs (เก็บใน `data/request.log` แยกจาก application log ของ Logger)
-
-- `?level=ERROR` - กรองตาม level
-- `?search=keyword` - ค้นหา
-- `?limit=50` - จำนวน log
-
-### DELETE /api/request_log.php
-
-ล้าง logs ทั้งหมด
-
-## Testing
-
-เปิด `newsletterWelcomeEmail.test.php` ในเบราว์เซอร์เพื่อดูตัวอย่างอีเมล
+- `.env` missing → `config.php:21` throws `Exception`. `vendor/` missing → `emailService.php:6` fails — run `composer install`.
+- `data/` JSON files and `ratelimit.json` are gitignored — they won't exist on fresh clone; helpers handle missing files gracefully (`loadJson` returns `[]`).
+- Don't edit `email/` (frozen). Don't add manual `require Services/RequestLogger.php` — `config.php` already does it and double-registering shutdown handlers is wasteful.

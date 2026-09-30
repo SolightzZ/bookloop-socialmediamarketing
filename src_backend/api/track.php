@@ -3,6 +3,7 @@
 // โหลด config + helpers กลาง
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/Services/Http.php';
+require_once BASE_PATH . '/Services/Logger.php';
 
 corsHeaders();
 
@@ -64,14 +65,51 @@ if ($event === 'purchase' && !empty($email)) {
     try {
         $userName = $input["user_name"] ?? 'ลูกค้า';
         $orderId = $input["order_id"] ?? uniqid('ORD-');
-        sendPurchaseEmail($email, $userName, $orderId, $bookTitle, $bookPrice);
+        $metaItems = $metadata['items'] ?? [];
+        $metaTotal = $metadata['total'] ?? $bookPrice;
+        $metaShippingAddress = $metadata['shippingAddress'] ?? '';
+        $metaPaymentMethod = $metadata['paymentMethod'] ?? 'promptpay';
+        $metaShippingMethod = $metadata['shippingMethod'] ?? 'standard';
+
+        $items = [];
+        foreach ($metaItems as $item) {
+            $items[] = [
+                'title'    => $item['title'] ?? '',
+                'author'   => $item['author'] ?? '',
+                'price'    => $item['price'] ?? '',
+                'quantity' => $item['quantity'] ?? 1,
+                'image'    => $item['image'] ?? '',
+            ];
+        }
+
+        sendPurchaseEmail(
+            $email,
+            $userName,
+            $orderId,
+            $bookTitle,
+            $bookPrice,
+            $items,
+            (string) $metaTotal,
+            is_string($metaShippingAddress) ? $metaShippingAddress : json_encode($metaShippingAddress),
+            $metaPaymentMethod,
+            $metaShippingMethod
+        );
     } catch (Throwable $e) {
+        Logger::getInstance()->error('Failed to send purchase email', [
+            'order_id' => $orderId,
+            'email'    => $email,
+            'error'    => $e->getMessage(),
+        ]);
     }
 } elseif ($event === 'add_to_cart' && !empty($email)) {
     try {
         $userName = $input["user_name"] ?? 'ลูกค้า';
         sendAddToCartEmail($email, $userName, $bookTitle, $bookPrice);
     } catch (Throwable $e) {
+        Logger::getInstance()->error('Failed to send add_to_cart email', [
+            'email' => $email,
+            'error' => $e->getMessage(),
+        ]);
     }
 }
 

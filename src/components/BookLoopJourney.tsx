@@ -17,7 +17,7 @@ const loopSteps = [
     stepNumber: '01',
     title: 'ซื้อ',
     subtitle: '(Buy)',
-    desc: 'เลือกซื้อหนังสือมือสองสภาพดีในราคาประหยัดกว่า 40-70%',
+    desc: 'เลือกซื้อหนังสือมือสองสภาพดีในราคา 40-70% ของราคาปก',
     icon: <BuyIcon sx={{ fontSize: 24 }} />,
     color: '#0F2D4A',
   },
@@ -33,7 +33,7 @@ const loopSteps = [
     stepNumber: '03',
     title: 'ขายต่อ',
     subtitle: '(Resell)',
-    desc: 'เมื่ออ่านจบแล้ว เปลี่ยนหนังสือบนชั้นให้กลายเป็นรายได้คืนกลับมา',
+    desc: 'อ่านจบแล้วลงประกาศขายต่อในราคาที่คุณตั้งเอง',
     icon: <SellIcon sx={{ fontSize: 24 }} />,
     color: '#2E7D5B',
   },
@@ -41,7 +41,7 @@ const loopSteps = [
     stepNumber: '04',
     title: 'ส่งต่อ',
     subtitle: '(Pass on)',
-    desc: 'ส่งต่อเรื่องราวและคุณค่าของหนังสือไปยังเพื่อนนักอ่านคนใหม่',
+    desc: 'ส่งต่อให้เจ้าของคนใหม่ผ่านชุมชน BookLoop',
     icon: <PassOnIcon sx={{ fontSize: 24 }} />,
     color: '#B7791F',
   },
@@ -49,7 +49,7 @@ const loopSteps = [
     stepNumber: '05',
     title: 'อ่านต่อ',
     subtitle: '(Loop & Repeat)',
-    desc: 'เกิดเป็นวงจรการอ่านที่ไม่รู้จบ ลดการตัดต้นไม้และสร้างสังคมแห่งการแบ่งปัน',
+    desc: 'หนังสือเล่มเดิมถูกอ่านซ้ำและส่งต่อได้หลายรอบ ลดขยะกระดาษ',
     icon: <RepeatIcon sx={{ fontSize: 24 }} />,
     color: '#0F2D4A',
   },
@@ -74,8 +74,8 @@ export const BookLoopJourney: React.FC = () => {
         <SectionHeader
           id="how-bookloop-works-heading"
           eyebrow="HOW BOOKLOOP WORKS"
-          title="วงจรการอ่านที่ไม่สิ้นสุด"
-          subtitle="หนังสือทุกเล่มไม่ได้หยุดอยู่ที่คนคนเดียว แต่หมุนเวียนสร้างคุณค่าใหม่ได้ตลอดเวลาใน BookLoop"
+          title="อ่านจบ ส่งต่อ แล้วเริ่มเล่มใหม่"
+          subtitle="หนังสือที่คุณอ่านจบแล้วลงประกาศขายต่อได้ และเมื่อเจ้าของคนใหม่ยังอ่านจบ ก็ส่งต่อให้คนถัดไปได้อีกครั้งในชุมชน BookLoop"
           align="center"
         />
 
@@ -213,7 +213,7 @@ export const BookLoopJourney: React.FC = () => {
           >
             <LoopBadgeIcon sx={{ color: '#1976D2', fontSize: 20 }} />
             <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F2D4A', fontSize: '0.8rem' }}>
-              วนกลับสู่การอ่านเล่มใหม่ สร้างวงจรที่ไม่สิ้นสุด
+              อ่านจบแล้วลงขายต่อได้อีกครั้ง
             </Typography>
           </Box>
         </Box>

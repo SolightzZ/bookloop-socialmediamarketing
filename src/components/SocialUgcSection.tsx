@@ -40,7 +40,7 @@ const mockSocialPosts: SocialPostItem[] = [
     handle: 'Secondhand Book Club',
     avatar: 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?auto=format&fit=crop&w=100&q=80',
     content: 'สิ่งที่ชอบที่สุดใน BookLoop คือได้อ่าน "เรื่องราวของหนังสือ" จากเจ้าของเดิม ทำให้หนังสือเล่มนั้นมีความหมายและอบอุ่นขึ้นทันที',
-    tag: '#ชุมชนคนรักการอ่าน #ส่งต่อหนังสือ',
+    tag: '#ชุมชน BookLoop #ส่งต่อหนังสือ',
     likes: 950,
     comments: '63',
     timeAgo: '1 วันที่แล้ว',
@@ -80,9 +80,8 @@ export const SocialUgcSection: React.FC = () => {
       <AppContainer>
         <SectionHeader
           id="social-community-heading"
-          eyebrow="SOCIAL COMMUNITY"
           title="BookLoop บน Social Media"
-          subtitle="เสียงตอบรับจากเพื่อนนักอ่านทั่วประเทศ ร่วมแชร์โมเมนต์ความประทับใจด้วยแฮชแท็ก #BookLoop"
+          subtitle="ตัวอย่างโพสต์จากชุมชน BookLoop แชร์หนังสือที่ส่งต่อด้วยแฮชแท็ก #BookLoop"
           align="center"
         />
 

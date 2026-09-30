@@ -73,7 +73,7 @@ export const standardCategories: CategoryItem[] = [
   {
     id: 'rare',
     name: 'หนังสือสะสม',
-    desc: 'ฉบับพิมพ์ครั้งแรก หนังสือหายาก และปกแข็งทรงคุณค่า',
+    desc: 'ฉบับพิมพ์ครั้งแรก หนังสือหายาก และปกแข็ง',
     iconName: 'rare',
     accentColor: '#6B46C1',
     accentBg: '#F3E8FF',

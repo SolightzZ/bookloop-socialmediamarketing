@@ -24,7 +24,6 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
-import { motion, AnimatePresence } from 'motion/react';
 import { NAV_ITEMS } from './navItems';
 import { useAuth } from '../../hooks/useAuth';
 import { AuthButton } from '../navbar/AuthButton';
@@ -56,7 +55,6 @@ export const Header: React.FC<HeaderProps> = ({
   const { isAuthenticated, isLoading } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
 
   const isWishlistActive =
     (location.pathname === '/books' && new URLSearchParams(location.search).get('favorite') === 'true') ||
@@ -64,23 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
     location.pathname === '/account/wishlist';
 
   useEffect(() => {
-    let lastScrollY = window.scrollY;
-
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 20);
-
-      if (currentScrollY > 80) {
-        if (currentScrollY > lastScrollY + 6) {
-          setIsHeaderVisible(false);
-        } else if (currentScrollY < lastScrollY - 6) {
-          setIsHeaderVisible(true);
-        }
-      } else {
-        setIsHeaderVisible(true);
-      }
-
-      lastScrollY = currentScrollY;
+      setIsScrolled(window.scrollY > 20);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -100,17 +83,8 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <motion.div
-      animate={{
-        y: isHeaderVisible ? 0 : -95,
-        opacity: isHeaderVisible ? 1 : 0,
-      }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 28,
-      }}
-      style={{
+    <Box
+      sx={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -246,25 +220,19 @@ export const Header: React.FC<HeaderProps> = ({
             {NAV_ITEMS.map((item) => {
               const isActive = !isWishlistActive && location.pathname === item.path;
               return (
-                <motion.button
+                <button
                   key={item.label}
                   type="button"
                   onClick={() => handleNavigation(item.path)}
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.96 }}
                   className={`relative px-3.5 py-1.5 rounded-full text-[0.85rem] lg:text-[0.88rem] font-medium whitespace-nowrap outline-none select-none cursor-pointer transition-colors duration-200 ${
                     isActive ? 'text-[#1976D2] font-bold' : 'text-[#627D98] hover:text-[#1976D2]'
                   }`}
                 >
                   {isActive && (
-                    <motion.span
-                      layoutId="activeNavIndicator"
-                      className="absolute inset-0 bg-[#EAF4FF] rounded-full z-0"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
+                    <span className="absolute inset-0 bg-[#EAF4FF] rounded-full z-0" />
                   )}
                   <span className="relative z-10">{item.label}</span>
-                </motion.button>
+                </button>
               );
             })}
           </Box>
@@ -428,6 +396,6 @@ export const Header: React.FC<HeaderProps> = ({
         </Collapse>
       </Container>
     </AppBar>
-    </motion.div>
+    </Box>
   );
 };

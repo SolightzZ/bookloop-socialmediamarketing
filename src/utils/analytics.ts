@@ -24,7 +24,9 @@ export type AnalyticsEvent =
   | 'random_book_result'
   | 'user_login'
   | 'user_register'
-  | 'user_logout';
+  | 'user_logout'
+  | 'onboarding_complete'
+  | 'onboarding_skip';
 
 export interface EventPayload {
   [key: string]: any;
@@ -47,5 +49,35 @@ export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): v
     sessionStorage.setItem('bookloop_events', JSON.stringify(events));
   } catch {
     // ignore in private browsing
+  }
+
+  // POST to backend track.php for purchase events (triggers order confirmation email)
+  if (eventName === 'purchase' && payload) {
+    const sessionRaw = localStorage.getItem('bookloop_auth_session_token');
+    const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+
+    fetch('http://localhost:8000/api/track.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'purchase',
+        email: payload.email || '',
+        user_id: payload.userId || '',
+        user_name: payload.userName || 'ลูกค้า',
+        order_id: payload.orderId || '',
+        book_title: payload.bookTitle || '',
+        book_price: payload.bookPrice || '',
+        metadata: {
+          total: payload.total,
+          itemsCount: payload.itemsCount,
+          paymentMethod: payload.paymentMethod,
+          items: payload.items,
+          shippingAddress: payload.shippingAddress,
+          shippingMethod: payload.shippingMethod,
+        },
+      }),
+    }).catch(() => {
+      // non-blocking — email failure should not break checkout
+    });
   }
 };

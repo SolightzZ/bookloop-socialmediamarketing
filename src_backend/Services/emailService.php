@@ -27,8 +27,16 @@ function sendWelcomeEmailService(string $to, string $userName): array
         $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
         $mail->addAddress($to);
 
+        if (empty($userName) || $userName === 'สมาชิก BookLoop') {
+            $userName = $to;
+        }
+
         $safeName = htmlspecialchars(trim($userName), ENT_QUOTES, 'UTF-8');
-        $bookloopUrl = 'http://localhost:3000';
+        $displayName = (filter_var($userName, FILTER_VALIDATE_EMAIL) || str_contains($userName, '@'))
+            ? $safeName
+            : "คุณ {$safeName}";
+
+        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
 
         $mail->isHTML(true);
         $mail->CharSet = 'UTF-8';
@@ -46,7 +54,7 @@ function sendWelcomeEmailService(string $to, string $userName): array
             </td></tr>
             <tr><td align="center" style="padding:24px 20px 10px;background:#ffffff;">
                 <div style="margin:0;color:#5f7894;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:15px;font-weight:600;line-height:1.5;">เรายินดีที่ได้รู้จักคุณ</div>
-                <div style="margin:5px 0 0;color:#087cf1;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:28px;font-weight:800;line-height:1.3;">"คุณ {$safeName}"</div>
+                <div style="margin:5px 0 0;color:#087cf1;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:28px;font-weight:800;line-height:1.3;">"{$displayName}"</div>
             </td></tr>
             <tr><td align="center" style="padding:18px 20px 10px;background:#ffffff;">
                 <a href="{$bookloopUrl}" style="display:inline-block;padding:14px 38px;border-radius:999px;background:#087cf1;color:#ffffff;text-decoration:none;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:16px;font-weight:700;line-height:1.2;">เริ่มค้นหาหนังสือเลย&nbsp; →</a>
@@ -98,8 +106,16 @@ function sendConfirmationEmailService(string $to, string $userName): array
         $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
         $mail->addAddress($to);
 
+        if (empty($userName) || $userName === 'สมาชิก BookLoop') {
+            $userName = $to;
+        }
+
         $safeName = htmlspecialchars(trim($userName), ENT_QUOTES, 'UTF-8');
-        $bookloopUrl = 'http://localhost:3000';
+        $displayName = (filter_var($userName, FILTER_VALIDATE_EMAIL) || str_contains($userName, '@'))
+            ? $safeName
+            : "คุณ {$safeName}";
+
+        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
         $facebookUrl = 'https://facebook.com/';
         $instagramUrl = 'https://instagram.com/';
         $youtubeUrl = 'https://youtube.com/';
@@ -121,7 +137,7 @@ function sendConfirmationEmailService(string $to, string $userName): array
             </td></tr>
             <tr><td align="center" style="padding:30px 40px 10px;background:#ffffff;">
                 <div style="margin:0;color:#5f7894;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:15px;font-weight:600;line-height:1.5;">ขอบคุณที่สมัครรับข่าวสาร</div>
-                <div style="margin:5px 0 0;color:#087cf1;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:28px;font-weight:800;line-height:1.3;">"คุณ {$safeName}"</div>
+                <div style="margin:5px 0 0;color:#087cf1;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:28px;font-weight:800;line-height:1.3;">"{$displayName}"</div>
             </td></tr>
             <tr><td align="center" style="padding:10px 40px;background:#ffffff;">
                 <p style="margin:0;color:#6f87a0;font-family:'Noto Sans Thai',Arial,Tahoma,sans-serif;font-size:14px;line-height:1.7;text-align:center;">
@@ -154,6 +170,99 @@ function sendConfirmationEmailService(string $to, string $userName): array
 HTML;
 
         $mail->addEmbeddedImage(IMAGES_PATH . '/newsletterConfirmation.png', 'welcome_image');
+        $mail->send();
+
+        return ['success' => true, 'error' => null];
+
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $mail->ErrorInfo];
+    }
+}
+
+function sendOrderConfirmationService(
+    string $to,
+    string $userName,
+    string $orderId,
+    array $items = [],
+    string $total = '0.00',
+    string $shippingAddress = '',
+    string $paymentMethod = 'promptpay',
+    string $shippingMethod = 'standard'
+): array {
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USERNAME;
+        $mail->Password = SMTP_PASSWORD;
+        $mail->SMTPSecure = SMTP_ENCRYPTION === 'ssl'
+            ? PHPMailer::ENCRYPTION_SMTPS
+            : PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = SMTP_PORT;
+        $mail->Timeout = MAIL_TIMEOUT;
+
+        $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
+        $mail->addAddress($to);
+
+        $name = $userName;
+        ob_start();
+        include EMAIL_PATH . '/orderConfirmEmail.php';
+        $emailHtml = ob_get_clean();
+
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = "ยืนยันคำสั่งซื้อ #{$orderId} - BookLoop";
+        $mail->Body = $emailHtml;
+        $mail->addEmbeddedImage(IMAGES_PATH . '/orderSuccess.jpg', 'welcome_image');
+
+        $mail->send();
+
+        return ['success' => true, 'error' => null];
+
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $mail->ErrorInfo];
+    }
+}
+
+function sendOnboardingWelcomeEmailService(
+    string $to,
+    string $userName,
+    array $categories = [],
+    array $books = []
+): array {
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USERNAME;
+        $mail->Password = SMTP_PASSWORD;
+        $mail->SMTPSecure = SMTP_ENCRYPTION === 'ssl'
+            ? PHPMailer::ENCRYPTION_SMTPS
+            : PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = SMTP_PORT;
+        $mail->Timeout = MAIL_TIMEOUT;
+
+        $mail->setFrom(MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
+        $mail->addAddress($to);
+
+        $name = $userName;
+        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+        $profileUrl = $bookloopUrl . '/account/profile';
+
+        ob_start();
+        include EMAIL_PATH . '/onboardingWelcomeEmail.php';
+        $emailHtml = ob_get_clean();
+
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = 'ยินดีต้อนรับสู่ BookLoop 📚';
+        $mail->Body = $emailHtml;
+        // ปกหนังสือเป็น remote URL อยู่แล้ว ไม่ต้องแนบ embedded image
+
         $mail->send();
 
         return ['success' => true, 'error' => null];

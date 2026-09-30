@@ -103,7 +103,7 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
                 fontSize: '0.7rem',
               }}
             >
-              DISCOVER WITH BOOKLOOP
+              สุ่มหนังสือให้คุณ
             </Typography>
           </Box>
 
@@ -119,7 +119,7 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
               lineHeight: 1.25,
             }}
           >
-            วันนี้ไม่รู้จะอ่านอะไร? <Box component="span" sx={{ color: '#1976D2' }}>ให้ BookLoop เลือกให้คุณ</Box>
+            ให้ BookLoop เลือก<Box component="span" sx={{ color: '#1976D2' }}>หนังสือเล่มถัดไปให้คุณ</Box>
           </Typography>
         </Box>
 
@@ -285,8 +285,8 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
                 />
                 <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.72rem', textAlign: 'center' }}>
                   {state === 'result'
-                    ? '💡 หากยังไม่โดนใจ กดสุ่มอีกครั้งเพื่อค้นพบเล่มใหม่'
-                    : '💡 คลิกที่วงโคจรหรือกดปุ่มเพื่อเริ่มค้นพบหนังสือ'}
+                    ? 'หากยังไม่ใช่เล่มที่ต้องการ กดสุ่มอีกครั้ง'
+                    : 'คลิกที่วงโคจรหรือกดปุ่มเพื่อเริ่มสุ่ม'}
                 </Typography>
               </Box>
             </Paper>

@@ -1,30 +1,36 @@
 export const tokens = {
   colors: {
-    inkNavy: '#0F2D4A',
-    deepNavy: '#0A192F',
-    actionBlue: '#1976D2',
-    softBlue: '#EBF3FA',
+    // Primary Swiss palette — restrained, editorial
+    inkNavy: '#0A1628',
+    deepNavy: '#07101E',
+    actionBlue: '#0F6CF0',
+    softBlue: '#EFF4FF',
     paper: '#FFFFFF',
-    warmSurface: '#F7F9FC',
-    mutedText: '#627D98',
-    border: '#D9E2EC',
-    success: '#2E7D5B',
-    warning: '#B7791F',
+    warmSurface: '#F8F7F5',
+    mutedText: '#6B7A90',
+    border: '#E6E8EB',
+    borderStrong: '#D1D5DB',
+    success: '#1A7A4C',
+    warning: '#8C6A1A',
     danger: '#B42318',
-    // Text specific semantic tokens
-    textDark: '#102A43',
-    textMuted: '#627D98',
-    textLight: '#F8FAFC',
-    footerBg: '#0A192F',
-    footerHeading: '#38BDF8',
-    footerText: '#E2E8F0',
-    footerMuted: '#94A3B8',
-    ctaBg: '#0B2545',
+    // Semantic
+    textDark: '#0A1628',
+    textMuted: '#6B7A90',
+    textLight: '#F8F7F5',
+    footerBg: '#0A1628',
+    footerHeading: '#E6E8EB',
+    footerText: '#A8B3C7',
+    footerMuted: '#6B7A90',
+    ctaBg: '#0A1628',
     ctaHeading: '#FFFFFF',
-    ctaSubtext: '#E2E8F0',
+    ctaSubtext: '#A8B3C7',
+    // Swiss accents
+    rule: '#E6E8EB',
+    eyebrow: '#0F6CF0',
+    surfaceMuted: '#F2F3F5',
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 6,
   },
   spacing: {
     xs: 8,
@@ -37,20 +43,28 @@ export const tokens = {
     huge: 96,
   },
   radii: {
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
+    sm: 4,
+    md: 6,
+    lg: 8,
+    xl: 12,
+  },
+  layout: {
+    maxWidth: 1280,
+    gutter: 24,
+    gutterMobile: 16,
+    columns: 12,
   },
   typography: {
-    fontFamily: '"Noto Sans Thai", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Noto Sans Thai", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif',
+    fontFamilyDisplay: '"Noto Sans Thai", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif',
     sizes: {
-      xs: '0.75rem',    // 12px
-      sm: '0.875rem',   // 14px
-      md: '1rem',       // 16px
-      lg: '1.125rem',   // 18px
-      xl: '1.25rem',    // 20px
-      display: '2.5rem',// 40px
+      xs: '0.6875rem', // 11px — eyebrow / metadata
+      sm: '0.8125rem', // 13px
+      md: '0.9375rem', // 15px
+      lg: '1rem',      // 16px
+      xl: '1.125rem',  // 18px
+      display: '3rem', // 48px desktop display
+      displayMobile: '2.125rem',
     },
   },
 } as const;

@@ -126,7 +126,7 @@ export const HeroActions: React.FC<HeroActionsProps> = ({
               transition: 'all 0.2s ease',
             }}
           >
-            ส่งต่อหนังสือ →
+            ส่งต่อหนังสือ
           </Button>
         </MagneticButton>
       )}

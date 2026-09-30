@@ -19,25 +19,25 @@ const trustItems: TrustItem[] = [
   {
     icon: <TagIcon sx={{ fontSize: 22, color: '#10B981' }} />,
     iconBg: '#E8F5E9',
-    title: 'ประหยัดสูงสุด 70%',
-    subtitle: 'คุ้มค่ากว่าราคาปกมือหนึ่ง',
+    title: 'ประหยัดได้ 40-70%',
+    subtitle: 'เมื่อเทียบกับราคาปกมือหนึ่ง',
   },
   {
     icon: <ShieldIcon sx={{ fontSize: 22, color: '#1976D2' }} />,
     iconBg: '#EAF4FF',
-    title: 'ตรวจสอบสภาพทุกเล่ม',
-    subtitle: 'ระบุสภาพชัดเจน มีรูปจริง',
+    title: 'ระบุสภาพทุกเล่ม',
+    subtitle: 'มีรูปจริงและคำอธิบายจากผู้ขาย',
   },
   {
     icon: <BookIcon sx={{ fontSize: 22, color: '#D97706' }} />,
     iconBg: '#FFFBEB',
     title: 'เรื่องราวจากเจ้าของเดิม',
-    subtitle: 'สัมผัสคุณค่าและความทรงจำ',
+    subtitle: 'อ่านบันทึกที่เจ้าของเล่มเขียนไว้',
   },
   {
     icon: <LoopIcon sx={{ fontSize: 22, color: '#1976D2' }} />,
     iconBg: '#EAF4FF',
-    title: 'ส่งต่อได้ไม่รู้จบ',
+    title: 'ส่งต่อได้หลายรอบ',
     subtitle: 'อ่านจบแล้วส่งต่อให้คนถัดไป',
   },
 ];

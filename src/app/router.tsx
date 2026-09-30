@@ -17,6 +17,7 @@ const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
 const AccountPage = lazy(() => import('../pages/AccountPage'));
+const OnboardingPage = lazy(() => import('../pages/OnboardingPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage'));
 const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
@@ -73,8 +74,16 @@ const router = createBrowserRouter([
                </RequireAuth>
             ),
          },
-         { path: 'login', element: withSuspense(LoginPage) },
-         { path: 'register', element: withSuspense(RegisterPage) },
+          { path: 'login', element: withSuspense(LoginPage) },
+          { path: 'register', element: withSuspense(RegisterPage) },
+          {
+            path: 'onboarding',
+            element: (
+               <RequireAuth>
+                  {withSuspense(OnboardingPage)}
+               </RequireAuth>
+            ),
+          },
          { path: 'forgot-password', element: withSuspense(ForgotPasswordPage) },
          { path: 'reset-password', element: withSuspense(ResetPasswordPage) },
          {
@@ -103,7 +112,11 @@ const router = createBrowserRouter([
          },
          {
             path: 'account/orders/:orderId',
-            element: withSuspense(OrderDetailPage),
+            element: (
+               <ProtectedRoute>
+                  {withSuspense(OrderDetailPage)}
+               </ProtectedRoute>
+            ),
          },
          {
             path: 'account/wishlist',

@@ -230,10 +230,10 @@ export default function BooksPage() {
                         ) : (
                            <ExploreRounded sx={{ fontSize: 14 }} />
                         )}
-                        {onlyFavorites ? 'WISHLIST' : 'BOOKLOOP CATALOG'}
+                        {onlyFavorites ? 'รายการโปรด' : 'หนังสือทั้งหมด'}
                      </Box>
                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, fontSize: '0.78rem' }}>
-                        พร้อมส่งทุกเล่ม • คัดสภาพจริง
+                        หนังสือจากชุมชน BookLoop ระบุสภาพโดยผู้ขาย
                      </Typography>
                   </Box>
 
@@ -251,7 +251,7 @@ export default function BooksPage() {
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.85rem' }}>
-                     พบหนังสือทั้งหมด <strong>{filteredBooks.length}</strong> เล่ม จากชุมชนนักอ่าน BookLoop
+                     พบหนังสือทั้งหมด <strong>{filteredBooks.length}</strong> เล่ม จากชุมชน BookLoop
                   </Typography>
                </Box>
 
@@ -551,7 +551,7 @@ export default function BooksPage() {
                            </Typography>
                            <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 460, mx: 'auto', fontSize: '0.85rem' }}>
                               {wishlist.length === 0
-                                 ? 'กดไอคอนหัวใจ ❤️ บนหนังสือที่คุณสนใจ เพื่อบันทึกเก็บไว้ดู เปรียบเทียบราคา หรือสั่งซื้อในภายหลัง'
+                                 ? 'กดไอคอนหัวใจบนหนังสือที่คุณสนใจ เพื่อบันทึกไว้ดูหรือเปรียบเทียบราคาในภายหลัง'
                                  : 'ลองปรับเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูหนังสือเล่มอื่นที่คุณบันทึกไว้ในรายการโปรด'}
                            </Typography>
                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>

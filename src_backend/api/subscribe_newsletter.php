@@ -25,9 +25,9 @@ if (isEmailSubscribed($email, $subscriberFile)) {
 
 appendSubscriber($subscriberFile, $email);
 
-// ดึงชื่อจาก users.json ถ้ามี
+// ดึงชื่อจาก users.json ถ้ามี หรือจาก payload (หากไม่ได้เข้าสู่ระบบให้ใช้อีเมลที่กรอก)
 $user = findUserByEmail($email);
-$userName = $user ? $user['name'] : 'สมาชิก BookLoop';
+$userName = !empty($data['name']) ? trim($data['name']) : ($user ? $user['name'] : $email);
 
 // ส่ง Confirmation Email (catch Throwable เพราะ TimeoutException เป็น Error ไม่ใช่ Exception)
 $emailResult = ['success' => false, 'error' => ''];

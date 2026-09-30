@@ -27,12 +27,9 @@ if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     ], 400);
 }
 
-// Validate name
-if (empty($name)) {
-    jsonResponse([
-        "success" => false,
-        "message" => "กรุณากรอกชื่อ"
-    ], 400);
+// Validate name (หากเป็น Email only หรือไม่ได้เข้าสู่ระบบ ให้ใช้อีเมลที่กรอก)
+if (empty($name) || $name === 'สมาชิก BookLoop') {
+    $name = $email;
 }
 
 // บันทึกข้อมูลลงไฟล์

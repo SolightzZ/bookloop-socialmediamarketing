@@ -215,7 +215,7 @@ export const BookPurchaseBox: React.FC<BookPurchaseBoxProps> = ({
           }}
         >
           <CheckIcon sx={{ fontSize: 16 }} />
-          <span>ราคาพิเศษสำหรับหนังสือส่งต่อ ช่วยประหยัดเงินเพื่ออ่านเล่มถัดไป</span>
+          <span>ราคาที่ผู้ขายตั้งไว้สำหรับเล่มนี้</span>
         </Typography>
       </Box>
 

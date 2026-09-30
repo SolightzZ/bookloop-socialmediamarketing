@@ -54,21 +54,6 @@ export const FinalCTA: React.FC = () => {
 
       <AppContainer sx={{ position: 'relative', zIndex: 1 }}>
         <Box sx={{ maxWidth: 760, mx: 'auto' }}>
-          {/* Eyebrow */}
-          <Typography
-            variant="overline"
-            sx={{
-              color: '#38BDF8',
-              fontWeight: 800,
-              letterSpacing: '0.14em',
-              fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-              mb: 1.5,
-              display: 'block',
-            }}
-          >
-            START YOUR READING LOOP
-          </Typography>
-
           {/* Headline */}
           <Typography
             variant="h2"
@@ -99,7 +84,7 @@ export const FinalCTA: React.FC = () => {
               mb: { xs: 4, sm: 5 },
             }}
           >
-            ร่วมเป็นส่วนหนึ่งของคอมมูนิตี้คนรักการอ่าน ส่งต่อความรู้ ความคิด และเรื่องราวที่ไม่มีวันสิ้นสุดในราคาที่เข้าถึงได้ทุกคน
+            ร่วมเป็นส่วนหนึ่งของชุมชน BookLoop ส่งต่อหนังสือที่คุณอ่านจบแล้วให้เจ้าของคนใหม่ในราคาที่คุณตั้งเอง
           </Typography>
 
           {/* Buttons */}

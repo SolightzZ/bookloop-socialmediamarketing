@@ -8,6 +8,15 @@ export interface UserAddress {
   postalCode?: string;
 }
 
+export interface UserPreferences {
+  categories: string[];
+  favoriteBooks?: string[];
+  onboardingCompleted: boolean;
+  skipped?: boolean;
+  preferencesUpdatedAt?: string;
+  welcomeEmailSentAt?: string | null;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -17,6 +26,7 @@ export interface User {
   phone?: string;
   bio?: string;
   address?: UserAddress;
+  preferences?: UserPreferences;
 }
 
 export interface AuthState {

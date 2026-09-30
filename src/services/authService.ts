@@ -1,5 +1,5 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
-import { apiClient } from './apiClient';
+import { apiClient, ApiError } from './apiClient';
 
 export interface UserAccountData {
    cart: { productId: string; quantity: number }[];
@@ -68,7 +68,7 @@ class AuthService {
          }
 
          const xhr = new XMLHttpRequest();
-         xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/src_backend/api'}/auth_me.php`, false);
+         xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/auth_me.php`, false);
          xhr.setRequestHeader('Authorization', `Bearer ${session.token}`);
          xhr.send();
 
@@ -85,7 +85,20 @@ class AuthService {
       return null;
    }
 
-   public async getCurrentSessionUser(): Promise<User | null> {
+   private sessionRestorePromise: Promise<User | null> | null = null;
+
+   // กันยิง auth_me.php ซ้อนกันเมื่อมี caller พร้อมกันหลายตัว
+   // (เช่น React StrictMode รัน mount effect ซ้ำใน dev) — ขอเดียวพอ ใครมาทีหลังรอผลเดียวกัน
+   public getCurrentSessionUser(): Promise<User | null> {
+      if (!this.sessionRestorePromise) {
+         this.sessionRestorePromise = this.restoreSessionInternal().finally(() => {
+            this.sessionRestorePromise = null;
+         });
+      }
+      return this.sessionRestorePromise;
+   }
+
+   private async restoreSessionInternal(): Promise<User | null> {
       try {
          const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
          if (!rawSession) return null;
@@ -101,19 +114,36 @@ class AuthService {
          if (result.success && result.user) {
             return result.user;
          }
-      } catch {
-         // Backend unavailable
+      } catch (e) {
+         // 401/403 = token ฝั่ง server ใช้ไม่ได้แล้ว → ลบทิ้ง จะได้ไม่ยิง auth_me.php ซ้ำทุกครั้งที่ mount
+         // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
+         if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+            this.clearStoredSession();
+         }
       }
 
       return null;
    }
 
-   public logout(): void {
+   // ล้าง session ใน localStorage เท่านั้น (ไม่เรียก auth_logout.php เพราะ token ใช้ไม่ได้แล้ว)
+   private clearStoredSession(): void {
       try {
          localStorage.removeItem(SESSION_TOKEN_KEY);
       } catch (e) {
-         console.warn('Logout clear error', e);
+         console.warn('Could not clear stored session', e);
       }
+   }
+
+   public logout(): void {
+      // เพิกถอน token ฝั่ง server แบบ best-effort — client logout ต้องสำเร็จเสมอแม้ backend ไม่พร้อม
+      try {
+         apiClient.post<{ success: boolean }>('auth_logout.php').catch(() => {
+            // backend อาจไม่พร้อมใช้งาน ไม่ต้องทำอะไร
+         });
+      } catch {
+         // ignore — ล้าง local ต่อตามปกติ
+      }
+      this.clearStoredSession();
    }
 
    public async updateProfile(userId: string, updates: Partial<User>): Promise<User> {

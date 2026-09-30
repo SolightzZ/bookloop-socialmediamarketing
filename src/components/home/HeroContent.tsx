@@ -56,7 +56,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
             color: '#1976D2',
           }}
         >
-          ตลาดหนังสือมือสองและชุมชนนักอ่าน
+          หนังสือมือสองจากชุมชน BookLoop
         </Typography>
       </Box>
 
@@ -148,7 +148,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           fontWeight: 400,
         }}
       >
-        ซื้อหนังสือมือสองสภาพดีในราคาที่เข้าถึงง่าย หรือส่งต่อหนังสือที่คุณอ่านจบแล้วให้กับเจ้าของคนใหม่ในชุมชน BookLoop ร่วมหมุนเวียนเรื่องราวที่ไม่มีวันสิ้นสุด
+        ซื้อหนังสือมือสองสภาพดีในราคาที่เข้าถึงง่าย หรือส่งต่อหนังสือที่คุณอ่านจบแล้วให้เจ้าของคนใหม่ในชุมชน BookLoop
         <HeartIcon sx={{ fontSize: 16, color: '#1976D2', verticalAlign: 'text-bottom', ml: 0.5 }} />
       </Typography>
 
@@ -179,7 +179,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
           <TagIcon sx={{ fontSize: 17, color: '#10B981' }} />
           <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            ประหยัดสูงสุด 70%
+            ประหยัดได้ 40-70%
           </Typography>
         </Box>
 
@@ -187,7 +187,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
           <ShieldIcon sx={{ fontSize: 17, color: '#1976D2' }} />
           <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            คุณภาพแพ็กพัสดุ
+            มีรูปจริงและระบุสภาพ
           </Typography>
         </Box>
 
@@ -195,7 +195,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
           <LoopIcon sx={{ fontSize: 17, color: '#10B981' }} />
           <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            ส่งต่อได้ไม่สิ้นสุด
+            อ่านจบแล้วส่งต่อได้
           </Typography>
         </Box>
       </Box>

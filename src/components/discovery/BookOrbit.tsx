@@ -62,7 +62,7 @@ export const BookOrbit: React.FC<BookOrbitProps> = ({
             letterSpacing: '0.02em',
           }}
         >
-          Book • Read • Share • Repeat
+          อ่าน ส่งต่อ แล้วอ่านซ้ำ
         </Typography>
       </Box>
 
@@ -97,7 +97,7 @@ export const BookOrbit: React.FC<BookOrbitProps> = ({
             }}
           />
           <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>
-            {state === 'fake-stop' ? '✨ เล่มนี้ใช่ไหมนะ...' : '🚀 กำลังลุ้นผลในวงโคจร...'}
+            {state === 'fake-stop' ? 'เล่มนี้ใช่ไหมนะ...' : 'กำลังลุ้นผลในวงโคจร...'}
           </Typography>
         </Box>
       )}

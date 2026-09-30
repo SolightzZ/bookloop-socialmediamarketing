@@ -5,15 +5,17 @@ import { trackEvent } from '../utils/analytics';
 import { Hero } from '../components/home/Hero';
 import { TrustStrip } from '../components/home/TrustStrip';
 import { FeaturedBooksSection } from '../components/home/FeaturedBooksSection';
+import { RecommendedForYou } from '../components/home/RecommendedForYou';
 import { BookDiscovery } from '../components/discovery/BookDiscovery';
 import { CategoryExplorer } from '../components/home/CategoryExplorer';
 import { HomeValueProps } from '../components/home/HomeValueProps';
 import { BookLoopJourney } from '../components/BookLoopJourney';
 import { BookStoriesSection } from '../components/BookStoriesSection';
 import { SocialUgcSection } from '../components/SocialUgcSection';
-import { HomePassOnSection } from '../components/home/HomePassOnSection';
+import { HomeNewsletterSection } from '../components/home/HomeNewsletterSection';
 import { FinalCTA } from '../components/home/FinalCTA';
 import { RecentlyViewedSection } from '../components/home/RecentlyViewedSection';
+import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -42,6 +44,9 @@ export default function HomePage() {
       {/* 4. Featured / Curated Books */}
       <FeaturedBooksSection />
 
+      {/* 4.1 Recommended For You (personalized from onboarding preferences) */}
+      <RecommendedForYou />
+
       {/* 4.2 Recently Viewed (dynamic) */}
       <RecentlyViewedSection />
 
@@ -63,11 +68,14 @@ export default function HomePage() {
       {/* 9. Social Community */}
       <SocialUgcSection />
 
-      {/* 9.5 Community Book Pass-On Gated Section */}
-      <HomePassOnSection />
+      {/* 9.5 Newsletter Subscription Section (Email Only) */}
+      <HomeNewsletterSection />
 
       {/* 10. Final CTA */}
       <FinalCTA />
+
+      {/* First-time onboarding popup (auto แสดงเฉพาะ user ที่ยังไม่เคยทำ) */}
+      <OnboardingModal />
     </Box>
   );
 }

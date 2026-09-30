@@ -3,8 +3,15 @@
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/Services/Logger.php';
 require_once BASE_PATH . '/Services/Http.php';
+require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
+
+// เหตุผลเดียวกับ logs.php — อ่าน/ล้าง request log ต้องมี session ที่ยัง valid เท่านั้น
+$token = getBearerToken();
+if (!$token || !validateToken($token)) {
+    jsonResponse(['success' => false, 'message' => 'ต้องเข้าสู่ระบบก่อนใช้งาน'], 401);
+}
 
 $logger = Logger::getInstance();
 

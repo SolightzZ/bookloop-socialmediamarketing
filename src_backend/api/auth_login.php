@@ -1,11 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../auth/auth.php';
+require_once BASE_PATH . '/Services/RateLimiter.php';
 
 corsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
+}
+
+// กัน brute-force: สูงสุด 20 ครั้งต่อ 10 นาทีต่อ IP
+if (!rateLimitCheck(clientRateLimitKey('login'), 20, 600)) {
+    jsonResponse(['success' => false, 'message' => 'พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่'], 429);
 }
 
 $data = getRequestData();

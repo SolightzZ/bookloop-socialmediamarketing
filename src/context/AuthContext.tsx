@@ -73,7 +73,10 @@ function mergeWishlistOnLogin(userId: string) {
     // Union set of IDs without duplicates
     const uniqueIds = Array.from(new Set([...userWishlist, ...guestWishlist]));
 
-    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(uniqueIds));
+    // เก็บเข้า key ของ user คนนี้ แล้วลบ key กลางของ guest ทิ้ง
+    // (กัน account ถัดไปบน browser เดียวกันสืบทอดรายการโปรดต่อ)
+    localStorage.setItem(`bookloop_wishlist_${userId}`, JSON.stringify(uniqueIds));
+    localStorage.removeItem(WISHLIST_STORAGE_KEY);
     authService.saveUserData(userId, { wishlist: uniqueIds });
     window.dispatchEvent(new Event('bookloop_wishlist_updated'));
   } catch (e) {
@@ -156,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userId) {
         try {
           localStorage.removeItem(`bookloop_user_data_${userId}`);
+          localStorage.removeItem(`bookloop_wishlist_${userId}`);
         } catch {
           // ignore storage errors
         }

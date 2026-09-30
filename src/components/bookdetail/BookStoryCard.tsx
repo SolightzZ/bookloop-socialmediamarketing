@@ -68,7 +68,7 @@ export const BookStoryCard: React.FC<BookStoryCardProps> = ({ story, sellerName 
           fontSize: '0.825rem',
         }}
       >
-        — บันทึกความทรงจำและความตั้งใจในการส่งต่อโดย{' '}
+        ส่งต่อโดย{' '}
         <Box component="strong" sx={{ color: '#0F2D4A' }}>
           {sellerName}
         </Box>

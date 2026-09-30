@@ -19,6 +19,7 @@ import { SubmitButton } from '../common/SubmitButton';
 import { useCart } from '../../hooks/useCart';
 import { books } from '../../data/books';
 import { getPendingAction, clearPendingAction, PendingAction } from '../../types/authGate';
+import { getSafeRedirectPath } from '../../utils/redirect';
 
 interface LoginFormProps {
   onSuccessRedirect?: string;
@@ -36,9 +37,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Extract redirect query parameter if available
+  // Extract redirect query parameter if available (sanitized: in-app path only)
   const queryParams = new URLSearchParams(location.search);
-  const redirectPath = onSuccessRedirect || queryParams.get('redirect') || '/';
+  const redirectPath = getSafeRedirectPath(onSuccessRedirect || queryParams.get('redirect'), '/');
 
   const markTouched = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -64,16 +65,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
       }
 
       if (pendingAction.type === 'add-to-cart') {
-        const returnUrl =
+        const returnUrl = getSafeRedirectPath(
           location.state?.from ||
           queryParams.get('redirect') ||
-          `/books/${pendingAction.bookId}`;
+          `/books/${pendingAction.bookId}`
+        );
         navigate(returnUrl, { replace: true });
         return;
       }
     }
 
-    const finalPath = location.state?.from || redirectPath;
+    const finalPath = getSafeRedirectPath(location.state?.from || redirectPath);
     navigate(finalPath, { replace: true });
   };
 

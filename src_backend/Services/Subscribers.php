@@ -9,9 +9,15 @@ require_once __DIR__ . '/../config/config.php';
 if (!function_exists('isEmailSubscribed')) {
     /**
      * เช็คว่าอีเมลสมัครรับข่าวสารอยู่หรือไม่ (เทียบคอลัมน์แรกก่อน '|', ไม่สนตัวพิมพ์)
+     * รองรับทั้ง isEmailSubscribed($email, $filePath) และ isEmailSubscribed($email, $userName = null)
      */
-    function isEmailSubscribed(string $email, string $filePath): bool
+    function isEmailSubscribed(string $email, ?string $filePathOrUser = null): bool
     {
+        $defaultFile = defined('EMAIL_PATH') ? EMAIL_PATH . '/subscribers.txt' : (defined('BASE_PATH') ? BASE_PATH . '/email/subscribers.txt' : __DIR__ . '/../email/subscribers.txt');
+        $filePath = (is_string($filePathOrUser) && (str_contains($filePathOrUser, '/') || str_contains($filePathOrUser, '\\') || str_ends_with($filePathOrUser, '.txt')))
+            ? $filePathOrUser
+            : $defaultFile;
+
         if (!file_exists($filePath)) {
             return false;
         }

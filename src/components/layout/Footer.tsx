@@ -68,10 +68,10 @@ export const Footer: React.FC = () => {
                 mb: 2.5,
               }}
             >
-              หนังสือทุกเล่ม มีเรื่องราวให้คนถัดไป ซื้อ ขาย และส่งต่อหนังสือมือสองในราคาที่เข้าถึงง่าย พร้อมสร้างสังคมแห่งการแบ่งปันที่ยั่งยืน
+              หนังสือทุกเล่มมีเรื่องราวให้คนถัดไป ซื้อ ขาย และส่งต่อหนังสือมือสองในราคาที่ต่ำกว่าราคาปกในชุมชน BookLoop
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
-              แพลตฟอร์มตลาดหนังสือและชุมชนนักอ่านไทย
+              แพลตฟอร์มตลาดหนังสือของชุมชน BookLoop
             </Typography>
           </Grid>
 
@@ -200,7 +200,6 @@ export const Footer: React.FC = () => {
                 { label: 'เรื่องราวของหนังสือ', path: '/#behind-the-books' },
                 { label: 'วงจรการอ่าน BookLoop', path: '/#how-it-works' },
                 { label: 'แชร์รีวิวบนโซเชียล #BookLoop', path: '/#social' },
-                { label: 'ติดต่อทีมงาน BookLoop', path: '/books' },
               ].map((link) => (
                 <Box component="li" key={link.label}>
                   <Typography
@@ -259,7 +258,7 @@ export const Footer: React.FC = () => {
             © {new Date().getFullYear()} BookLoop. All rights reserved.
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.8125rem' }}>
-            Designed for book lovers • มุ่งสร้างสังคมการอ่านที่ยั่งยืน
+            สร้างขึ้นเพื่อชุมชน BookLoop
           </Typography>
         </Box>
       </AppContainer>

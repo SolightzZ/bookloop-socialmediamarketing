@@ -30,9 +30,8 @@ export const BookStoriesSection: React.FC = () => {
       <AppContainer>
         <SectionHeader
           id="behind-the-books-heading"
-          eyebrow="BEHIND THE BOOKS"
           title="เรื่องราวของหนังสือ"
-          subtitle="“หนังสือของคุณอาจเป็นเล่มโปรดของใครอีกคน” สัมผัสความตั้งใจ ความทรงจำ และเหตุผลในการส่งต่อจากเจ้าของเดิม"
+          subtitle="“หนังสือของคุณอาจเป็นเล่มโปรดของใครอีกคน”"
           align="center"
         />
 

@@ -38,8 +38,19 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
         // render HTML จาก template (จับด้วย output buffer)
         $name = $userName;
         $preferences = $data['preferences'] ?? [];
+        $orderId = $data['orderId'] ?? '';
+        $items = $data['items'] ?? [];
+        $total = $data['total'] ?? '0.00';
+        $shippingAddress = $data['shippingAddress'] ?? '';
+        $paymentMethod = $data['paymentMethod'] ?? 'promptpay';
+        $shippingMethod = $data['shippingMethod'] ?? 'standard';
+
         ob_start();
-        include __DIR__ . '/newsletterWelcomeEmail.php';
+        if ($type === 'purchase') {
+            include __DIR__ . '/orderConfirmEmail.php';
+        } else {
+            include __DIR__ . '/newsletterWelcomeEmail.php';
+        }
         $emailHtml = ob_get_clean();
 
         $mail->isHTML(true);       // body เป็น HTML
@@ -47,23 +58,33 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
         $mail->Subject = getSubject($type, $data);  // หัวข้อตามประเภท
         $mail->Body = $emailHtml;
 
-        // แนบรูป CID ให้ขึ้นใน body (เฉพาะ welcome/subscription)
-        if ($type === 'welcome' || $type === 'subscription') {
+        // แนบรูป banner (CID) ให้แสดงใน body — purchase ใช้แบนเนอร์คำสั่งซื้อสำเร็จ
+        if ($type === 'purchase') {
+            $bannerPath = IMAGES_PATH . '/orderSuccess.jpg';
+            if (!is_file($bannerPath)) {
+                $bannerPath = IMAGES_PATH . '/welcome.png'; // fallback กันรูปหายแล้วเมลพัง
+            }
+            $mail->addEmbeddedImage($bannerPath, 'welcome_image');
+        } elseif ($type === 'welcome' || $type === 'subscription') {
             $mail->addEmbeddedImage(IMAGES_PATH . '/welcome.png', 'welcome_image');
         }
 
-        // ส่งจริง + บันทึกผู้รับ
+        // ส่งจริง
         $mail->send();
 
-        $subscriberData = $to;  // "email" หรือ "email | preferences"
-        if (!empty($preferences)) {
-            $subscriberData .= ' | ' . implode(', ', $preferences);
+        // บันทึกผู้รับลง subscribers.txt เฉพาะอีเมลสมัครข่าวสารเท่านั้น
+        // (welcome/purchase/add_to_cart ไม่บันทึก เพื่อไม่ให้ผู้ใช้ถูกเพิ่มเป็น subscriber โดยไม่ตั้งใจ)
+        if ($type === 'subscription') {
+            $subscriberData = $to;
+            if (!empty($preferences)) {
+                $subscriberData .= ' | ' . implode(', ', $preferences);
+            }
+            file_put_contents(
+                EMAIL_PATH . '/subscribers.txt',
+                $subscriberData . "\n",
+                FILE_APPEND | LOCK_EX
+            );
         }
-        file_put_contents(
-            EMAIL_PATH . '/subscribers.txt',
-            $subscriberData . "\n",
-            FILE_APPEND | LOCK_EX  // append + ล็อกกันเขียนพร้อมกัน
-        );
 
         return ['success' => true, 'error' => null];
 
@@ -101,9 +122,9 @@ function sendSubscriptionEmail(string $to, string $userName, array $preferences 
 }
 
 
-// ส่งอีเมลตามประเภท 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
+// ส่งอีเมลตามประเภท — เฉพาะตอนเข้าถึง sendMail.php โดยตรง (ไม่ใช่ require จากไฟล์อื่น)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__)) {
+    $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
     $name = $_POST['name'] ?? '';
     $formType = $_POST['form_type'] ?? 'register';
 

@@ -36,7 +36,7 @@ export default function SellPage() {
 
     await showSuccess(
       'ส่งหนังสือสำเร็จ!',
-      `หนังสือ "${data.title}" ได้รับการบันทึกขึ้นระบบเรียบร้อย ขอบคุณที่ร่วมส่งต่อเรื่องราวในชุมชน BookLoop`
+      `หนังสือ "${data.title}" ได้รับการบันทึกขึ้นระบบเรียบร้อย ขอบคุณที่ร่วมส่งต่อหนังสือในชุมชน BookLoop`
     );
 
     navigate('/books');

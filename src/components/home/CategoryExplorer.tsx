@@ -42,22 +42,6 @@ export const CategoryExplorer: React.FC = () => {
         {/* Section Header */}
         <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 5, md: 6 } }}>
           <Typography
-            variant="overline"
-            component="span"
-            sx={{
-              display: 'inline-block',
-              color: '#1976D2',
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-              mb: 1,
-              textTransform: 'uppercase',
-            }}
-          >
-            EXPLORE CATEGORIES
-          </Typography>
-
-          <Typography
             id="categories-heading"
             variant="h2"
             component="h2"
@@ -83,7 +67,7 @@ export const CategoryExplorer: React.FC = () => {
               mx: 'auto',
             }}
           >
-            เลือกหมวดหมู่ที่ใช่ แล้วเริ่มต้นค้นพบหนังสือเล่มถัดไปของคุณจากเพื่อนนักอ่านทั่วประเทศ
+            เลือกหมวดที่สนใจ แล้วดูหนังสือทั้งหมดในหมวดนั้นจากคลังของชุมชน BookLoop
           </Typography>
         </Box>
 

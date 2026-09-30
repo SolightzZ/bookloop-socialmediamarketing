@@ -8,25 +8,41 @@ interface ApiResponse<T = unknown> {
   data?: T;
 }
 
+/**
+ * Error thrown for a non-2xx response or a `success: false` payload.
+ * `status` lets callers tell "this token is no longer valid" (401/403)
+ * apart from "the backend is unreachable" (5xx) without matching strings.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+function readStoredToken(): string | null {
+  try {
+    const stored = localStorage.getItem(SESSION_TOKEN_KEY);
+    if (!stored) return null;
+    const session = JSON.parse(stored);
+    return session?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}/${endpoint}`;
-
-  const stored = localStorage.getItem(SESSION_TOKEN_KEY);
-  let token: string | null = null;
-  if (stored) {
-    try {
-      const session = JSON.parse(stored);
-      token = session.token;
-    } catch {
-      token = null;
-    }
-  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
+  const token = readStoredToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -36,10 +52,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  const result: ApiResponse<T> = await response.json();
+  // body อาจไม่ใช่ JSON (PHP fatal error ส่ง HTML มา) — กัน "Unexpected token '<'"
+  const result: ApiResponse<T> | null = await response.json().catch(() => null);
 
-  if (!response.ok || !result.success) {
-    throw new Error(result.message || 'เกิดข้อผิดพลาด');
+  if (!response.ok || !result?.success) {
+    throw new ApiError(result?.message || `เกิดข้อผิดพลาด (${response.status})`, response.status);
   }
 
   return result as T;

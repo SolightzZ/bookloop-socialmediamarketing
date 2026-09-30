@@ -51,6 +51,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { showSuccess, showConfirm, showToast } from '../utils/alerts';
 import { PasswordInput } from '../components/auth/PasswordInput';
 import { BookCard } from '../components/BookCard';
+import { getCategoryThaiName } from '../data/onboarding';
 
 export default function AccountPage() {
   const { user, updateProfile, changePassword, logout, deleteAccount } = useAuth();
@@ -509,6 +510,7 @@ export default function AccountPage() {
               </Box>
 
               {!isEditingProfile ? (
+              <>
                 <Grid container spacing={3}>
                   <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
@@ -574,6 +576,51 @@ export default function AccountPage() {
                     </Paper>
                   </Grid>
                 </Grid>
+
+                {/* ความสนใจของฉัน — จาก onboarding (แก้ไขได้ที่ /onboarding?edit=1) */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    mt: 3,
+                    p: 2.5,
+                    borderRadius: 2,
+                    bgcolor: '#fff',
+                    border: '1px solid #C9DDF7',
+                    borderLeft: '4px solid #0F6CF0',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      ความสนใจของฉัน
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => navigate('/onboarding?edit=1')}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      ปรับความสนใจของคุณ
+                    </Button>
+                  </Box>
+                  {user.preferences?.categories && user.preferences.categories.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {user.preferences.categories.map((catId) => (
+                        <Chip
+                          key={catId}
+                          label={getCategoryThaiName(catId)}
+                          size="small"
+                          sx={{ bgcolor: '#EAF2FE', color: '#0B2A5B', fontWeight: 700 }}
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ยังไม่ได้เลือกหมวดที่ชอบ — กด “ปรับความสนใจของคุณ” เพื่อให้ BookLoop แนะนำหนังสือได้ตรงใจขึ้น
+                    </Typography>
+                  )}
+                </Paper>
+              </>
               ) : (
                 <Box component="form" onSubmit={handleSaveProfile}>
                   <Grid container spacing={2.5}>
@@ -1324,7 +1371,7 @@ export default function AccountPage() {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        📰 ติดตามข่าวสาร BookLoop
+                        ติดตามข่าวสาร BookLoop
                       </Typography>
                     </Box>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
@@ -1350,7 +1397,7 @@ export default function AccountPage() {
                     ) : (
                       <Box>
                         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-                          สมัครบัญชีครั้งแรกจะปิดไว้ — กดปุ่มด้านล่างเพื่อเปิดรับข่าวสารเอง
+                          สมัครบัญชีครั้งแรกจะปิดไว้ กดปุ่มด้านล่างเพื่อเปิดรับข่าวสารเอง
                         </Typography>
                         <Button
                           variant="contained"
@@ -1388,9 +1435,6 @@ export default function AccountPage() {
                         ออกจากระบบ
                       </Typography>
                     </Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-                      สิ้นสุดเซสชันการใช้งานปัจจุบันบนอุปกรณ์นี้
-                    </Typography>
                     <Button
                       variant="outlined"
                       color="error"

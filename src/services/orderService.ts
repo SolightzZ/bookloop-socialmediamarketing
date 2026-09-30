@@ -74,13 +74,21 @@ class OrderService {
     return newOrder;
   }
 
-  public getOrderById(orderId: string): Order | null {
+  public getOrderById(orderId: string, userId?: string): Order | null {
     const normalized = orderId.replace(/^#/, '');
     const orders = this.getStoredOrders();
     const found = orders.find(
       (o) => o.id.replace(/^#/, '') === normalized || o.id === orderId
     );
-    if (found) return found;
+    if (found) {
+      // Owner check: ออเดอร์ที่ระบุเจ้าของชัดเจน อ่านได้เฉพาะเจ้าของเท่านั้น
+      // (กันผู้ใช้คนอื่นเดา BL-id แล้วเปิดดู PII)
+      const viewerId = userId ?? authService.getCurrentUser()?.id;
+      if (found.userId && found.userId !== 'guest') {
+        if (!viewerId || found.userId !== viewerId) return null;
+      }
+      return found;
+    }
 
     // Fallback search in user data
     const currentUser = authService.getCurrentUser();

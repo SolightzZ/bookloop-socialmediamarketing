@@ -35,7 +35,7 @@ export const CartEmptyState: React.FC = () => {
           ตะกร้าสินค้าของคุณว่างเปล่า
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 500, mx: 'auto', mb: 3, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-          หนังสือดีๆ หลากหลายหมวดหมู่กำลังรอให้คุณค้นพบและส่งต่อเรื่องราว ไปเริ่มเลือกหนังสือกันเลย!
+          หนังสือทุกหมวดในคลังของชุมชน BookLoop พร้อมให้เลือกอยู่แล้ว
         </Typography>
         <Button
           variant="contained"

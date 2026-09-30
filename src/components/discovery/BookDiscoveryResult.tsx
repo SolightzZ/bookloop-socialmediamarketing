@@ -255,13 +255,13 @@ export const BookDiscoveryResult: React.FC<BookDiscoveryResultProps> = ({
                   </h3>
 
                   <p className="text-xs text-slate-500 font-medium">
-                    คัดเลือกจากคลังหนังสือมือสองคุณภาพดีให้เข้ากับ Mood ของคุณ
+                    คัดจากคลังหนังสือมือสองให้เข้ากับอารมณ์ที่คุณเลือก
                   </p>
 
                   <div className="flex items-center gap-2 mt-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                     <AutoAwesomeRounded sx={{ fontSize: 16, color: '#F59E0B' }} />
                     <span className="text-xs font-semibold text-slate-600">
-                      รอลุ้นหนังสือเล่มถัดไปของคุณได้เลย!
+                      ใช้เวลาสักครู่ในการสุ่ม
                     </span>
                   </div>
                 </div>
@@ -428,7 +428,7 @@ export const BookDiscoveryResult: React.FC<BookDiscoveryResultProps> = ({
                     }}
                   >
                     <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border-l-[3px] border-[#1976D2]">
-                      {book.story ? (book.story.length > 70 ? book.story.slice(0, 70) + '...' : book.story) : 'หนังสือทรงคุณค่าที่พร้อมให้คุณเปิดอ่านและส่งต่อ'}
+                      {book.story ? (book.story.length > 70 ? book.story.slice(0, 70) + '...' : book.story) : 'หนังสือเล่มนี้พร้อมให้คุณเปิดอ่าน'}
                     </p>
                   </motion.div>
                 </motion.div>
