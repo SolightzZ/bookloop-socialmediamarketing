@@ -33,13 +33,22 @@ if (isset($_GET['check-origin'])) {
     $result = ['success' => true, 'origin' => $query, 'allowed' => false, 'reason' => ''];
     try {
         require_once __DIR__ . '/../config/config.php';
-        $allowed = array_map('trim', explode(',', ALLOWED_ORIGIN));
-        if (in_array('*', $allowed, true)) {
+        // ใช้ตัวช่วยชุดเดียวกับ corsHeaders() จริง จะได้ไม่มีเคส "เช็กผ่านแต่ยิงจริงไม่ผ่าน"
+        // (รองรับ wildcard ในชื่อ host + ตัด trailing slash ให้เหมือนตอนเทียบจริง)
+        require_once __DIR__ . '/../Services/Http.php';
+        $allowed = allowedOrigins();
+        $normalized = rtrim(trim($query), '/');
+        if (in_array('*', $allowed, true) || ($normalized !== '' && isOriginAllowed($normalized, $allowed))) {
             $result['allowed'] = true;
-        } elseif ($query !== '' && in_array($query, $allowed, true)) {
-            $result['allowed'] = true;
+            // host ตรง แต่ค่าที่ตรวจมามี path เกินมา — เบราว์เซอร์จะไม่ส่งแบบนี้
+            // เตือนไว้เพราะเป็นความเข้าใจผิดที่ทำให้คนใส่ path ลงใน ALLOWED_ORIGIN
+            if (preg_match('~^https?://[^/]+/~i', $normalized)) {
+                $result['reason'] = 'host ตรงกับ allow-list แต่ค่าที่ตรวจมามี path เกินมา — '
+                    . 'เบราว์เซอร์ส่ง Origin แค่ scheme://host:port เสมอ ให้ใส่แต่ host ใน ALLOWED_ORIGIN';
+            }
         } else {
-            $result['reason'] = 'origin นี้ไม่อยู่ใน ALLOWED_ORIGIN บนเซิร์ฟเวอร์ — เพิ่มเข้าไฟล์ htdocs/.env แล้วลองใหม่';
+            $result['reason'] = 'origin นี้ไม่อยู่ใน ALLOWED_ORIGIN บนเซิร์ฟเวอร์ — ใส่แบบ origin ล้วน '
+                . '(ไม่มี path/trailing slash) แล้วอัปโหลด htdocs/.env ใหม่';
         }
     } catch (Throwable $e) {
         $result['reason'] = 'โหลด config ไม่ได้: ' . $e->getMessage();

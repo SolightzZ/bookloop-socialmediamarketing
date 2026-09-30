@@ -169,7 +169,10 @@ export class ErrorBoundary extends Component<Props, State> {
                   variant="outlined"
                   startIcon={<HomeIcon />}
                   onClick={() => {
-                    window.location.href = '/';
+                    // ใช้ BASE_URL เพื่อกลับหน้าหลักของแอปให้ถูกต้องทุก base
+                    // ('/' สำหรับ dev, '/bookloop-socialmediamarketing/' บน GitHub Pages,
+                    //  '/app/' ตอนเสิร์ฟคู่กับ backend บน InfinityFree)
+                    window.location.href = import.meta.env.BASE_URL || '/';
                   }}
                   sx={{
                     borderRadius: 2,

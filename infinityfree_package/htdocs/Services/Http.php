@@ -8,6 +8,63 @@
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/Services/Logger.php';
 
+if (!function_exists('allowedOrigins')) {
+    /**
+     * อ่าน ALLOWED_ORIGIN จาก .env → array ที่ normalize แล้ว
+     *
+     * ตัดช่องว่าง + trailing slash ให้ทุกค่า เพราะ origin ของเบราว์เซอร์เป็น
+     * scheme://host[:port] เท่านั้น (ไม่มี path/ท้าย slash) — ถ้าใส่ path มาก็ไม่มีทาง match
+     */
+    function allowedOrigins(): array
+    {
+        $items = array_map(
+            static fn($item) => rtrim(trim((string) $item), '/'),
+            explode(',', ALLOWED_ORIGIN)
+        );
+
+        return array_values(array_filter($items, static fn($item) => $item !== ''));
+    }
+}
+
+if (!function_exists('isOriginAllowed')) {
+    /**
+     * เทียบ origin ของ request กับ allow-list (ALLOWED_ORIGIN)
+     *
+     * - เทียบตรงตัวเป็นหลัก
+     * - รองรับ wildcard ในชื่อ host 1 ตัว เช่น `https://*.github.io` → ครอบทุก user/org ของ GitHub Pages
+     */
+    function isOriginAllowed(string $origin, array $allowed): bool
+    {
+        // origin จากเบราว์เซอร์เป็น scheme://host[:port] เท่านั้น (ไม่มี path/query)
+        // ตัด path/query ทิ้งถ้ามี เพื่อไม่ให้ค่าที่ส่งเข้ามาแบบแปลก ๆ (เช่น ?check-origin=...)
+        // บังเอิญเข้า pattern wildcard
+        // ใช้ ~ เป็น delimiter เพราะ origin มี # ได้ (ใน char class) — ห้ามใช้ # เป็น delimiter
+        if (preg_match('~^(https?://[^/?#]+)~i', $origin, $matches)) {
+            $origin = $matches[1];
+        }
+
+        foreach ($allowed as $pattern) {
+            if ($pattern === $origin) {
+                return true;
+            }
+
+            if ($pattern === '' || !str_contains($pattern, '*')) {
+                continue;
+            }
+
+            $starPos = strpos($pattern, '*');
+            $prefix = substr($pattern, 0, $starPos);
+            $suffix = substr($pattern, $starPos + 1);
+
+            if (str_starts_with($origin, $prefix) && str_ends_with($origin, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('corsHeaders')) {
     /**
      * ส่ง CORS headers ตาม allow-list ใน .env (ALLOWED_ORIGIN) + จัดการ OPTIONS preflight
@@ -15,13 +72,19 @@ if (!function_exists('corsHeaders')) {
     function corsHeaders(): void
     {
         // อนุญาตเฉพาะ origin ที่อยู่ใน allow-list ไม่สะท้อน origin ที่ส่งมาทั้งหมด
-        // รองรับหลาย origin คั่นด้วย comma และ '*' เพื่ออนุญาตทุก origin (dev เท่านั้นแนะนำ)
-        $allowed = array_map('trim', explode(',', ALLOWED_ORIGIN));
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        // รองรับหลาย origin คั่นด้วย comma, wildcard ในชื่อ host (เช่น https://*.github.io)
+        // และ '*' (อนุญาตทุก origin — dev เท่านั้น และใช้คู่กับ credentials:include ไม่ได้)
+        //
+        // ⚠ ค่าที่ใส่ต้องเป็น "origin ล้วน" = scheme://host[:port]
+        //   เบราว์เซอร์ส่ง Origin: https://solightzz.github.io (Pages ไม่ต่อ sub-path ของ repo)
+        //   ฉะนั้น https://solightzz.github.io/bookloop-socialmediamarketing จะไม่ match
+        //   → ไม่มี Access-Control-Allow-Origin → เบราว์เซอร์รายงาน "blocked by CORS policy"
+        $allowed = allowedOrigins();
+        $origin = rtrim(trim($_SERVER['HTTP_ORIGIN'] ?? ''), '/');
 
         if (in_array('*', $allowed, true)) {
             header("Access-Control-Allow-Origin: *");
-        } elseif ($origin !== '' && in_array($origin, $allowed, true)) {
+        } elseif ($origin !== '' && isOriginAllowed($origin, $allowed)) {
             header("Access-Control-Allow-Origin: " . $origin);
             // frontend ส่ง credentials:include (cookie __test) จึงต้องมีหัวนี้คู่กัน ไม่งั้น browser บล็อก response
             header("Access-Control-Allow-Credentials: true");

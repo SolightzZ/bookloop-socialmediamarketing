@@ -26,6 +26,9 @@ infinityfree_package/htdocs/.env
 # Local InfinityFree upload package (contains built zip, never commit)
 vendor
 infinityfree_package/bookloop-htdocs.zip
+# same-origin frontend build (npm run build:app) — generated, never commit
+infinityfree_package/htdocs/app/
+infinityfree_package/bookloop-app.zip
 infinityfree_package/htdocs/data/*.json
 infinityfree_package/htdocs/data/*.log
 infinityfree_package/htdocs/data/*.txt

@@ -191,7 +191,7 @@ export default function AccountPage() {
       setPostalCode(user.address?.postalCode || '');
 
       // Check newsletter subscription status
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
       fetch(`${API_BASE}/newsletter_status.php?email=${encodeURIComponent(user.email)}`)
         .then((res) => res.json())
         .then((result) => {
@@ -273,7 +273,7 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
       const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
@@ -299,7 +299,7 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
       const response = await fetch(`${API_BASE_URL}/newsletter_status.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },

@@ -1,4 +1,4 @@
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
 // ตัด trailing slash ท้ายกัน URL ซ้อนเป็น `//auth_me.php` (frontend อยู่ sub-path บน Pages)
 const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
@@ -105,10 +105,16 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   if (!response.ok || !result?.success) {
     const isHtmlChallenge = text.trimStart().startsWith('<');
+    // HTTP 200 + HTML = หน้า JS challenge ของโฮสต์ (InfinityFree ส่งหน้า aes.js มาแทน JSON เมื่อ
+    // request ไม่มีคุกกี้ __test) — fetch เรียกหน้า challenge ให้รัน JS เองไม่ได้ และเบราว์เซอร์ก็ไม่ส่ง
+    // คุกกี้ Lax แบบข้ามโดเมน → ได้ 200 ที่ไม่มี ACAO header = "blocked by CORS policy"
+    const isHostChallenge = isHtmlChallenge && response.status === 200;
     throw new ApiError(
-      isHtmlChallenge
-        ? `เชื่อมต่อ backend ไม่ได้ (เซิร์ฟเวอร์ตอบกลับเป็น HTML แทน JSON, HTTP ${response.status})`
-        : result?.message || `เกิดข้อผิดพลาด (${response.status})`,
+      isHostChallenge
+        ? 'backend ถูกบังด้วยระบบป้องกันบอตของโฮสต์ (ตอบกลับเป็นหน้า HTML ไม่ใช่ JSON) — ต้องเสิร์ฟ frontend จากโดเมนเดียวกับ backend จึงจะใช้งานได้ (ดู infinityfree_package/CORS-TROUBLESHOOTING.txt)'
+        : isHtmlChallenge
+          ? `เชื่อมต่อ backend ไม่ได้ (เซิร์ฟเวอร์ตอบกลับเป็น HTML แทน JSON, HTTP ${response.status})`
+          : result?.message || `เกิดข้อผิดพลาด (${response.status})`,
       response.status,
     );
   }

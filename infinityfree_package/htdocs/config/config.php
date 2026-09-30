@@ -2,11 +2,21 @@
 
 // โหลด .env ผ่านแคช (temp file) — ไม่ต้อง parse_ini_file ทุก request
 $envFile = __DIR__ . '/../.env';
-$envCache = sys_get_temp_dir() . '/bookloop_env_' . md5($envFile) . '.php';
+
+// ชื่อไฟล์แคชผูกกับ md5 ของ "เนื้อหา" .env ไม่ใช่แค่ path
+// → อัปโหลด .env ใหม่ทับไฟล์เดิมแล้วได้ค่าใหม่ทันที แม้ FTP จะคง filemtime เดิมไว้
+// (แบบเดิมเทียบ filemtime อย่างเดียว: .env ใหม่ที่มีเวลาเก่ากว่าแคช → เซิร์ฟเวอร์อ่านค่าเดิมต่อ
+//  ทำให้แก้ ALLOWED_ORIGIN แล้วยังเจอ CORS error ทั้งที่ไฟล์ถูกต้องแล้ว)
+$envFingerprint = function_exists('md5_file') ? (string) @md5_file($envFile) : '';
+$envCache = sys_get_temp_dir() . '/bookloop_env_' . md5($envFile)
+    . ($envFingerprint !== '' ? '_' . $envFingerprint : '') . '.php';
 
 if (file_exists($envFile)) {
-    // ใช้แคชถ้ามันใหม่กว่า .env (ยังไม่ถูกแก้)
-    if (file_exists($envCache) && filemtime($envCache) >= filemtime($envFile)) {
+    // ใช้แคชเมื่อไม่มีทางรู้ fingerprint (md5_file ถูกปิด) → fallback เทียบ filemtime แบบเดิม
+    $cacheIsFresh = file_exists($envCache)
+        && ($envFingerprint !== '' || filemtime($envCache) >= filemtime($envFile));
+
+    if ($cacheIsFresh) {
         $env = require $envCache;
     } else {
         $env = parse_ini_file($envFile);

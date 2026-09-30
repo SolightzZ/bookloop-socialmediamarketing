@@ -32,7 +32,7 @@ export const HomeNewsletterSection: React.FC = () => {
     text: string;
   } | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
 
   // Check if current logged-in user is already subscribed
   useEffect(() => {

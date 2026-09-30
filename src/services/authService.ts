@@ -11,6 +11,8 @@ export interface UserAccountData {
 
 const SESSION_TOKEN_KEY = 'bookloop_auth_session_token';
 const USER_DATA_PREFIX = 'bookloop_user_data_';
+// key กลางของ "ผู้เยี่ยมชม" — ตรงกับ WISHLIST_STORAGE_KEY ใน AuthContext / WishlistContext
+const GUEST_WISHLIST_KEY = 'bookloop_wishlist';
 
 // ─── Local demo fallback ─────────────────────────────────────────────
 // InfinityFree free ดัก request ข้าม origin ที่ edge (หน้า challenge ?i=1 +
@@ -241,7 +243,7 @@ class AuthService {
 
           const xhr = new XMLHttpRequest();
           // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
-          xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
+          xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
           xhr.send();
 
           if (xhr.status === 200) {
@@ -300,6 +302,8 @@ class AuthService {
           // 401/403 = token ฝั่ง server ใช้ไม่ได้แล้ว → ลบทิ้ง จะได้ไม่ยิง auth_me.php ซ้ำทุกครั้งที่ mount
           // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
           if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+             // session ของโหมดออฟไลน์ที่ใช้ต่อไม่ได้แล้ว → ย้ายข้อมูลของบัญชีบนเครื่องกลับเป็น guest
+             this.releaseOfflineSessionDataToGuest();
              this.clearStoredSession();
           }
           // ต่อ backend ไม่ได้ (CORS/edge block) → ใช้บัญชีบนเครื่องต่อ session เดิม
@@ -326,6 +330,39 @@ class AuthService {
          localStorage.removeItem(SESSION_TOKEN_KEY);
       } catch (e) {
          console.warn('Could not clear stored session', e);
+      }
+   }
+
+   /**
+    * session ที่เซิร์ฟเวอร์ปฏิเสธ (401/403) อาจเป็น session ของ "บัญชีบนเครื่อง" (โหมดออฟไลน์)
+    *
+    * ตอน login ระบบย้ายรายการโปรดจาก key กลาง (guest) ไปเป็น key ของ user แล้วลบ key กลางทิ้ง
+    * (mergeWishlistOnLogin) — ถ้าล้าง session เฉย ๆ รายการโปรดจะดูเหมือนหายไป
+    * จึงย้ายกลับเป็นของ guest ก่อนล้าง (ย้ายกลับปลอดภัย: login ครั้งถัดไปจะ merge เข้า user ให้เอง)
+    *
+    * ตะกร้าไม่ต้องย้าย: mergeCartOnLogin เขียนทั้ง key กลางและ key ของ user อยู่แล้ว
+    */
+   private releaseOfflineSessionDataToGuest(): void {
+      try {
+         const session = getStoredSession();
+         if (!session || !session.token.startsWith('bl_local_')) return;
+
+         const userWishlistKey = `${GUEST_WISHLIST_KEY}_${session.userId}`;
+         const userWishlistRaw = localStorage.getItem(userWishlistKey);
+         if (!userWishlistRaw) return;
+
+         const userWishlist: unknown = JSON.parse(userWishlistRaw);
+         if (Array.isArray(userWishlist) && userWishlist.length > 0) {
+            const guestRaw = localStorage.getItem(GUEST_WISHLIST_KEY);
+            const guestWishlist: string[] = guestRaw ? JSON.parse(guestRaw) : [];
+            const merged = Array.from(new Set([...guestWishlist, ...(userWishlist as string[])]));
+            localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(merged));
+         }
+
+         localStorage.removeItem(userWishlistKey);
+         window.dispatchEvent(new Event('bookloop_wishlist_updated'));
+      } catch {
+         // storage ปิด/ข้อมูลเสีย — ข้ามไป ไม่ให้ auth flow พัง
       }
    }
 

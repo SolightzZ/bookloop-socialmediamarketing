@@ -44,11 +44,11 @@ export function getRecommendedBooks(categoryIds: string[], count: number = PREVI
   return [...matched, ...filler].slice(0, count);
 }
 
-/** base URL ของเว็บ (รองรับ GitHub Pages basename) สำหรับลิงก์ในอีเมล */
+/** base URL ของเว็บ (รองรับ dev '/', GitHub Pages basename และ /app/ same-origin) สำหรับลิงก์ในอีเมล */
 export function getSiteBaseUrl(): string {
-  const { origin, pathname } = window.location;
-  const base = '/bookloop-socialmediamarketing';
-  return pathname === base || pathname.startsWith(`${base}/`) ? `${origin}${base}` : origin;
+  const { origin } = window.location;
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
+  return base ? `${origin}${base}` : origin;
 }
 
 export function toBookPayload(book: Book, baseUrl: string): RecommendedBookPayload {
