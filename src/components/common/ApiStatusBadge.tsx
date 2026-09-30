@@ -6,6 +6,9 @@ import { useApiHealth } from '../../hooks/useApiHealth';
  * Badge สถานะเส้น API ใน footer (เห็นทุกหน้ารวม /register)
  * ตอบคำถาม "API อยู่ที่ไหน + ใช้ได้ไหม" โดยไม่ต้องเปิด devtools —
  * ตรรกะเดียวกับ dashboard ฝั่ง backend (ยิง GET {base}/ แล้วดูว่าเป็น JSON ไหม)
+ *
+ * เช็กเฉพาะตอน user คลิกเท่านั้น (ไม่ auto-poll) เพราะทุกครั้งที่ยิงแล้ว
+ * อ่านไม่ได้ browser จะ log CORS error ลง console ทันที
  */
 export const ApiStatusBadge: React.FC = () => {
   const { status, latencyMs, endpointCount, baseUrl, lastChecked, recheck } = useApiHealth();
@@ -16,7 +19,9 @@ export const ApiStatusBadge: React.FC = () => {
       ? `API พร้อม${latencyMs !== null ? ` · ${latencyMs} ms` : ''}`
       : status === 'offline'
         ? 'API ต่อไม่ได้'
-        : 'กำลังเช็ก API…';
+        : status === 'checking'
+          ? 'กำลังเช็ก API…'
+          : 'เช็กเส้น API';
 
   const tooltipLines = [
     `Backend: ${baseUrl}/`,
@@ -24,9 +29,11 @@ export const ApiStatusBadge: React.FC = () => {
       ? `ตอบกลับ JSON ปกติ${endpointCount !== null ? ` (${endpointCount} endpoints)` : ''}${latencyMs !== null ? ` ใน ${latencyMs} ms` : ''}`
       : status === 'offline'
         ? 'เบราว์เซอร์อ่านคำตอบจาก API ไม่ได้ — เน็ตล่ม หรือโฮสต์สกัดกั้น request ข้ามเว็บ (anti-bot)'
-        : 'กำลังตรวจสอบ…',
+        : status === 'checking'
+          ? 'กำลังตรวจสอบ…'
+          : 'กดเพื่อยิงเทสต์ไปหา API (ถ้าต่อไม่ได้ browser จะ log error ลง console 1 ครั้ง)',
     lastChecked ? `เช็กล่าสุด ${lastChecked.toLocaleTimeString('th-TH')}` : '',
-    'คลิกเพื่อเช็กอีกครั้ง',
+    status === 'idle' ? '' : 'คลิกเพื่อเช็กอีกครั้ง',
   ].filter(Boolean);
 
   return (
