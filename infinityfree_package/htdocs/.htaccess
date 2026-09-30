@@ -1,0 +1,24 @@
+# BookLoop backend — InfinityFree (.htaccess)
+# PHP built-in server (php -S) เพิกเฉยไฟล์นี้ จึงไม่มีผลตอน dev ในเครื่อง
+
+# 1) ปิด directory listing
+Options -Indexes
+
+# 2) บังคับ HTTPS (กัน mixed-content จาก frontend บน GitHub Pages)
+# + ส่งต่อ Authorization header ให้ PHP (shared host มักตัดทิ้ง → Bearer token หาย)
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+</IfModule>
+
+# 3) ห้ามเปิด .env ผ่านเว็บโดยตรง
+<Files ".env">
+Require all denied
+</Files>
+
+# 4) ห้ามเปิดไฟล์ storage / config ผ่านเว็บ (PHP อ่านผ่าน filesystem เท่านั้น)
+RedirectMatch 403 ^/(data|config)(/.*)?$

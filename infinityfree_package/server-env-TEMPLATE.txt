@@ -1,0 +1,20 @@
+# วิธีใช้: copy เนื้อหาล่างเส้นนี้ไปวางในไฟล์ชื่อ ".env" บน server (htdocs/.env)
+# สร้างผ่าน InfinityFree File Manager > htdocs > New File > ตั้งชื่อ .env
+# ห้าม commit ไฟล์ .env ขึ้น Git — เปลี่ยน SMTP_PASSWORD เป็นของจริงบน server เท่านั้น
+# ---------------------------------------------------------------------------
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=ใส่อีเมลผู้ส่ง@gmail.com
+SMTP_PASSWORD=ใส่AppPassword16หลักที่ไม่มีช่องว่าง
+SMTP_ENCRYPTION=tls
+MAIL_TIMEOUT=15
+MAIL_FROM_ADDRESS=ใส่อีเมลผู้ส่ง@gmail.com
+MAIL_FROM_NAME=BookLoop
+ALLOWED_ORIGIN=https://solightzz.github.io,http://localhost:3000
+SUBSCRIBERS_FILE=subscribers.txt
+ACTIVITIES_FILE=activities.txt
+LOG_FILE=error.log
+REQUEST_LOG_FILE=request.log
+TEMPLATE_IMAGE=images/template.png
+FONT_PATH=images/fonts/NotoSansThai.ttf
+GENERATED_IMAGES_PATH=images/generated

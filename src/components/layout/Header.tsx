@@ -32,7 +32,7 @@ import { SearchBar } from '../common/SearchBar';
 import { NotificationBell } from '../notification/NotificationBell';
 import { AnimatedBadge } from '../common/AnimatedBadge';
 
-const logoImg = '/images/logo.png';
+const logoImg = `${import.meta.env.BASE_URL}images/logo.png`;
 export interface HeaderProps {
   cartCount: number;
   wishlistCount: number;

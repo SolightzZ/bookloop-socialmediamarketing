@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
             >
               <Box
                 component="img"
-                src="/images/logo.png"
+                src={`${import.meta.env.BASE_URL}images/logo.png`}
                 alt=""
                 aria-hidden="true"
                 referrerPolicy="no-referrer"

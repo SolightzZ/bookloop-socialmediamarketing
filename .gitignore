@@ -22,3 +22,8 @@ package-lock.json
 .agents
 .claude
 .opencode
+# Local InfinityFree upload package (contains built zip, never commit)
+vendor
+infinityfree_package/htdocs/index.php
+infinityfree_package/index2.html
+infinityfree_package/UPLOAD-STEPS.txt

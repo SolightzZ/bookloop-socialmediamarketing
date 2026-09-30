@@ -55,8 +55,9 @@ export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): v
   if (eventName === 'purchase' && payload) {
     const sessionRaw = localStorage.getItem('bookloop_auth_session_token');
     const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+    const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/+$/, '');
 
-    fetch('http://localhost:8000/api/track.php', {
+    fetch(`${API_BASE_URL}/track.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

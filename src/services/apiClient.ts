@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// ตัด trailing slash ท้ายกัน URL ซ้อนเป็น `//auth_me.php` (frontend อยู่ sub-path บน Pages)
+const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
 const SESSION_TOKEN_KEY = 'bookloop_auth_session_token';
 
@@ -52,11 +54,23 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  // body อาจไม่ใช่ JSON (PHP fatal error ส่ง HTML มา) — กัน "Unexpected token '<'"
-  const result: ApiResponse<T> | null = await response.json().catch(() => null);
+  // body อาจไม่ใช่ JSON (PHP fatal / InfinityFree anti-bot ส่ง HTML มา) — กัน "Unexpected token '<'"
+  const text = await response.text().catch(() => '');
+  let result: ApiResponse<T> | null = null;
+  try {
+    result = text ? (JSON.parse(text) as ApiResponse<T>) : null;
+  } catch {
+    result = null;
+  }
 
   if (!response.ok || !result?.success) {
-    throw new ApiError(result?.message || `เกิดข้อผิดพลาด (${response.status})`, response.status);
+    const isHtmlChallenge = text.trimStart().startsWith('<');
+    throw new ApiError(
+      isHtmlChallenge
+        ? `เชื่อมต่อ backend ไม่ได้ (เซิร์ฟเวอร์ตอบกลับเป็น HTML แทน JSON, HTTP ${response.status})`
+        : result?.message || `เกิดข้อผิดพลาด (${response.status})`,
+      response.status,
+    );
   }
 
   return result as T;

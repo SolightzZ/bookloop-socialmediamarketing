@@ -80,7 +80,21 @@ if (!function_exists('getBearerToken')) {
      */
     function getBearerToken(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        // shared host (InfinityFree/Apache) มักไม่ส่ง HTTP_AUTHORIZATION มาให้ PHP
+        // ให้เช็ค REDIRECT_HTTP_AUTHORIZATION (จาก .htaccess E=HTTP_AUTHORIZATION) + apache_request_headers ด้วย
+        $header = $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? '';
+
+        if ($header === '' && function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            foreach ($headers as $name => $value) {
+                if (strtolower($name) === 'authorization') {
+                    $header = $value;
+                    break;
+                }
+            }
+        }
 
         if (preg_match('/Bearer\s+(.+)$/i', $header, $matches)) {
             return trim($matches[1]);

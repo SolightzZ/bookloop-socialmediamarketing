@@ -4,7 +4,7 @@ import { Box, Container, Paper, Typography, Link } from '@mui/material';
 import { AutoStories as BookIcon } from '@mui/icons-material';
 import { LoginBackground } from './LoginBackground';
 
-const logoImg = '/images/logo.png';
+const logoImg = `${import.meta.env.BASE_URL}images/logo.png`;
 
 interface AuthLayoutProps {
   children: React.ReactNode;

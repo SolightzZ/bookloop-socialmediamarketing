@@ -96,7 +96,7 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({ open, onClose,
                   }}>
                   <Box
                      component="img"
-                     src="/images/logo.png"
+                      src={`${import.meta.env.BASE_URL}images/logo.png`}
                      alt="BookLoop Logo"
                      referrerPolicy="no-referrer"
                      sx={{
