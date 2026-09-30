@@ -4,6 +4,13 @@ const primaryNavy = '#0F2D4A';
 const actionBlue = '#1976D2';
 const mutedBorder = '#52606D';
 
+// SweetAlert2 ใส่ aria-hidden ให้พื้นหลังทั้งหน้า — ถ้า focus ยังค้างอยู่บนปุ่ม
+// (เช่น ปุ่มปิด Drawer) Chrome จะฟ้อง "Blocked aria-hidden..." จึงย้าย focus ออกก่อนเปิดทุกครั้ง
+const releaseFocus = () => {
+  const el = document.activeElement as HTMLElement | null;
+  if (el && typeof el.blur === 'function') el.blur();
+};
+
 // Non-blocking Toast (Bottom-Right, auto dismiss 2.5s, does not interrupt user)
 const Toast = Swal.mixin({
   toast: true,
@@ -30,6 +37,7 @@ export const showToast = (
   text?: string,
   icon: 'success' | 'info' | 'warning' | 'error' = 'success'
 ) => {
+  releaseFocus();
   return Toast.fire({
     icon,
     title,
@@ -42,6 +50,7 @@ export const showToast = (
  * Pass isModal = true if you explicitly want a blocking modal
  */
 export const showSuccess = (title: string, text?: string, isModal = false) => {
+  releaseFocus();
   if (!isModal) {
     return Toast.fire({
       icon: 'success',
@@ -63,6 +72,7 @@ export const showSuccess = (title: string, text?: string, isModal = false) => {
 };
 
 export const showError = (title: string, text?: string, asToast = false) => {
+  releaseFocus();
   if (asToast) {
     return Toast.fire({
       icon: 'error',
@@ -81,6 +91,7 @@ export const showError = (title: string, text?: string, asToast = false) => {
 };
 
 export const showWarning = (title: string, text?: string, asToast = false) => {
+  releaseFocus();
   if (asToast) {
     return Toast.fire({
       icon: 'warning',
@@ -104,6 +115,7 @@ export const showConfirm = (
   confirmText = 'ยืนยัน',
   cancelText = 'ยกเลิก'
 ) => {
+  releaseFocus();
   return Swal.fire({
     icon: 'warning',
     title,

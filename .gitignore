@@ -22,8 +22,13 @@ package-lock.json
 .agents
 .claude
 .opencode
+.gemini
 # Local InfinityFree upload package (contains built zip, never commit)
 vendor
+infinityfree_package/bookloop-htdocs.zip
+infinityfree_package/htdocs/data/*.json
+infinityfree_package/htdocs/data/*.log
+infinityfree_package/htdocs/data/*.txt
 infinityfree_package/htdocs/index.php
 infinityfree_package/index2.html
 infinityfree_package/UPLOAD-STEPS.txt

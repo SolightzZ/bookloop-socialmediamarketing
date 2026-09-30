@@ -10,8 +10,10 @@ if (file_exists($envFile)) {
         $env = require $envCache;
     } else {
         $env = parse_ini_file($envFile);
-        if (!$env) {
-            $env = [];
+        if (!is_array($env)) {
+            // parse_ini_file คืน false เมื่อ .env มี syntax ผิด (เช่น วงเล็บ/quote ใน comment หรือ value
+            // ที่ไม่มี quote) — throw ให้รู้ตัวทันที ดีกว่าเงียบแล้วรันด้วยค่า default ผิดๆ
+            throw new Exception(".env parse error — check for special characters like ( ) \" ' in values/comments");
         }
         // เก็บแคช; ถ้าเขียนไม่ได้ก็ยังทำงานได้ (parse ทุกครั้งแทน)
         $export = var_export($env, true);
