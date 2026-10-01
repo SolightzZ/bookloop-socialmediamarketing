@@ -32,8 +32,8 @@ export const HomeNewsletterSection: React.FC = () => {
     text: string;
   } | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
-  // เลี่ยงหน้า interstitial ของ ngrok free (ไม่ส่งจะได้ HTML แทน JSON)
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
+  // header กันหน้า interstitial (จำเป็นตอน dev ผ่าน ngrok free — ไม่ส่งจะได้ HTML แทน JSON)
   const BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
 
   // Check if current logged-in user is already subscribed

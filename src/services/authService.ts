@@ -97,7 +97,7 @@ class AuthService {
 
            const xhr = new XMLHttpRequest();
            // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
-           xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
+            xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
            xhr.setRequestHeader('ngrok-skip-browser-warning', NGROK_BYPASS_HEADERS['ngrok-skip-browser-warning']);
            xhr.send();
 

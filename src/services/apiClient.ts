@@ -1,5 +1,5 @@
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
-// header เลี่ยงหน้า interstitial ของ ngrok free (ไม่ส่งจะได้ HTML warning แทน JSON)
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
+// header กันหน้า interstitial (ngrok free ตอน dev) — ส่งไว้ไม่เสียหาย ฝั่ง PHP อนุญาตใน Access-Control-Allow-Headers (Services/Http.php)
 // + ต้องมีชื่อนี้ใน Access-Control-Allow-Headers ฝั่ง PHP ด้วย (Services/Http.php)
 export const NGROK_BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
 // ตัด trailing slash ท้ายกัน URL ซ้อนเป็น `//auth_me.php` (frontend อยู่ sub-path บน Pages)
@@ -51,7 +51,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   // ส่ง token โดยไม่ใช้ Authorization header (shared host มักตัดทิ้ง):
   // ส่ง token ใน query (GET/DELETE) หรือใน JSON body (POST) แทน
   // Content-Type: application/json — frontend อยู่ GitHub Pages / localhost ยิงข้าม origin
-  // มาที่ ngrok จึงเกิด preflight เป็นปกติ (PHP ตอบ OPTIONS 200 ผ่าน corsHeaders แล้ว)
+  // มาที่ backend จึงเกิด preflight เป็นปกติ (PHP ตอบ OPTIONS 200 ผ่าน corsHeaders แล้ว)
   let url = `${API_BASE_URL}/${endpoint}`;
   if (token && (method === 'GET' || method === 'DELETE')) {
     url += `${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;

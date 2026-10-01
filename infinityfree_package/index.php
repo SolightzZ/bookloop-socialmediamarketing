@@ -86,7 +86,7 @@ if ($isLocal) {
     $scheme = $isHttps ? 'https' : 'http';
     $BASE_URL = $scheme . '://' . $host . ($scriptDir === '' || $scriptDir === '/' ? '' : $scriptDir);
 } else {
-    $BASE_URL = 'https://unfitting-discount-lantern.ngrok-free.dev';
+    $BASE_URL = 'https://panitijahem.xo.je';
 }
 
 // ลิงก์ไป backend (api/, email/) ต้องผ่าน /htdocs เพราะไฟล์นี้อยู่ข้าง ๆ htdocs/
@@ -529,7 +529,7 @@ SMTP_ENCRYPTION=tls
 MAIL_TIMEOUT=15
 MAIL_FROM_ADDRESS=ใส่อีเมลผู้ส่ง@gmail.com
 MAIL_FROM_NAME=BookLoop
-ALLOWED_ORIGIN=https://solightzz.github.io,https://unfitting-discount-lantern.ngrok-free.dev,http://localhost:3000
+ALLOWED_ORIGIN=https://solightzz.github.io,https://panitijahem.xo.je,http://localhost:3000
 SUBSCRIBERS_FILE=subscribers.txt
 ACTIVITIES_FILE=activities.txt
 LOG_FILE=error.log
@@ -644,7 +644,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
   // API อยู่ใต้ $BACKEND_BASE (docroot infinityfree_package → /htdocs/api, docroot htdocs → /api)
   // เรียก /api/* ผ่านตัวนี้เสมอ อย่าใช้ BASE ตรง ๆ ไม่งั้นผิด path แล้วได้ HTML แทน JSON
   var APIBASE = <?= json_encode($BACKEND_BASE . '/api', JSON_UNESCAPED_SLASHES) ?>;
-  // กัน ngrok free ส่งหน้า interstitial (HTML 200) มาแทน JSON — same-origin จึงไม่ติด preflight
+  // กัน proxy/tunnel free ส่งหน้า interstitial (HTML 200) มาแทน JSON — same-origin จึงไม่ติด preflight
   var FETCH_OPTS = { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': 'true' } };
   var badge = document.getElementById('liveBadge');
   var line = document.getElementById('liveLine');

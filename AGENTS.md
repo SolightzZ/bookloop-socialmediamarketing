@@ -24,7 +24,7 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 - **Providers (nesting order matters):** `ErrorBoundary` → `ThemeProvider` → `AuthProvider` → `CartProvider` → `WishlistProvider` → `NotificationProvider` → `RecentlyViewedProvider` → `PriceAlertProvider` — see `src/app/providers.tsx:13`
 - **Routing:** All pages in `src/pages/` are `React.lazy()` + `Suspense` (`PageLoadingSkeleton`). `RequireAuth` guards `/checkout`, `/order/success`, `/orders/:orderId`; `ProtectedRoute` guards `/account/*`. Basename auto-derives from `import.meta.env.BASE_URL` (`src/app/router.tsx:38`) — renaming repo only requires updating `base` in `vite.config.ts:10`.
 - **State:** React Context only (no Redux/Zustand). Contexts in `src/context/` + hooks in `src/hooks/` (`useCart`, `useWishlist`). Book data is hardcoded in `src/data/books.ts`, categories in `src/data/categories.ts` — no API.
-- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api` fallback. Token from `bookloop_auth_session_token` in localStorage is sent in query string (GET/DELETE) or JSON body (POST) — never via `Authorization` header (shared hosts strip it). PHP backend must be running separately for auth to work.
+- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://panitijahem.xo.je/api` fallback. Token from `bookloop_auth_session_token` in localStorage is sent in query string (GET/DELETE) or JSON body (POST) — never via `Authorization` header (shared hosts strip it). PHP backend must be running separately for auth to work.
 
 ## Auth & Data Flow
 
@@ -42,7 +42,7 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 
 ## Deploy
 
-- GitHub Pages workflow `.github/workflows/deploy.yml` — triggers on push to `dev`/`main` (or manual dispatch), Node 24, `npm run build` with `VITE_API_BASE_URL` from repo vars (fallback ngrok), then `cp dist/index.html dist/404.html` for SPA fallback.
+- GitHub Pages workflow `.github/workflows/deploy.yml` — triggers on push to `dev`/`main` (or manual dispatch), Node 24, `npm run build` with `VITE_API_BASE_URL` from repo vars (fallback xo.je), then `cp dist/index.html dist/404.html` for SPA fallback.
 - Local base is `/`; CI base is `/bookloop-socialmediamarketing/` (`vite.config.ts:10`). Renaming repo requires updating only `vite.config.ts` (router basename follows automatically).
 
 ## Backend
