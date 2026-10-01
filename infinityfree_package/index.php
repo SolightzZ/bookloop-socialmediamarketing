@@ -641,6 +641,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
 // Realtime dashboard: poll ?format=json + api/ โดยไม่ต้องรีเฟรชหน้า
 (function () {
   var BASE = <?= json_encode($BASE_URL, JSON_UNESCAPED_SLASHES) ?>;
+  // API อยู่ใต้ $BACKEND_BASE (docroot infinityfree_package → /htdocs/api, docroot htdocs → /api)
+  // เรียก /api/* ผ่านตัวนี้เสมอ อย่าใช้ BASE ตรง ๆ ไม่งั้นผิด path แล้วได้ HTML แทน JSON
+  var APIBASE = <?= json_encode($BACKEND_BASE . '/api', JSON_UNESCAPED_SLASHES) ?>;
+  // กัน ngrok free ส่งหน้า interstitial (HTML 200) มาแทน JSON — same-origin จึงไม่ติด preflight
+  var FETCH_OPTS = { cache: 'no-store', headers: { 'ngrok-skip-browser-warning': 'true' } };
   var badge = document.getElementById('liveBadge');
   var line = document.getElementById('liveLine');
   var everyLabel = document.getElementById('liveEvery');
@@ -795,7 +800,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
     var t0 = performance.now();
     try {
       // 1) สถานะระบบ (ใช้ &poll=1 เพื่อให้ได้ 200 เสมอ — console จะได้ไม่แดงหลอก ส่วน uptime monitor ใช้ ?format=json เพียว ๆ)
-      var res = await fetch(BASE + '/?format=json&poll=1', { cache: 'no-store' });
+      var res = await fetch(BASE + '/?format=json&poll=1', FETCH_OPTS);
       if (res.url && res.url.indexOf('errors.infinityfree.net') !== -1) {
         // โฮสต์ redirect มาเอง = ไฟล์บนเซิร์ฟเวอร์ไม่ครบหรือเป็นตัวเก่า
         // (กัน dashboard ตัวเก่าเรียก path ที่ไม่มีแล้ววนแดงทุก 5 วินาทีแบบไม่มีคำอธิบาย)
@@ -839,7 +844,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
         // ถ้าได้ JSON (มี success:true + endpoints) = เส้น API เชื่อมได้แล้ว
         try {
           var t1 = performance.now();
-          var r2 = await fetch(BASE + '/api/', { cache: 'no-store' });
+          var r2 = await fetch(APIBASE + '/', FETCH_OPTS);
           var b2 = await r2.text();
           var j2 = null;
           try { j2 = b2 ? JSON.parse(b2) : null; } catch (e) { j2 = null; }
@@ -883,25 +888,29 @@ GENERATED_IMAGES_PATH=images/generated</div>
   nowBtn.addEventListener('click', function () { refresh(true); });
 
   originCheckBtn.addEventListener('click', async function () {
-    var o = originInput.value.trim().replace(/\/+$/, '');
-    if (!o) {
+    var raw = originInput.value.trim();
+    if (!raw) {
       originResult.innerHTML = '<span class="soft">ใส่ origin ก่อน เช่น https://solightzz.github.io</span>';
       return;
     }
+    // เบราว์เซอร์ส่ง Origin แค่ scheme://host:port — ตัด path ที่เผลอติดมา (เช่น /bookloop-socialmediamarketing) ทิ้งก่อนเช็ก
+    var m = raw.match(/^(https?:\/\/[^/]+)/i);
+    var o = m ? m[1] : raw.replace(/\/+$/, '');
+    var cutNote = (o !== raw) ? '<br><span class="detail">ตัด path ออกเหลือ ' + esc(o) + ' (เบราว์เซอร์ส่ง Origin แค่ host)</span>' : '';
     originResult.innerHTML = 'กำลังเช็ก…';
     try {
       // /api/index.php?check-origin= ตอบ allowed:true/false พร้อมสาเหตุ — ใช้ตอบว่าเว็บนี้ยิงเข้ามาได้หรือไม่
-      var r = await fetch(BASE + '/api/index.php?check-origin=' + encodeURIComponent(o), { cache: 'no-store' });
+      var r = await fetch(APIBASE + '/index.php?check-origin=' + encodeURIComponent(o), FETCH_OPTS);
       var text = await r.text();
       var j = null;
       try { j = JSON.parse(text); } catch (e) { j = null; }
       if (!j) {
-        originResult.innerHTML = '<span class="fail">เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ') — อาจติด challenge ของโฮสต์</span>';
+        originResult.innerHTML = '<span class="fail">เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ') — อาจติด challenge ของโฮสต์</span>' + cutNote;
         return;
       }
-      originResult.innerHTML = j.allowed
+      originResult.innerHTML = (j.allowed
         ? '<span class="pass">✅ ' + esc(j.origin) + ' อยู่ใน allow-list — เว็บนี้ยิง POST/GET เข้ามาได้ (ส่วน endpoint ที่ต้องใช้ token ก็ต้องส่ง token ตามปกติ)</span>'
-        : '<span class="fail">❌ ' + esc(j.origin) + ' โดนบล็อก</span>' + (j.reason ? '<br><span class="detail">' + esc(j.reason) + '</span>' : '');
+        : '<span class="fail">❌ ' + esc(j.origin) + ' โดนบล็อก</span>' + (j.reason ? '<br><span class="detail">' + esc(j.reason) + '</span>' : '')) + cutNote;
     } catch (e) {
       originResult.innerHTML = '<span class="fail">เรียกไม่สำเร็จ: ' + esc(String((e && e.message) || e)) + '</span>';
     }
@@ -911,7 +920,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
     selfTestBtn.disabled = true;
     selfTestOut.innerHTML = '<span class="soft">กำลังยิง GET + POST จากเซิร์ฟเวอร์เข้าหาตัวเอง… (นานสุด ~25 วินาที)</span>';
     try {
-      var r = await fetch(BASE + '/?selftest=1', { cache: 'no-store' });
+      var r = await fetch(BASE + '/?selftest=1', FETCH_OPTS);
       var text = await r.text();
       var j = null;
       try { j = JSON.parse(text); } catch (e) { j = null; }

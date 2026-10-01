@@ -193,7 +193,7 @@ export default function AccountPage() {
       setPostalCode(user.address?.postalCode || '');
 
       // Check newsletter subscription status
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/api';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
       fetch(`${API_BASE}/newsletter_status.php?email=${encodeURIComponent(user.email)}`, {
         headers: { ...NGROK_BYPASS_HEADERS },
       })
@@ -285,7 +285,7 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
       const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=UTF-8', ...NGROK_BYPASS_HEADERS },
@@ -311,7 +311,7 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
       const response = await fetch(`${API_BASE_URL}/newsletter_status.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=UTF-8', ...NGROK_BYPASS_HEADERS },

@@ -1,4 +1,4 @@
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/api';
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
 // header เลี่ยงหน้า interstitial ของ ngrok free (ไม่ส่งจะได้ HTML warning แทน JSON)
 // + ต้องมีชื่อนี้ใน Access-Control-Allow-Headers ฝั่ง PHP ด้วย (Services/Http.php)
 export const NGROK_BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
