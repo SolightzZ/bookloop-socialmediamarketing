@@ -28,10 +28,10 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 
 ## Auth & Data Flow
 
-- **Backend:** PHP in `infinityfree_package/htdocs/api/` (`auth_login.php`, `auth_register.php`, `auth_logout.php`, `auth_me.php`, etc.) — file-based storage in `infinityfree_package/htdocs/data/` (`users.json`, `tokens.json`). Local server (Herd) serves `infinityfree_package/` as docroot, so API prefix is `/htdocs/api` and the health dashboard is `/` (`infinityfree_package/index.php`). Unknown paths fall through to the dashboard HTML (HTTP 200) instead of 404 — a non-JSON 200 from an `/api/*` call means wrong prefix, not a PHP error.
+- **Backend:** PHP in `infinityfree_package/api/` (`auth_login.php`, `auth_register.php`, `auth_logout.php`, `auth_me.php`, etc.) — file-based storage in `infinityfree_package/data/` (`users.json`, `tokens.json`). Package root mirrors the server `htdocs/` 1:1 — upload its contents straight into the domain's `htdocs/`. Local server (Herd, or `php -S localhost:8000 -t infinityfree_package`) serves `infinityfree_package/` as docroot, so API prefix is `/api` and the health dashboard is `/` (`infinityfree_package/index.php` — doubles as the domain landing page on production). Unknown paths fall through to HTML instead of 404 — a non-JSON 200 from an `/api/*` call means wrong path, not a PHP error.
 - **Frontend session:** `src/services/authService.ts` + `src/context/AuthContext.tsx`. Token stored as JSON `{token, userId, expiresAt}` under `bookloop_auth_session_token` (7-day expiry). `getCurrentSessionUser()` deduplicates concurrent `auth_me.php` calls; 401/403 clears token, 5xx preserves it.
 - **Guest merge:** On login/register `AuthContext` merges guest `bookloop_cart`/`bookloop_wishlist` (localStorage) into user-specific keys (`bookloop_user_data_<id>`, `bookloop_wishlist_<id>`) — capped by `src/data/books.ts:stock`. Dispatches `bookloop_cart_updated` / `bookloop_wishlist_updated` events.
-- **Env:** Frontend uses root `VITE_API_BASE_URL` (`.env`, tracked — see `.env.example`); backend uses `infinityfree_package/htdocs/.env` (`SMTP_*`, `ALLOWED_ORIGIN`, gitignored — see `htdocs/.env.example`). Backend `.env` is fingerprint-cached per request, no restart needed after editing.
+- **Env:** Frontend uses root `VITE_API_BASE_URL` (`.env`, tracked — see `.env.example`); backend uses `infinityfree_package/.env` (`SMTP_*`, `ALLOWED_ORIGIN`, gitignored — see `.env.example`). Backend `.env` is fingerprint-cached per request, no restart needed after editing.
 
 ## Conventions
 
@@ -47,11 +47,11 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 
 ## Backend
 
-PHP newsletter / auth service lives in `infinityfree_package/htdocs/` (`api/`, `auth/`, `config/`, `Services/`, `email/`, `data/`). Health-check page is `infinityfree_package/index.php` (local only, never upload to production). Backend data (`data/*.json|log|txt`), `.env`, and `vendor/` are gitignored. Do not edit `email/` templates unless requested.
+PHP newsletter / auth service lives in `infinityfree_package/` (`api/`, `auth/`, `config/`, `Services/`, `email/`, `data/`) — same layout as the server `htdocs/`. Root `index.php` is the health dashboard and the domain landing page (uploaded to production). Same-origin frontend goes to `infinityfree_package/app/` (`npm run build:app` output + `app/.htaccess`, both gitignored except the `.htaccess`). Backend data (`data/*.json|log|txt`), `.env`, and `vendor/` are gitignored. Do not edit `email/` templates unless requested.
 
 ## Gotchas
 
 - `.gitignore` lists `package-lock.json` but it is currently tracked — CI `deploy.yml` falls back to `npm install` when lockfile is absent; do not assume `npm ci`.
 - No ESLint/Prettier — `npm run lint` failures are type errors only.
 - `tsconfig.json` sets `allowImportingTsExtensions: true` and `skipLibCheck: true` — import paths may include `.ts` extensions intentionally.
-- Backend `users.json`/`tokens.json` are per-machine files (gitignored) — accounts registered on ngrok-local do not exist on production and vice versa.
+- Backend `users.json`/`tokens.json` are per-machine files (gitignored) — accounts registered locally do not exist on production and vice versa.

@@ -1,6 +1,6 @@
 <?php
-// BookLoop API — หน้าแรกของ backend (landing / status page)
-// เปิดผ่าน browser เพื่อเช็กว่า backend พร้อมรับ request จาก frontend หรือไม่
+// BookLoop backend — หน้าแรกของโดเมน (landing / status page)
+// ไฟล์นี้อยู่ root ของ package ซึ่งตรงกับ htdocs/ บน server 1:1 — เปิด https://panitijahem.xo.je/ ได้ตรง ๆ
 // หน้านี้ไม่แตะข้อมูลผู้ใช้ และไม่แสดงค่าใด ๆ จาก .env
 
 $checks = [];
@@ -8,9 +8,10 @@ $appOk = true;
 $envError = '';
 
 // 1) config + .env โหลดได้หรือไม่ (config.php จะ throw ถ้าไม่มี .env)
-// ไฟล์นี้อยู่ข้าง ๆ htdocs/ (ไม่ได้อยู่ใน docroot) จึงต้องชี้เข้าไปใน htdocs/
+// ไฟล์นี้อยู่ root ของ docroot (ทั้ง local และบน server) จึงชี้ config ตรง ๆ ผ่าน ./config/
+// (require ใน PHP ใช้ path บนดิสก์เท่านั้น — ห้ามใส่ URL แบบ https://...)
 try {
-    require_once __DIR__ . '/htdocs/config/config.php';
+    require_once __DIR__ . '/config/config.php';
     $checks['env'] = ['ok' => true, 'label' => 'config + .env', 'detail' => ''];
 } catch (Throwable $e) {
     $appOk = false;
@@ -42,7 +43,7 @@ if (!empty($checks['env']['ok'])) {
     $checks['data'] = [
         'ok' => $dataOk,
         'label' => 'data/ เขียนได้',
-        'detail' => $dataOk ? '' : 'สร้างโฟลเดอร์ htdocs/data/ แล้วตั้งสิทธิ์ 755/775 ให้ PHP เขียนได้',
+        'detail' => $dataOk ? '' : 'สร้างโฟลเดอร์ data/ ใน htdocs/ แล้วตั้งสิทธิ์ 755/775 ให้ PHP เขียนได้',
     ];
     $appOk = $appOk && $dataOk;
 }
@@ -89,9 +90,9 @@ if ($isLocal) {
     $BASE_URL = 'https://panitijahem.xo.je';
 }
 
-// ลิงก์ไป backend (api/, email/) ต้องผ่าน /htdocs เพราะไฟล์นี้อยู่ข้าง ๆ htdocs/
-// ไม่ได้อยู่ใน docroot — บน production ไม่ได้อัปโหลดไฟล์นี้จึงไม่กระทบ
-$BACKEND_BASE = $isLocal ? $BASE_URL . '/htdocs' : $BASE_URL;
+// โครงสร้าง package ตรงกับ htdocs บน server แล้ว (api/, email/ อยู่ root ทั้งสองฝั่ง)
+// ไฟล์นี้อยู่ root ของ docroot จึงใช้ BASE_URL ตรง ๆ ไม่ต้องเติม prefix ใด ๆ
+$BACKEND_BASE = $BASE_URL;
 
 // แยกสาเหตุ: ไฟล์หลักไม่ครบ (config/ ฯลฯ) vs แค่ .env หาย — วิธีแก้คนละอย่างกัน
 // config.php throw ข้อความ ".env file not found" เฉพาะกรณีไฟล์หลักครบแต่ขาด .env
@@ -505,8 +506,8 @@ http_response_code(200);
   <div class="fix">
     <h2>🔧 วิธีแก้: อัปโหลดไฟล์ขึ้นเซิร์ฟเวอร์ยังไม่ครบ</h2>
     <ol>
-      <li>แตกไฟล์ <b>bookloop-htdocs.zip</b> แล้วอัปโหลด <b>เนื้อข้างในทั้งหมด</b> ไปไว้ใน <b>htdocs/</b> ของโดเมน (ห้ามอัปโหลดทั้งโฟลเดอร์ทับลงไป)</li>
-      <li>บนเซิร์ฟเวอร์ต้องมีครบ: <b>index.php, .htaccess, api/, auth/, config/, Services/, email/, vendor/</b> — ตอนนี้ขาดไฟล์ตามข้อความ error ด้านล่าง</li>
+      <li>อัปโหลด <b>เนื้อในโฟลเดอร์ infinityfree_package/</b> ทั้งหมดไปไว้ใน <b>htdocs/</b> ของโดเมน — ห้ามอัปโหลดทั้งโฟลเดอร์ทับลงไป ไม่งั้นจะได้ htdocs ซ้อนกัน</li>
+      <li>บนเซิร์ฟเวอร์ต้องมีครบ: <b>.htaccess, api/, auth/, config/, Services/, email/, vendor/</b> — ตอนนี้ขาดไฟล์ตามข้อความ error ด้านล่าง</li>
       <li>ลบไฟล์ <b>index2.html</b> (หน้า default ของ InfinityFree) ออกจาก htdocs/ ถ้ายังมี</li>
       <li>รีเฟรชหน้านี้ — ขั้นต่อไปจะบอกให้สร้างไฟล์ .env เอง</li>
     </ol>
@@ -641,7 +642,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
 // Realtime dashboard: poll ?format=json + api/ โดยไม่ต้องรีเฟรชหน้า
 (function () {
   var BASE = <?= json_encode($BASE_URL, JSON_UNESCAPED_SLASHES) ?>;
-  // API อยู่ใต้ $BACKEND_BASE (docroot infinityfree_package → /htdocs/api, docroot htdocs → /api)
+  // API อยู่ใต้ $BACKEND_BASE (package root = htdocs บน server → /api เสมอ ทั้ง local และ production)
   // เรียก /api/* ผ่านตัวนี้เสมอ อย่าใช้ BASE ตรง ๆ ไม่งั้นผิด path แล้วได้ HTML แทน JSON
   var APIBASE = <?= json_encode($BACKEND_BASE . '/api', JSON_UNESCAPED_SLASHES) ?>;
   // กัน proxy/tunnel free ส่งหน้า interstitial (HTML 200) มาแทน JSON — same-origin จึงไม่ติด preflight
@@ -738,7 +739,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
   function renderRequests(req) {
     if (!req || !reqHint) return;
     reqHint.textContent = req.available
-      ? 'ข้อมูลจาก htdocs/data/request.log ที่ RequestLogger บันทึกทุก request เข้า backend · เรียงใหม่ → เก่า · ซ่อนท้าย IP เพื่อความเป็นส่วนตัว'
+      ? 'ข้อมูลจาก data/request.log ที่ RequestLogger บันทึกทุก request เข้า backend · เรียงใหม่ → เก่า · ซ่อนท้าย IP เพื่อความเป็นส่วนตัว'
       : 'ยังอ่าน request.log ไม่ได้ — ต้องสร้าง .env และโฟลเดอร์ data/ ให้ PHP เขียนได้ก่อน';
     var t = req.totals || {};
     var chips = [];
@@ -806,7 +807,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
         // (กัน dashboard ตัวเก่าเรียก path ที่ไม่มีแล้ววนแดงทุก 5 วินาทีแบบไม่มีคำอธิบาย)
         setBadge(false, true);
         setApi('bad', 'โฮสต์ส่งไปหน้า 404 (ไฟล์บนเซิร์ฟเวอร์ไม่ครบหรือ index.php เก่า)', 'HTTP ' + res.status,
-          'อัปโหลด bookloop-htdocs.zip ตัวใหม่ทับของเดิมให้ครบ (api/ auth/ config/ Services/ vendor/) แล้วรีเฟรชหน้านี้');
+          'อัปโหลดเนื้อใน infinityfree_package/ ทับของเดิมให้ครบ (api/ auth/ config/ Services/ vendor/) แล้วรีเฟรชหน้านี้');
         line.innerHTML = '❌ โฮสต์ redirect ไปหน้า 404 · อัปโหลดไฟล์ตัวใหม่ทับ แล้วจะลองใหม่ใน ' + secSel.value + ' วินาที';
         return;
       }

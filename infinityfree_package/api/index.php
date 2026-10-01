@@ -48,7 +48,7 @@ if (isset($_GET['check-origin'])) {
             }
         } else {
             $result['reason'] = 'origin นี้ไม่อยู่ใน ALLOWED_ORIGIN บนเซิร์ฟเวอร์ — ใส่แบบ origin ล้วน '
-                . '(ไม่มี path/trailing slash) แล้วอัปโหลด htdocs/.env ใหม่';
+                . '(ไม่มี path/trailing slash) แล้วอัปโหลดไฟล์ .env ใหม่';
         }
     } catch (Throwable $e) {
         $result['reason'] = 'โหลด config ไม่ได้: ' . $e->getMessage();

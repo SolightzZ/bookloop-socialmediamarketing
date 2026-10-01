@@ -73,7 +73,7 @@ if (file_exists($envFile)) {
         @file_put_contents($envCache, "<?php return {$export};", LOCK_EX);
     }
 } else {
-    throw new Exception("Backend ยังไม่ได้สร้างไฟล์ htdocs/.env บนเซิร์ฟเวอร์ — สร้างตามตัวอย่าง htdocs/.env.example แล้วอัปโหลดใหม่");
+    throw new Exception("Backend ยังไม่ได้สร้างไฟล์ .env บนเซิร์ฟเวอร์ — สร้างตามตัวอย่าง .env.example แล้วอัปโหลดใหม่");
 }
 
 // Config constants

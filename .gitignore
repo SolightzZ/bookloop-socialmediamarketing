@@ -19,7 +19,7 @@ src_backend/images/generated/
 skills-lock.json
 package-lock.json
 
-infinityfree_package/htdocs/.env
+infinityfree_package/.env
 .agents
 .claude
 .opencode
@@ -27,12 +27,11 @@ infinityfree_package/htdocs/.env
 # Local InfinityFree upload package (contains built zip, never commit)
 vendor
 infinityfree_package/bookloop-htdocs.zip
-# same-origin frontend build (npm run build:app) — generated, never commit
-infinityfree_package/htdocs/app/
+# same-origin frontend build (npm run build:app) — generated, never commit (ยกเว้น .htaccess)
+infinityfree_package/app/*
+!infinityfree_package/app/.htaccess
 infinityfree_package/bookloop-app.zip
-infinityfree_package/htdocs/data/*.json
-infinityfree_package/htdocs/data/*.log
-infinityfree_package/htdocs/data/*.txt
-infinityfree_package/htdocs/index.php
-infinityfree_package/index2.html
+infinityfree_package/data/*.json
+infinityfree_package/data/*.log
+infinityfree_package/data/*.txt
 infinityfree_package/UPLOAD-STEPS.txt
