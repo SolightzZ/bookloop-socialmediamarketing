@@ -33,8 +33,12 @@ $userName = !empty($data['name']) ? trim($data['name']) : ($user ? $user['name']
 $emailResult = ['success' => false, 'error' => ''];
 try {
     $emailResult = sendConfirmationEmailService($email, $userName);
+    if (empty($emailResult['success'])) {
+        error_log("[BookLoop][WARNING] subscribe_newsletter email failed: " . ($emailResult['error'] ?? 'unknown') . " to={$email}");
+    }
 } catch (Throwable $e) {
     $emailResult['error'] = $e->getMessage();
+    error_log("[BookLoop][ERROR] subscribe_newsletter email exception: " . $e->getMessage() . " to={$email}");
 }
 
 if ($emailResult['success']) {

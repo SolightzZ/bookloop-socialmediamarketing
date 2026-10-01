@@ -5,6 +5,7 @@ import {
   Refresh as RefreshIcon,
   Home as HomeIcon,
 } from '@mui/icons-material';
+import { logError } from '../../utils/logger';
 
 interface Props {
   children?: ReactNode;
@@ -28,7 +29,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error caught by ErrorBoundary:', error, errorInfo);
+    // console (devtools) + ฝาก backend เก็บลง error.log ผ่าน /api/log.php
+    logError('Uncaught error caught by ErrorBoundary', error, {
+      componentStack: (errorInfo.componentStack ?? '').slice(0, 500),
+    });
   }
 
   public handleReset = () => {

@@ -50,6 +50,7 @@ import { NGROK_BYPASS_HEADERS } from '../services/apiClient';
 import { orderService } from '../services/orderService';
 import { UserListedBook } from '../types/auth';
 import { formatCurrency } from '../utils/formatCurrency';
+import { logWarn } from '../utils/logger';
 import { showSuccess, showConfirm, showToast } from '../utils/alerts';
 import { PasswordInput } from '../components/auth/PasswordInput';
 import { BookCard } from '../components/BookCard';
@@ -203,7 +204,9 @@ export default function AccountPage() {
             setIsEmailSubscribed(result.subscribed);
           }
         })
-        .catch(() => {});
+        .catch((e) => {
+          logWarn('AccountPage: newsletter_status check failed', e);
+        });
 
       // ดึงออเดอร์ล่าสุดจาก server (สั่งจากอีกเครื่องก็โผล่) แล้วรีเฟรชจอ
       orderService
@@ -211,7 +214,9 @@ export default function AccountPage() {
         .then(() => {
           setUserData(authService.getUserData(user.id));
         })
-        .catch(() => {});
+        .catch((e) => {
+          logWarn('AccountPage: refreshUserOrders failed', e);
+        });
     }
   }, [user]);
 
@@ -300,7 +305,8 @@ export default function AccountPage() {
       } else {
         setSubscribeMessage(result.message || 'เกิดข้อผิดพลาด');
       }
-    } catch {
+    } catch (e) {
+      logWarn('AccountPage: subscribe_newsletter failed', e);
       setSubscribeMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
     } finally {
       setIsSubscribing(false);
@@ -326,7 +332,8 @@ export default function AccountPage() {
       } else {
         setSubscribeMessage(result.message || 'เกิดข้อผิดพลาด');
       }
-    } catch {
+    } catch (e) {
+      logWarn('AccountPage: unsubscribe_newsletter failed', e);
       setSubscribeMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
     } finally {
       setIsSubscribing(false);

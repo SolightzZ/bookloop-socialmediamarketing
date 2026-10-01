@@ -73,6 +73,13 @@ class Logger
         $logLine = "[{$timestamp}] [{$level}] {$message}{$contextStr}" . PHP_EOL;
 
         file_put_contents($this->logFile, $logLine, FILE_APPEND | LOCK_EX);
+
+        // Mirror ระดับ WARNING ขึ้นไปออก console ด้วย — php -S แสดง error_log
+        // ใน terminal, ส่วน production เข้า error log ของโฮสต์ (InfinityFree ดูได้)
+        // INFO/DEBUG เขียนแค่ไฟล์ กัน console รกจาก request ปกติ
+        if (in_array($level, ['WARNING', 'ERROR', 'CRITICAL'], true)) {
+            error_log("[BookLoop][{$level}] {$message}{$contextStr}");
+        }
     }
 
     public function getLogs(?string $level = null, int $limit = 100): array

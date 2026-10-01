@@ -15,6 +15,7 @@ import {
 import { AppContainer } from '../common/Container';
 import { useAuth } from '../../hooks/useAuth';
 import { trackEvent } from '../../utils/analytics';
+import { logWarn, logError } from '../../utils/logger';
 import { showSuccess, showToast, showError } from '../../utils/alerts';
 import { tokens } from '../../theme/tokens';
 
@@ -56,8 +57,9 @@ export const HomeNewsletterSection: React.FC = () => {
               text: 'คุณได้สมัครรับข่าวสารจาก BookLoop เรียบร้อยแล้ว',
             });
           }
-        } catch {
-          // Ignore background status check failure
+        } catch (e) {
+          // เช็กพื้นหลังล้มไม่กระทบ UI — แต่ต้องเห็นใน console
+          logWarn('HomeNewsletterSection: newsletter_status background check failed', e);
         }
       };
       checkStatus();
@@ -129,7 +131,8 @@ export const HomeNewsletterSection: React.FC = () => {
         setStatusMessage({ type: 'error', text: errorMsg });
         showError('ไม่สำเร็จ', errorMsg, true);
       }
-    } catch {
+    } catch (e) {
+      logError('HomeNewsletterSection: subscribe_newsletter failed', e);
       setStatusMessage({
         type: 'error',
         text: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง',

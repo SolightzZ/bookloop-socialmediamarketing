@@ -71,7 +71,8 @@ register_shutdown_function(function () use ($email, $name) {
     try {
         sendWelcomeEmail($email, $name);
     } catch (Throwable $e) {
-        // email fail ไม่กระทบ subscribe
+        // email fail ไม่กระทบ subscribe — แต่ต้องเห็นใน console
+        error_log("[BookLoop][ERROR] subscribe welcome email failed: " . $e->getMessage() . " to={$email}");
     }
 });
 

@@ -34,6 +34,7 @@ import {
   saveOnboardingPreferences,
 } from '../services/onboardingService';
 import { trackEvent } from '../utils/analytics';
+import { logError } from '../utils/logger';
 import { formatCurrency } from '../utils/formatCurrency';
 
 type Step = 'welcome' | 'interests' | 'books' | 'preview';
@@ -116,6 +117,7 @@ export default function OnboardingPage() {
       });
       navigate(editMode ? '/account/profile' : '/', { replace: true });
     } catch (err: any) {
+      logError('OnboardingPage: persist failed', err);
       setError(err?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSaving(false);
@@ -125,8 +127,10 @@ export default function OnboardingPage() {
   const handleSkip = async () => {
     try {
       await persist([], [], true);
-    } catch {
+    } catch (e) {
       // ข้ามต้องสำเร็จเสมอ — ถ้าบันทึกไม่ได้ก็พาไปหน้าแรกเลย (จะไม่เด้ง onboarding ซ้ำเพราะแสดงเฉพาะหลังสมัคร)
+      // แต่ต้องเห็นใน console ว่า persist ล้ม
+      logError('OnboardingPage: skip-persist failed, navigating home anyway', e);
       navigate('/', { replace: true });
     }
   };

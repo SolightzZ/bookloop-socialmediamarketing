@@ -48,6 +48,8 @@ function sendSubscriptionEmail(string $to, string $userName): array
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $mail->ErrorInfo];
+        $err = $mail->ErrorInfo ?: $e->getMessage();
+        error_log("[BookLoop][ERROR] sendSubscriptionEmail failed: {$err} to={$to}");
+        return ['success' => false, 'error' => $err];
     }
 }

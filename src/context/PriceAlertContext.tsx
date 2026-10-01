@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type { PriceAlert, PriceAlertContextType } from '../types/priceAlert';
+import { logWarn } from '../utils/logger';
 
 export const PriceAlertContext = createContext<PriceAlertContextType | null>(null);
 
@@ -9,7 +10,8 @@ function load(): PriceAlert[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
+    logWarn('load price alerts: corrupt data, starting empty', e);
     return [];
   }
 }
@@ -17,8 +19,9 @@ function load(): PriceAlert[] {
 function save(alerts: PriceAlert[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
-  } catch {
-    // ignore
+  } catch (e) {
+    // storage เต็ม — ข้ามการ persist รอบนี้ แต่ต้องเห็นใน console
+    logWarn('save price alerts: storage write failed', e);
   }
 }
 

@@ -1,4 +1,5 @@
 // Analytics Abstraction for BookLoop (Demo prototype)
+import { logWarn } from './logger';
 export type AnalyticsEvent =
   | 'view_home'
   | 'search_book'
@@ -78,8 +79,10 @@ export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): v
           shippingMethod: payload.shippingMethod,
         },
       }),
-    }).catch(() => {
-      // non-blocking — email failure should not break checkout
+    }).catch((e) => {
+      // non-blocking — email failure should not break checkout — แต่ต้องเห็นใน console
+      // (track พัง = อีเมลยืนยันคำสั่งซื้ออาจไม่ถูกส่ง)
+      logWarn('trackEvent(purchase): backend track.php unreachable, confirmation email may not send', e);
     });
   }
 };

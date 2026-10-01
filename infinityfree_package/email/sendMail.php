@@ -89,8 +89,10 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
-        // คืน error เป็น array (ErrorInfo ละเอียดกว่า message ธรรมดา)
-        return ['success' => false, 'error' => $mail->ErrorInfo ?: $e->getMessage()];
+        // คืน error เป็น array (ErrorInfo ละเอียดกว่า message ธรรมดา) + โผล่ console
+        $err = $mail->ErrorInfo ?: $e->getMessage();
+        error_log("[BookLoop][ERROR] sendEmail({$type}) failed: {$err} to={$to}");
+        return ['success' => false, 'error' => $err];
     }
 }
 

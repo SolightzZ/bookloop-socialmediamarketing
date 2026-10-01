@@ -7,6 +7,7 @@ import { ConditionSection } from './ConditionSection';
 import { PricingSection } from './PricingSection';
 import { BookStorySection } from './BookStorySection';
 import { SubmitSection } from './SubmitSection';
+import { logError } from '../../utils/logger';
 
 export interface SellFormData {
   title: string;
@@ -182,6 +183,7 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
       await onSubmit(formData, imagePreview);
       setSubmitStatus('success');
     } catch (err) {
+      logError('SellBookForm: submit failed', err);
       setSubmitStatus('error');
       setSubmitErrorMessage('ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
       setIsSubmitting(false);

@@ -18,6 +18,7 @@ import { SellerCard } from '../components/SellerCard';
 import { ReviewList } from '../components/ReviewList';
 import { showConfirm, showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
+import { logWarn } from '../utils/logger';
 import { BookGallery } from '../components/bookdetail/BookGallery';
 import { BookPurchaseBox } from '../components/bookdetail/BookPurchaseBox';
 import { BookStoryCard } from '../components/bookdetail/BookStoryCard';
@@ -114,7 +115,9 @@ export default function BookDetailPage() {
         })
         .catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard
+        .writeText(window.location.href)
+        .catch((e) => logWarn('handleShare: clipboard copy failed', e));
       showSuccess('คัดลอกลิงก์สำเร็จ', 'คุณสามารถนำลิงก์ไปส่งต่อให้เพื่อนได้เลย');
     }
   };

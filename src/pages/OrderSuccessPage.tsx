@@ -18,6 +18,7 @@ import { Order, OrderItem } from '../types/order';
 import { orderService } from '../services/orderService';
 import { authService } from '../services/authService';
 import { formatCurrency } from '../utils/formatCurrency';
+import { logWarn } from '../utils/logger';
 import { showSuccess } from '../utils/alerts';
 import { useNotification } from '../hooks/useNotification';
 import { tokens } from '../theme/tokens';
@@ -126,7 +127,8 @@ function getMostRecentOrder(): Order | null {
     return [...orders].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )[0];
-  } catch {
+  } catch (e) {
+    logWarn('getMostRecentOrder failed', e);
     return null;
   }
 }
@@ -168,8 +170,9 @@ export default function OrderSuccessPage() {
     if (!order?.id) return;
     try {
       await navigator.clipboard.writeText(order.id);
-    } catch {
-      // Fallback for non-secure contexts (http)
+    } catch (e) {
+      // Fallback for non-secure contexts (http) — แต่ต้องเห็นใน console
+      logWarn('copyOrderId: clipboard API failed, using textarea fallback', e);
       const ta = document.createElement('textarea');
       ta.value = order.id;
       document.body.appendChild(ta);

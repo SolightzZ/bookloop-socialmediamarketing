@@ -81,6 +81,7 @@ HTML;
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
+        error_log("[BookLoop][ERROR] sendWelcomeEmailService failed: " . ($mail->ErrorInfo ?: $e->getMessage()) . " to={$to}");
         return ['success' => false, 'error' => $mail->ErrorInfo];
     }
 }
@@ -175,6 +176,7 @@ HTML;
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
+        error_log("[BookLoop][ERROR] sendConfirmationEmailService failed: " . ($mail->ErrorInfo ?: $e->getMessage()) . " to={$to}");
         return ['success' => false, 'error' => $mail->ErrorInfo];
     }
 }
@@ -222,6 +224,7 @@ function sendOrderConfirmationService(
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
+        error_log("[BookLoop][ERROR] sendOrderConfirmationService failed: " . ($mail->ErrorInfo ?: $e->getMessage()) . " order={$orderId} to={$to}");
         return ['success' => false, 'error' => $mail->ErrorInfo];
     }
 }
@@ -268,6 +271,7 @@ function sendOnboardingWelcomeEmailService(
         return ['success' => true, 'error' => null];
 
     } catch (Exception $e) {
+        error_log("[BookLoop][ERROR] sendOnboardingWelcomeEmailService failed: " . ($mail->ErrorInfo ?: $e->getMessage()) . " to={$to}");
         return ['success' => false, 'error' => $mail->ErrorInfo];
     }
 }

@@ -1,6 +1,7 @@
 /**
  * Types and utilities for Commerce Authentication Gates.
  */
+import { logWarn } from '../utils/logger';
 
 export type PendingAction =
   | {
@@ -35,7 +36,8 @@ export function getPendingAction(): PendingAction | null {
       return parsed as PendingAction;
     }
     return null;
-  } catch {
+  } catch (e) {
+    logWarn('getPendingAction: corrupt pending action in sessionStorage', e);
     return null;
   }
 }

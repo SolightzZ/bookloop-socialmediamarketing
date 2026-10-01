@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { Book, books } from '../data/books';
 import { showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
+import { logWarn } from '../utils/logger';
 import { useAuth } from './useAuth';
 import { authService, scheduleUserStatePush } from '../services/authService';
 
@@ -29,8 +30,9 @@ function parseWishlistIds(raw: string | null): string[] {
     if (Array.isArray(parsed)) {
       return parsed.map((item: any) => (typeof item === 'string' ? item : item?.id)).filter(Boolean);
     }
-  } catch {
-    // ignore malformed storage
+  } catch (e) {
+    // storage เสีย — เริ่มจากว่าง แต่ต้องเห็นใน console
+    logWarn('parseWishlistIds: malformed storage, returning []', e);
   }
   return [];
 }
@@ -48,8 +50,9 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (saved.length === 0 && Array.isArray(userData?.wishlist) && userData.wishlist.length > 0) {
           return userData.wishlist.filter(Boolean);
         }
-      } catch {
-        // ignore storage errors
+      } catch (e) {
+        // fallback ล้ม — ใช้ค่าจาก key หลักต่อ แต่ต้องเห็นใน console
+        logWarn('loadWishlist: userData fallback failed', e);
       }
     }
     return saved;

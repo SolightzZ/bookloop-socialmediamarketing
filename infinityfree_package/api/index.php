@@ -52,6 +52,7 @@ if (isset($_GET['check-origin'])) {
         }
     } catch (Throwable $e) {
         $result['reason'] = 'โหลด config ไม่ได้: ' . $e->getMessage();
+        error_log("[BookLoop][ERROR] api/index check-origin failed: " . $e->getMessage());
     }
     http_response_code(200);
     echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

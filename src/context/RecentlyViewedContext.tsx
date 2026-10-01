@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type { RecentlyViewedBook, RecentlyViewedContextType } from '../types/recentlyViewed';
+import { logWarn } from '../utils/logger';
 
 export const RecentlyViewedContext = createContext<RecentlyViewedContextType | null>(null);
 
@@ -10,7 +11,8 @@ function load(): RecentlyViewedBook[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
+    logWarn('load recently viewed: corrupt data, starting empty', e);
     return [];
   }
 }
@@ -18,8 +20,9 @@ function load(): RecentlyViewedBook[] {
 function save(items: RecentlyViewedBook[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // ignore
+  } catch (e) {
+    // storage เต็ม — ข้ามการ persist รอบนี้ แต่ต้องเห็นใน console
+    logWarn('save recently viewed: storage write failed', e);
   }
 }
 

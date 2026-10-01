@@ -1,6 +1,7 @@
 import { Order, OrderStatus, PaymentStatus, TrackingMilestone } from '../types/order';
 import { authService } from './authService';
 import { apiClient } from './apiClient';
+import { logWarn } from '../utils/logger';
 
 const ORDERS_STORAGE_KEY = 'bookloop_all_orders';
 
@@ -10,7 +11,8 @@ class OrderService {
       const data = localStorage.getItem(ORDERS_STORAGE_KEY);
       if (!data) return [];
       return JSON.parse(data);
-    } catch {
+    } catch (e) {
+      logWarn('getStoredOrders: corrupt orders in localStorage, returning []', e);
       return [];
     }
   }
@@ -65,8 +67,9 @@ class OrderService {
         const userOrders = merged.map((o) => this.toUserOrder(o));
         try {
           authService.saveUserData(userId, { orders: userOrders });
-        } catch {
-          // ignore storage errors
+        } catch (e) {
+          // ignore storage errors — แต่ต้องเห็นใน console
+          logWarn('refreshUserOrders: saveUserData failed', e);
         }
         return merged;
       }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { showSuccess, showError } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
+import { logWarn } from '../utils/logger';
 import { apiClient } from '../services/apiClient';
 import { authService, getStoredSession } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
@@ -84,8 +85,9 @@ export default function SellPage() {
           views: 0,
         });
       }
-    } catch {
-      // mirror ล้มต้องไม่พัง flow ลงขาย
+    } catch (e) {
+      // mirror ล้มต้องไม่พัง flow ลงขาย — แต่ต้องเห็นใน console
+      logWarn('SellPage: profile mirror (addListedBook) failed', e);
     }
 
     await showSuccess(

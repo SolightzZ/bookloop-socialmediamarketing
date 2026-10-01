@@ -172,13 +172,14 @@ if ($shouldSendWelcome) {
                 ]);
             }
         } catch (Throwable $e) {
-            // email fail ไม่กระทบ onboarding — log ไว้เฉยๆ
+            // email fail ไม่กระทบ onboarding — log ไว้เฉยๆ + console
             try {
                 Logger::getInstance()->log('ERROR', 'Onboarding welcome email exception', [
                     'email' => $safeEmail,
                     'error' => $e->getMessage(),
                 ]);
             } catch (Throwable $ignored) {
+                error_log("[BookLoop][ERROR] Onboarding welcome email exception: " . $e->getMessage() . " to={$safeEmail}");
             }
         }
     });

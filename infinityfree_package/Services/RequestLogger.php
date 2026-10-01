@@ -71,6 +71,9 @@ class RequestLogger
     public function logError(string $message, array $context = []): void
     {
         $this->buffer('ERROR', $message, $context);
+        // โผล่ console ทันที (php -S terminal / error log โฮสต์) — ไม่ต้องรอ flush ตอน shutdown
+        $contextStr = !empty($context) ? ' ' . json_encode($context, JSON_UNESCAPED_UNICODE) : '';
+        error_log("[BookLoop][ERROR] {$message}{$contextStr}");
     }
 
     public function logWarning(string $message, array $context = []): void
@@ -133,6 +136,8 @@ register_shutdown_function(function () {
         ], JSON_UNESCAPED_UNICODE);
         $logLine = "[{$timestamp}] [ERROR] [fatal_error] {$context}" . PHP_EOL;
         file_put_contents(DATA_PATH . '/' . REQUEST_LOG_FILE, $logLine, FILE_APPEND | LOCK_EX);
+        // โผล่ console ทันที — ไม่งั้น php -S มองไม่เห็น fatal ที่ทำให้ response 500
+        error_log("[BookLoop][FATAL] {$context}");
     }
 
     // logResponse + flush buffer ที่เหลือ

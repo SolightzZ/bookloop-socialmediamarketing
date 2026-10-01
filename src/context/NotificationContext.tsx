@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppNotification, NotificationContextType } from '../types/notification';
 import { useAuth } from '../hooks/useAuth';
+import { logWarn } from '../utils/logger';
 
 export const NotificationContext = createContext<NotificationContextType | null>(null);
 
@@ -15,7 +16,8 @@ function loadNotifications(userId: string | null): AppNotification[] {
   try {
     const raw = localStorage.getItem(getStorageKey(userId));
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
+    logWarn('loadNotifications: corrupt data, starting empty', e);
     return [];
   }
 }
@@ -23,8 +25,9 @@ function loadNotifications(userId: string | null): AppNotification[] {
 function saveNotifications(userId: string | null, notifications: AppNotification[]): void {
   try {
     localStorage.setItem(getStorageKey(userId), JSON.stringify(notifications));
-  } catch {
-    // storage full — silently drop oldest
+  } catch (e) {
+    // storage full — silently drop oldest — แต่ต้องเห็นใน console
+    logWarn('saveNotifications: storage write failed, dropping update', e);
   }
 }
 

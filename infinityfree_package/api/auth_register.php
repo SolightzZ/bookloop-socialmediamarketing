@@ -54,7 +54,8 @@ if ($subscribeNewsletter) {
         try {
             sendConfirmationEmailService($email, $name);
         } catch (Throwable $e) {
-            // email fail ไม่กระทบ register
+            // email fail ไม่กระทบ register — แต่ต้องเห็นใน console
+            error_log("[BookLoop][ERROR] register confirmation email failed: " . $e->getMessage() . " to={$email}");
         }
     });
 }
@@ -68,7 +69,8 @@ register_shutdown_function(function () use ($email, $name) {
     try {
         sendWelcomeEmailService($email, $name);
     } catch (Throwable $e) {
-        // email fail ไม่กระทบ register — log ไว้เฉยๆ
+        // email fail ไม่กระทบ register — log ไว้เฉยๆ + console
+        error_log("[BookLoop][ERROR] register welcome email failed: " . $e->getMessage() . " to={$email}");
     }
 });
 

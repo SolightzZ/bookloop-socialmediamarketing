@@ -1,5 +1,6 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
 import { apiClient, ApiError, NGROK_BYPASS_HEADERS } from './apiClient';
+import { logWarn } from '../utils/logger';
 
 export interface UserAccountData {
    cart: { productId: string; quantity: number }[];
@@ -19,9 +20,11 @@ export function scheduleUserStatePush(userId: string): void {
    if (prev) clearTimeout(prev);
    userStatePushTimers.set(
       userId,
-      setTimeout(() => {
-         userStatePushTimers.delete(userId);
-         authService.pushUserState(userId).catch(() => {});
+       setTimeout(() => {
+          userStatePushTimers.delete(userId);
+          authService.pushUserState(userId).catch((e) => {
+             logWarn('pushUserState (debounced background sync) failed', e);
+          });
       }, 2500),
    );
 }
@@ -34,7 +37,8 @@ export function getStoredSession(): { token: string; userId: string; expiresAt: 
       const session = JSON.parse(raw);
       if (!session?.userId || !session?.token) return null;
       return session;
-   } catch {
+   } catch (e) {
+      logWarn('getStoredSession: corrupt session in localStorage', e);
       return null;
    }
 }
@@ -107,8 +111,9 @@ class AuthService {
                 return result.user;
              }
           }
-       } catch {
+       } catch (e) {
           // ต่อ backend ไม่ได้ — คืน null ให้ caller จัดการต่อ (ไม่มีโหมดออฟไลน์)
+          logWarn('getCurrentUser: backend unreachable, returning null', e);
        }
 
        return null;
@@ -148,6 +153,8 @@ class AuthService {
           // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
           if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
              this.clearStoredSession();
+          } else {
+             logWarn('restoreSessionInternal failed (keeping stored session)', e);
           }
        }
 
@@ -166,11 +173,13 @@ class AuthService {
    public logout(): void {
       // เพิกถอน token ฝั่ง server แบบ best-effort — client logout ต้องสำเร็จเสมอแม้ backend ไม่พร้อม
       try {
-         apiClient.post<{ success: boolean }>('auth_logout.php').catch(() => {
-            // backend อาจไม่พร้อมใช้งาน ไม่ต้องทำอะไร
+         apiClient.post<{ success: boolean }>('auth_logout.php').catch((e) => {
+            // backend อาจไม่พร้อมใช้งาน ไม่ต้องทำอะไร — แต่ต้องเห็นใน console
+            logWarn('auth_logout.php best-effort call failed', e);
          });
-      } catch {
+      } catch (e) {
          // ignore — ล้าง local ต่อตามปกติ
+         logWarn('logout: unexpected error while revoking token', e);
       }
       this.clearStoredSession();
    }
@@ -213,8 +222,9 @@ class AuthService {
       try {
          const result = await apiClient.get<{ success: boolean; cart: { productId: string; quantity: number }[]; wishlist: string[] }>('user_state.php');
          if (result.success) return { cart: result.cart ?? [], wishlist: result.wishlist ?? [] };
-      } catch {
+      } catch (e) {
          // backend ไม่พร้อม — ใช้ข้อมูลบนเครื่องต่อ
+         logWarn('pullUserState failed, using local data', e);
       }
       return null;
    }
@@ -235,12 +245,14 @@ class AuthService {
                const parsed = JSON.parse(wishRaw);
                if (Array.isArray(parsed)) wishlist = parsed;
             }
-         } catch {
+         } catch (e) {
             // ใช้ค่าจาก userData ต่อ
+            logWarn('pushUserState: per-key storage parse failed, using userData', e);
          }
          await apiClient.post<{ success: boolean }>('user_state.php', { cart, wishlist });
-      } catch {
+      } catch (e) {
          // best-effort — sync รอบหน้าจะลองใหม่
+         logWarn('pushUserState failed, will retry on next sync', e);
       }
    }
 

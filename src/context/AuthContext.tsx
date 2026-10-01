@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, AuthState } from '../types/auth';
 import { authService } from '../services/authService';
+import { logWarn } from '../utils/logger';
 import { books } from '../data/books';
 
 export interface AuthContextType extends AuthState {
@@ -89,8 +90,9 @@ async function pullServerStateOnLogin(userId: string) {
       authService.saveUserData(userId, { cart: finalCart });
       try {
         localStorage.setItem(`bookloop_cart_${userId}`, JSON.stringify(finalCart));
-      } catch {
-        // ignore storage errors
+      } catch (e) {
+        // storage เต็ม/ถูกปิด — ใช้ค่าบน userData ต่อ แต่ต้องเห็นใน console
+        logWarn('pullServerStateOnLogin: cart storage write failed', e);
       }
     }
 
@@ -100,8 +102,9 @@ async function pullServerStateOnLogin(userId: string) {
       authService.saveUserData(userId, { wishlist: uniqueIds });
       try {
         localStorage.setItem(`bookloop_wishlist_${userId}`, JSON.stringify(uniqueIds));
-      } catch {
-        // ignore storage errors
+      } catch (e) {
+        // storage เต็ม/ถูกปิด — ใช้ค่าบน userData ต่อ แต่ต้องเห็นใน console
+        logWarn('pullServerStateOnLogin: wishlist storage write failed', e);
       }
     }
   } catch (e) {
@@ -214,8 +217,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           localStorage.removeItem(`bookloop_user_data_${userId}`);
           localStorage.removeItem(`bookloop_wishlist_${userId}`);
-        } catch {
-          // ignore storage errors
+        } catch (e) {
+          // ล้างไม่หมดไม่กระทบ logout — แต่ต้องเห็นใน console
+          logWarn('deleteAccount: local cleanup failed', e);
         }
       }
       window.dispatchEvent(new Event('bookloop_cart_updated'));

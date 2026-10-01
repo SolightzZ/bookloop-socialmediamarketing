@@ -25,6 +25,7 @@ import { OrderReviewSection } from '../components/checkout/OrderReviewSection';
 import { CheckoutSummarySidebar } from '../components/checkout/CheckoutSummarySidebar';
 import { showSuccess, showError, showWarning } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
+import { logError } from '../utils/logger';
 
 const DEMO_ADDRESS: OrderShippingAddress = {
   name: 'สมชาย รักการอ่าน',
@@ -224,7 +225,7 @@ export default function CheckoutPage() {
         },
       });
     } catch (err) {
-      console.error('Order creation failed', err);
+      logError('CheckoutPage: order creation failed', err);
       showError('สร้างคำสั่งซื้อไม่สำเร็จ', 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
