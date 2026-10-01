@@ -36,7 +36,7 @@ function sendWelcomeEmailService(string $to, string $userName): array
             ? $safeName
             : "คุณ {$safeName}";
 
-        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+        $bookloopUrl = 'https://panitijahem.xo.je/app';
 
         $mail->isHTML(true);
         $mail->CharSet = 'UTF-8';
@@ -116,7 +116,7 @@ function sendConfirmationEmailService(string $to, string $userName): array
             ? $safeName
             : "คุณ {$safeName}";
 
-        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+        $bookloopUrl = 'https://panitijahem.xo.je/app';
         $facebookUrl = 'https://facebook.com/';
         $instagramUrl = 'https://instagram.com/';
         $youtubeUrl = 'https://youtube.com/';
@@ -253,7 +253,7 @@ function sendOnboardingWelcomeEmailService(
         $mail->addAddress($to);
 
         $name = $userName;
-        $bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+        $bookloopUrl = 'https://panitijahem.xo.je/app';
         $profileUrl = $bookloopUrl . '/account/profile';
 
         ob_start();

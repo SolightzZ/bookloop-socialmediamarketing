@@ -2,7 +2,7 @@
 $name = $name ?? 'ผู้ใช้งาน';
 $safeName = htmlspecialchars(trim($name), ENT_QUOTES, 'UTF-8');
 
-$bookloopUrl = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+$bookloopUrl = 'https://panitijahem.xo.je/app';
 $socialLinks = [
     'facebook'  => 'https://facebook.com/',
     'instagram' => 'https://instagram.com/',

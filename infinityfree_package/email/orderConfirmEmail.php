@@ -12,7 +12,7 @@ $safeName = htmlspecialchars(trim($name), ENT_QUOTES, 'UTF-8');
 $safeOrderId = htmlspecialchars($orderId, ENT_QUOTES, 'UTF-8');
 $safeShippingAddress = htmlspecialchars($shippingAddress, ENT_QUOTES, 'UTF-8');
 
-$bookloopUrl  = 'https://solightzz.github.io/bookloop-socialmediamarketing';
+$bookloopUrl  = 'https://panitijahem.xo.je/app';
 $facebookUrl  = 'https://facebook.com/';
 $instagramUrl = 'https://instagram.com/';
 $youtubeUrl   = 'https://youtube.com/';

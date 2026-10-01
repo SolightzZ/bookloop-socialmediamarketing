@@ -14,7 +14,7 @@
 $name = $name ?? 'นักอ่าน';
 $categories = (isset($categories) && is_array($categories)) ? $categories : [];
 $books = (isset($books) && is_array($books)) ? array_slice($books, 0, 6) : [];
-$bookloopUrl = $bookloopUrl ?? 'https://solightzz.github.io/bookloop-socialmediamarketing';
+$bookloopUrl = $bookloopUrl ?? 'https://panitijahem.xo.je/app';
 $profileUrl = $profileUrl ?? $bookloopUrl;
 
 $safeName = htmlspecialchars(trim((string)$name) !== '' ? trim((string)$name) : 'นักอ่าน', ENT_QUOTES, 'UTF-8');
