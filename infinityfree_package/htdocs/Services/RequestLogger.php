@@ -51,11 +51,14 @@ class RequestLogger
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $duration = round((microtime(true) - $this->startTime) * 1000, 2);
 
-        $level = match(true) {
-            $statusCode >= 500 => 'ERROR',
-            $statusCode >= 400 => 'WARNING',
-            default => 'INFO',
-        };
+        // if/elseif แทน match() เพื่อให้รันได้บน PHP 7.4 (match เพิ่มมาใน PHP 8.0)
+        if ($statusCode >= 500) {
+            $level = 'ERROR';
+        } elseif ($statusCode >= 400) {
+            $level = 'WARNING';
+        } else {
+            $level = 'INFO';
+        }
 
         $this->buffer($level, "response", [
             'method' => $method,

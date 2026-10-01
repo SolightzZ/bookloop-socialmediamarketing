@@ -3,7 +3,7 @@ import { Book, books } from '../data/books';
 import { showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { useAuth } from './useAuth';
-import { authService } from '../services/authService';
+import { authService, scheduleUserStatePush } from '../services/authService';
 
 interface WishlistContextType {
   wishlist: Book[];
@@ -62,12 +62,13 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setWishlistIds(loadWishlist(userId));
   }, [userId, loadWishlist]);
 
-  // Sync กลับ storage ของ user คนนั้น + user data
+  // Sync กลับ storage ของ user คนนั้น + user data + server (debounced)
   useEffect(() => {
     try {
       localStorage.setItem(wishlistKey(userId), JSON.stringify(wishlistIds));
       if (userId) {
         authService.saveUserData(userId, { wishlist: wishlistIds });
+        scheduleUserStatePush(userId);
       }
     } catch (e) {
       console.warn('Could not save wishlist to localStorage', e);

@@ -1,6 +1,6 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
 import { showToast } from '../utils/alerts';
-import { apiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, NGROK_BYPASS_HEADERS } from './apiClient';
 
 export interface UserAccountData {
    cart: { productId: string; quantity: number }[];
@@ -22,7 +22,49 @@ const GUEST_WISHLIST_KEY = 'bookloop_wishlist';
 // โหมดนี้ชัดเจนว่าเป็น "บัญชีบนเครื่อง" ไม่ใช่บัญชีบน server — เมื่อ backend
 // ต่อถึง (same-origin /app หรือย้ายโฮสต์) ระบบจะกลับไปใช้ server เป็นหลักเอง
 const LOCAL_USERS_KEY = 'bookloop_local_users';
+const LOCAL_RESETS_KEY = 'bookloop_local_resets';
 const OFFLINE_NOTICE_KEY = 'bookloop_offline_notice_shown';
+
+interface LocalPasswordReset {
+   token: string;
+   userId: string;
+   expiresAt: number;
+   usedAt: number | null;
+}
+
+function loadLocalResets(): LocalPasswordReset[] {
+   try {
+      const raw = localStorage.getItem(LOCAL_RESETS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+   } catch {
+      return [];
+   }
+}
+
+function saveLocalResets(resets: LocalPasswordReset[]): void {
+   try {
+      localStorage.setItem(LOCAL_RESETS_KEY, JSON.stringify(resets));
+   } catch {
+      // storage เต็ม — ปล่อยให้ caller จัดการต่อ
+   }
+}
+
+// debounce push ข้ามเครื่อง — รวม mutation รัวๆ (กด + หลายครั้ง) ให้เหลือ 1 request
+const userStatePushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+export function scheduleUserStatePush(userId: string): void {
+   if (!userId) return;
+   const prev = userStatePushTimers.get(userId);
+   if (prev) clearTimeout(prev);
+   userStatePushTimers.set(
+      userId,
+      setTimeout(() => {
+         userStatePushTimers.delete(userId);
+         authService.pushUserState(userId).catch(() => {});
+      }, 2500),
+   );
+}
 
 interface LocalAccount extends User {
    passHash: string;
@@ -241,10 +283,11 @@ class AuthService {
             return null;
          }
 
-          const xhr = new XMLHttpRequest();
-          // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
-          xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
-          xhr.send();
+           const xhr = new XMLHttpRequest();
+           // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
+           xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
+           xhr.setRequestHeader('ngrok-skip-browser-warning', NGROK_BYPASS_HEADERS['ngrok-skip-browser-warning']);
+           xhr.send();
 
           if (xhr.status === 200) {
              const result = JSON.parse(xhr.responseText);
@@ -432,15 +475,116 @@ class AuthService {
    }
 
    public async requestPasswordReset(email: string): Promise<{ success: boolean; message: string; resetToken?: string }> {
-      throw new Error('ยังไม่รองรับการรีเซ็ตรหัสผ่านในขณะนี้');
+      try {
+         const result = await apiClient.post<{ success: boolean; message: string; resetToken?: string }>('auth_forgot_password.php', { email });
+         return { success: true, message: result.message, resetToken: result.resetToken };
+      } catch (e) {
+         if (!isBackendUnreachable(e)) throw e;
+         return this.requestPasswordResetLocal(email);
+      }
+   }
+
+   private requestPasswordResetLocal(email: string): { success: boolean; message: string; resetToken?: string } {
+      const generic = 'หากอีเมลนี้มีบัญชีอยู่ในระบบ เราได้เตรียมลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว (ลิงก์มีอายุ 1 ชั่วโมง)';
+      const account = loadLocalAccounts().find((a) => a.email.toLowerCase() === email.toLowerCase().trim());
+      if (!account) return { success: true, message: generic };
+      const resets = loadLocalResets().filter((r) => !r.usedAt && r.expiresAt > Date.now());
+      const token = randomLocalId('bl_rst_local_');
+      resets.push({ token, userId: account.id, expiresAt: Date.now() + 3600000, usedAt: null });
+      saveLocalResets(resets);
+      notifyOfflineMode();
+      return { success: true, message: generic, resetToken: token };
    }
 
    public async resetPassword(token: string, newPassword: string): Promise<boolean> {
-      throw new Error('ยังไม่รองรับการรีเซ็ตรหัสผ่านในขณะนี้');
+      try {
+         const result = await apiClient.post<{ success: boolean; message: string }>('auth_reset_password.php', { token, newPassword });
+         return result.success;
+      } catch (e) {
+         if (!isBackendUnreachable(e)) throw e;
+         return this.resetPasswordLocal(token, newPassword);
+      }
+   }
+
+   private async resetPasswordLocal(token: string, newPassword: string): Promise<boolean> {
+      if (!newPassword || newPassword.length < 6) {
+         throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+      }
+      const resets = loadLocalResets();
+      const entry = resets.find((r) => r.token === token);
+      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) {
+         throw new Error('ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว');
+      }
+      const accounts = loadLocalAccounts();
+      const account = accounts.find((a) => a.id === entry.userId);
+      if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
+      account.passHash = await sha256Hex(newPassword);
+      saveLocalAccounts(accounts);
+      entry.usedAt = Date.now();
+      saveLocalResets(resets);
+      notifyOfflineMode();
+      return true;
    }
 
    public async changePassword(userId: string, oldPass: string, newPass: string): Promise<boolean> {
-      throw new Error('ยังไม่รองรับการเปลี่ยนรหัสผ่านในขณะนี้');
+      try {
+         const result = await apiClient.post<{ success: boolean; message: string }>('auth_change_password.php', { oldPassword: oldPass, newPassword: newPass });
+         return result.success;
+      } catch (e) {
+         if (!isBackendUnreachable(e)) throw e;
+         if (!newPass || newPass.length < 6) {
+            throw new Error('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+         }
+         const accounts = loadLocalAccounts();
+         const account = accounts.find((a) => a.id === userId);
+         if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
+         if ((await sha256Hex(oldPass)) !== account.passHash) {
+            throw new Error('รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+         }
+         if (oldPass === newPass) {
+            throw new Error('รหัสผ่านใหม่ต้องแตกต่างจากรหัสผ่านเดิม');
+         }
+         account.passHash = await sha256Hex(newPass);
+         saveLocalAccounts(accounts);
+         notifyOfflineMode();
+         return true;
+      }
+   }
+
+   // ─── user_state sync (ตะกร้า + รายการโปรดข้ามเครื่อง) ───
+   public async pullUserState(): Promise<{ cart: { productId: string; quantity: number }[]; wishlist: string[] } | null> {
+      try {
+         const result = await apiClient.get<{ success: boolean; cart: { productId: string; quantity: number }[]; wishlist: string[] }>('user_state.php');
+         if (result.success) return { cart: result.cart ?? [], wishlist: result.wishlist ?? [] };
+      } catch {
+         // backend ไม่พร้อม — ใช้ข้อมูลบนเครื่องต่อ
+      }
+      return null;
+   }
+
+   public async pushUserState(userId: string): Promise<void> {
+      try {
+         const data = this.getUserData(userId);
+         let cart = data.cart ?? [];
+         let wishlist = data.wishlist ?? [];
+         try {
+            const cartRaw = localStorage.getItem(`bookloop_cart_${userId}`);
+            if (cartRaw) {
+               const parsed = JSON.parse(cartRaw);
+               if (Array.isArray(parsed)) cart = parsed;
+            }
+            const wishRaw = localStorage.getItem(`bookloop_wishlist_${userId}`);
+            if (wishRaw) {
+               const parsed = JSON.parse(wishRaw);
+               if (Array.isArray(parsed)) wishlist = parsed;
+            }
+         } catch {
+            // ใช้ค่าจาก userData ต่อ
+         }
+         await apiClient.post<{ success: boolean }>('user_state.php', { cart, wishlist });
+      } catch {
+         // best-effort — sync รอบหน้าจะลองใหม่
+      }
    }
 
    public addOrder(userId: string, order: UserOrder): void {

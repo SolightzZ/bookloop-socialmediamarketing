@@ -1,5 +1,6 @@
 import { Order, OrderStatus, PaymentStatus, TrackingMilestone } from '../types/order';
 import { authService } from './authService';
+import { apiClient } from './apiClient';
 
 const ORDERS_STORAGE_KEY = 'bookloop_all_orders';
 
@@ -22,7 +23,100 @@ class OrderService {
     }
   }
 
-  public createOrder(params: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Order {
+  // สร้างออเดอร์บน server ก่อน (ได้ id จริง + ข้ามเครื่องได้) — server ล่มค่อย fallback local
+  public async createOrder(params: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
+    try {
+      const result = await apiClient.post<{ success: boolean; order: Order }>('orders_create.php', {
+        items: params.items,
+        subtotal: params.subtotal,
+        shippingFee: params.shippingFee,
+        discount: params.discount ?? 0,
+        total: params.total,
+        shippingAddress: params.shippingAddress,
+        shippingMethod: params.shippingMethod,
+        paymentMethod: params.paymentMethod,
+        paymentStatus: params.paymentStatus,
+        status: params.status,
+        shippingCarrier: params.shippingCarrier,
+        trackingNumber: params.trackingNumber,
+      });
+      if (result.success && result.order) {
+        this.saveOrderLocal(result.order);
+        return result.order;
+      }
+    } catch (e) {
+      console.warn('orders_create.php unavailable, falling back to local order', e);
+    }
+    return this.createOrderLocal(params);
+  }
+
+  // ดึงออเดอร์ของ user จาก server แล้ว merge ลง local mirror (ข้ามเครื่องได้)
+  public async refreshUserOrders(userId: string): Promise<Order[]> {
+    try {
+      const result = await apiClient.get<{ success: boolean; orders: Order[] }>('orders_list.php?limit=100');
+      if (result.success && Array.isArray(result.orders)) {
+        const mine = result.orders.filter((o) => o.userId === userId);
+        const local = this.getStoredOrders();
+        const seen = new Set(mine.map((o) => o.id));
+        const merged = [...mine, ...local.filter((o) => !seen.has(o.id) && o.userId === userId)];
+        const others = local.filter((o) => o.userId !== userId);
+        this.saveStoredOrders([...merged, ...others]);
+        // sync เข้าโปรไฟล์ด้วย (หน้า Account อ่านจาก userData)
+        const userOrders = merged.map((o) => this.toUserOrder(o));
+        try {
+          authService.saveUserData(userId, { orders: userOrders });
+        } catch {
+          // ignore storage errors
+        }
+        return merged;
+      }
+    } catch (e) {
+      console.warn('orders_list.php unavailable, using local orders', e);
+    }
+    return this.getUserOrders(userId);
+  }
+
+  private saveOrderLocal(order: Order): void {
+    const orders = this.getStoredOrders();
+    if (!orders.some((o) => o.id === order.id)) {
+      orders.unshift(order);
+      this.saveStoredOrders(orders);
+    }
+    if (order.userId && order.userId !== 'guest') {
+      try {
+        authService.addOrder(order.userId, this.toUserOrder(order));
+      } catch (err) {
+        console.error('Error syncing order with authService', err);
+      }
+    }
+  }
+
+  private toUserOrder(order: Order) {
+    return {
+      id: order.id,
+      date: order.createdAt.split('T')[0],
+      status: order.status === 'pending_payment' ? 'pending' : (order.status as any),
+      items: order.items.map((it) => ({
+        bookId: it.bookId,
+        title: it.title,
+        author: it.author || '',
+        cover: it.image,
+        price: it.price,
+        originalPrice: it.originalPrice,
+        quantity: it.quantity,
+        condition: it.condition,
+      })),
+      subtotal: order.subtotal,
+      shippingFee: order.shippingFee,
+      total: order.total,
+      shippingCarrier: order.shippingCarrier,
+      trackingNumber: order.trackingNumber,
+      shippingAddress: `${order.shippingAddress.name} ${order.shippingAddress.phone}, ${order.shippingAddress.address} ${order.shippingAddress.province} ${order.shippingAddress.postalCode}`,
+      paymentMethod: order.paymentMethod.toUpperCase(),
+    };
+  }
+
+  private createOrderLocal(params: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Order {
     const rawNumber = Math.floor(100000 + Math.random() * 900000);
     const id = `BL-${rawNumber}`;
     const now = new Date().toISOString();
@@ -36,41 +130,7 @@ class OrderService {
       updatedAt: now,
     };
 
-    const orders = this.getStoredOrders();
-    orders.unshift(newOrder);
-    this.saveStoredOrders(orders);
-
-    // Sync to user profile in authService if logged in
-    if (newOrder.userId && newOrder.userId !== 'guest') {
-      try {
-        // Convert to UserOrder format for backward compatibility
-        authService.addOrder(newOrder.userId, {
-          id: newOrder.id,
-          date: newOrder.createdAt.split('T')[0],
-          status: newOrder.status === 'pending_payment' ? 'pending' : (newOrder.status as any),
-          items: newOrder.items.map((it) => ({
-            bookId: it.bookId,
-            title: it.title,
-            author: it.author || '',
-            cover: it.image,
-            price: it.price,
-            originalPrice: it.originalPrice,
-            quantity: it.quantity,
-            condition: it.condition,
-          })),
-          subtotal: newOrder.subtotal,
-          shippingFee: newOrder.shippingFee,
-          total: newOrder.total,
-          shippingCarrier: newOrder.shippingCarrier,
-          trackingNumber: newOrder.trackingNumber,
-          shippingAddress: `${newOrder.shippingAddress.name} ${newOrder.shippingAddress.phone}, ${newOrder.shippingAddress.address} ${newOrder.shippingAddress.province} ${newOrder.shippingAddress.postalCode}`,
-          paymentMethod: newOrder.paymentMethod.toUpperCase(),
-        });
-      } catch (err) {
-        console.error('Error syncing order with authService', err);
-      }
-    }
-
+    this.saveOrderLocal(newOrder);
     return newOrder;
   }
 

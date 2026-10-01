@@ -3,7 +3,7 @@ import { Book, books } from '../data/books';
 import { showSuccess, showConfirm, showWarning } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { useAuth } from './useAuth';
-import { authService } from '../services/authService';
+import { authService, scheduleUserStatePush } from '../services/authService';
 
 export interface CartItem extends Book {
   quantity: number;
@@ -77,13 +77,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, loadUserCart]);
 
-  // Sync back to user-specific storage
+  // Sync back to user-specific storage + server (debounced)
   useEffect(() => {
     if (user?.id) {
       const key = `bookloop_cart_${user.id}`;
       try {
         localStorage.setItem(key, JSON.stringify(storedItems));
         authService.saveUserData(user.id, { cart: storedItems });
+        scheduleUserStatePush(user.id);
       } catch (e) {
         console.warn('Could not persist isolated user cart', e);
       }

@@ -97,12 +97,17 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
 //  กำหนดหัวข้ออีเมลตามประเภท
 function getSubject(string $type, array $data = []): string
 {
-    return match ($type) {
-        'subscription' => 'ยืนยันการสมัครรับข่าวสาร - BookLoop',
-        'purchase' => "ยืนยันคำสั่งซื้อ #{$data['orderId']}",
-        'add_to_cart' => 'มีสินค้าในตะกร้ารอคุณอยู่',
-        default => 'ยินดีต้อนรับสู่ BookLoop',
-    };
+    // switch แทน match() เพื่อให้รันได้บน PHP 7.4 (match เพิ่มมาใน PHP 8.0)
+    switch ($type) {
+        case 'subscription':
+            return 'ยืนยันการสมัครรับข่าวสาร - BookLoop';
+        case 'purchase':
+            return "ยืนยันคำสั่งซื้อ #{$data['orderId']}";
+        case 'add_to_cart':
+            return 'มีสินค้าในตะกร้ารอคุณอยู่';
+        default:
+            return 'ยินดีต้อนรับสู่ BookLoop';
+    }
 }
 
 // === Functions สำหรับส่งแต่ละประเภท ===

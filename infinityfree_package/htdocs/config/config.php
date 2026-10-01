@@ -5,6 +5,44 @@
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+// Emergency handler ตั้งแต่บรรทัดแรกของ boot — ถ้า .env หาย/parse พัง (เกิดก่อน
+// RequestLogger ได้ register handler ตัวเต็ม) ต้องตอบ JSON 500 ไม่ใช่หน้า HTML ของโฮสต์
+// พอ require RequestLogger ด้านล่าง handler ตัวเต็มจะมาแทนที่ตัวนี้เอง
+set_exception_handler(function ($e) {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code(500);
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    $message = ($e instanceof Throwable) ? $e->getMessage() : 'Unknown boot error';
+    error_log('[BookLoop boot] ' . $message);
+    echo json_encode(['success' => false, 'message' => 'Internal server error'], JSON_UNESCAPED_UNICODE);
+    exit();
+});
+
+// Polyfill สำหรับโฮสต์ที่ยังรัน PHP 7.4 (str_* เพิ่มมาใน PHP 8.0)
+// ทำให้ Http.php ทำงานได้โดยไม่ต้องแก้โค้ดหลัก
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+
 // โหลด .env ผ่านแคช (temp file) — ไม่ต้อง parse_ini_file ทุก request
 $envFile = __DIR__ . '/../.env';
 
@@ -35,7 +73,7 @@ if (file_exists($envFile)) {
         @file_put_contents($envCache, "<?php return {$export};", LOCK_EX);
     }
 } else {
-    throw new Exception(".env file not found");
+    throw new Exception("Backend ยังไม่ได้สร้างไฟล์ htdocs/.env บนเซิร์ฟเวอร์ — สร้างตามตัวอย่าง htdocs/.env.example แล้วอัปโหลดใหม่");
 }
 
 // Config constants
@@ -72,7 +110,7 @@ define('DATA_PATH', BASE_PATH . '/data');
 /**
  * Get config value
  */
-function config(string $key, mixed $default = null): mixed
+function config(string $key, $default = null)
 {
     return constant($key) ?? $default;
 }

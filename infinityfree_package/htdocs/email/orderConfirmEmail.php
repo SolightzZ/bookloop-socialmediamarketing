@@ -18,17 +18,18 @@ $instagramUrl = 'https://instagram.com/';
 $youtubeUrl   = 'https://youtube.com/';
 $xUrl         = 'https://x.com/';
 
-$paymentLabel = match($paymentMethod) {
+// lookup array แทน match() เพื่อให้รันได้บน PHP 7.4 (match เพิ่มมาใน PHP 8.0)
+$paymentLabels = [
     'promptpay' => 'PromptPay QR',
     'qr'        => 'QR Payment',
     'cod'       => 'ชำระเงินปลายทาง (COD)',
-    default     => 'PromptPay QR',
-};
+];
+$paymentLabel = $paymentLabels[$paymentMethod] ?? 'PromptPay QR';
 
-$shippingLabel = match($shippingMethod) {
+$shippingLabels = [
     'express' => 'จัดส่งด่วน (1-2 วัน)',
-    default   => 'จัดส่งมาตรฐาน (2-3 วัน)',
-};
+];
+$shippingLabel = $shippingLabels[$shippingMethod] ?? 'จัดส่งมาตรฐาน (2-3 วัน)';
 
 /* Swiss Design — tabular item rows, hairline grid, no rounded pills */
 $itemRows = '';

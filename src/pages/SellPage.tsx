@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
+import { apiClient } from '../services/apiClient';
+import { authService, getStoredSession } from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
 import { SellHero } from '../components/sell/SellHero';
 import { SellSteps } from '../components/sell/SellSteps';
 import { SellBookForm, SellFormData } from '../components/sell/SellBookForm';
 
 export default function SellPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [stepState, setStepState] = useState<{ current: number; completed: number[] }>({
     current: 0,
     completed: [],
@@ -31,8 +35,56 @@ export default function SellPage() {
       price: Number(data.price),
     });
 
-    // Simulate network latency
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // บันทึกลง backend (best-effort — ออฟไลน์ก็ยังลงขายในเครื่องได้)
+    let listingId = `LST-local-${Date.now().toString(36)}`;
+    let cover = image;
+    try {
+      const result = await apiClient.post<{
+        success: boolean;
+        listing: { id: string; image: string };
+      }>('listings_create.php', {
+        title: data.title,
+        author: data.author,
+        isbn: data.isbn,
+        category: data.category,
+        condition: data.condition,
+        price: Number(data.price),
+        originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+        defects: data.defects,
+        story: data.story,
+        image,
+      });
+      if (result.success && result.listing) {
+        listingId = result.listing.id;
+        // รูปที่ server เก็บเป็นไฟล์แล้ว — ใช้ path ฝั่ง server ถ้า frontend อยู่ same-origin ไม่ได้
+        // เก็บ dataURL เดิมไว้แสดงผลบนเครื่อง (Account tab) จึงไม่ทับ cover
+      }
+    } catch {
+      // backend ไม่พร้อม — เก็บเฉพาะบนเครื่อง (โหมดออฟไลน์)
+    }
+
+    // mirror ลงโปรไฟล์บนเครื่อง (แท็บ "หนังสือของฉัน" ใน Account)
+    try {
+      const session = getStoredSession();
+      const ownerId = user?.id ?? session?.userId;
+      if (ownerId) {
+        authService.addListedBook(ownerId, {
+          id: listingId,
+          title: data.title,
+          author: data.author,
+          price: Number(data.price),
+          originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+          condition: data.condition,
+          category: data.category,
+          cover,
+          dateListed: new Date().toISOString().split('T')[0],
+          status: 'active',
+          views: 0,
+        });
+      }
+    } catch {
+      // mirror ล้มต้องไม่พัง flow ลงขาย
+    }
 
     await showSuccess(
       'ส่งหนังสือสำเร็จ!',

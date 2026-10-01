@@ -55,11 +55,11 @@ export const trackEvent = (eventName: AnalyticsEvent, payload?: EventPayload): v
   if (eventName === 'purchase' && payload) {
     const sessionRaw = localStorage.getItem('bookloop_auth_session_token');
     const session = sessionRaw ? JSON.parse(sessionRaw) : null;
-    const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api').replace(/\/+$/, '');
+    const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api').replace(/\/+$/, '');
 
     fetch(`${API_BASE_URL}/track.php`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+      headers: { 'Content-Type': 'application/json;charset=UTF-8', 'ngrok-skip-browser-warning': 'true' },
       credentials: 'include',
       body: JSON.stringify({
         event: 'purchase',

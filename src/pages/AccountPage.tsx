@@ -46,6 +46,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { authService, UserAccountData } from '../services/authService';
+import { NGROK_BYPASS_HEADERS } from '../services/apiClient';
+import { orderService } from '../services/orderService';
 import { UserListedBook } from '../types/auth';
 import { formatCurrency } from '../utils/formatCurrency';
 import { showSuccess, showConfirm, showToast } from '../utils/alerts';
@@ -176,7 +178,7 @@ export default function AccountPage() {
     setActiveTab(getTabFromPath());
   }, [location.pathname]);
 
-  // Load user data (orders, listed books)
+  // Load user data (orders, listed books) + refresh orders from server (cross-device)
   useEffect(() => {
     if (user) {
       const data = authService.getUserData(user.id);
@@ -191,13 +193,23 @@ export default function AccountPage() {
       setPostalCode(user.address?.postalCode || '');
 
       // Check newsletter subscription status
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
-      fetch(`${API_BASE}/newsletter_status.php?email=${encodeURIComponent(user.email)}`)
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
+      fetch(`${API_BASE}/newsletter_status.php?email=${encodeURIComponent(user.email)}`, {
+        headers: { ...NGROK_BYPASS_HEADERS },
+      })
         .then((res) => res.json())
         .then((result) => {
           if (result.success) {
             setIsEmailSubscribed(result.subscribed);
           }
+        })
+        .catch(() => {});
+
+      // ดึงออเดอร์ล่าสุดจาก server (สั่งจากอีกเครื่องก็โผล่) แล้วรีเฟรชจอ
+      orderService
+        .refreshUserOrders(user.id)
+        .then(() => {
+          setUserData(authService.getUserData(user.id));
         })
         .catch(() => {});
     }
@@ -273,10 +285,10 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
       const response = await fetch(`${API_BASE_URL}/subscribe_newsletter.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/json;charset=UTF-8', ...NGROK_BYPASS_HEADERS },
         credentials: 'include',
         body: JSON.stringify({ email: user?.email }),
       });
@@ -299,10 +311,10 @@ export default function AccountPage() {
     setIsSubscribing(true);
     setSubscribeMessage('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
       const response = await fetch(`${API_BASE_URL}/newsletter_status.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/json;charset=UTF-8', ...NGROK_BYPASS_HEADERS },
         credentials: 'include',
         body: JSON.stringify({ email: user?.email, _method: 'DELETE' }),
       });

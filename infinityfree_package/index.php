@@ -74,6 +74,7 @@ $isPoll = (($_GET['poll'] ?? '') === '1');
 $host = $_SERVER['HTTP_HOST'] ?? '';
 $isLocal = $host !== '' && (
     str_contains($host, 'localhost') || str_starts_with($host, '127.') || str_starts_with($host, '192.168.')
+    || str_contains($host, 'ngrok-free.dev') || str_contains($host, 'ngrok.io')
 );
 if ($isLocal) {
     $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');

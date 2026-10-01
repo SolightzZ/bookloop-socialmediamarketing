@@ -61,7 +61,54 @@ function mergeCartOnLogin(userId: string) {
   }
 }
 
-// Helper to merge guest wishlist and user wishlist safely
+// ดึงตะกร้า/รายการโปรดจาก server มารวมกับของบนเครื่อง (ข้ามเครื่องได้)
+// เรียกก่อน merge guest ทุกครั้ง — server เป็นอีกหนึ่งแหล่งของ user คนนี้
+async function pullServerStateOnLogin(userId: string) {
+  try {
+    const remote = await authService.pullUserState();
+    if (!remote) return;
+
+    const userData = authService.getUserData(userId);
+
+    // cart: union ของบนเครื่อง + server (cap ตาม stock)
+    if (remote.cart.length > 0) {
+      const mergedCartMap = new Map<string, number>();
+      (userData.cart || []).forEach((item) => {
+        mergedCartMap.set(item.productId, (mergedCartMap.get(item.productId) || 0) + item.quantity);
+      });
+      remote.cart.forEach((item) => {
+        mergedCartMap.set(item.productId, (mergedCartMap.get(item.productId) || 0) + item.quantity);
+      });
+      const finalCart: { productId: string; quantity: number }[] = [];
+      mergedCartMap.forEach((qty, pid) => {
+        const book = books.find((b) => b.id === pid);
+        if (!book) return;
+        const stock = book ? book.stock : 10;
+        finalCart.push({ productId: pid, quantity: Math.min(qty, Math.max(1, stock)) });
+      });
+      authService.saveUserData(userId, { cart: finalCart });
+      try {
+        localStorage.setItem(`bookloop_cart_${userId}`, JSON.stringify(finalCart));
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    // wishlist: union set
+    if (remote.wishlist.length > 0) {
+      const uniqueIds = Array.from(new Set([...(userData.wishlist || []), ...remote.wishlist]));
+      authService.saveUserData(userId, { wishlist: uniqueIds });
+      try {
+        localStorage.setItem(`bookloop_wishlist_${userId}`, JSON.stringify(uniqueIds));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  } catch (e) {
+    console.warn('Error pulling server state during login', e);
+  }
+}
+
 function mergeWishlistOnLogin(userId: string) {
   try {
     const rawGuestWishlist = localStorage.getItem(WISHLIST_STORAGE_KEY);
@@ -95,6 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const sessionUser = await authService.getCurrentSessionUser();
       if (sessionUser) {
         setUser(sessionUser);
+        // ดึงตะกร้า/โปรดจาก server มารวม (เช่น เพิ่มไว้อีกเครื่อง)
+        await pullServerStateOnLogin(sessionUser.id);
+        window.dispatchEvent(new Event('bookloop_cart_updated'));
+        window.dispatchEvent(new Event('bookloop_wishlist_updated'));
       } else {
         setUser(null);
       }
@@ -110,10 +161,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     restoreSession();
   }, [restoreSession]);
 
-  const handlePostAuthSync = useCallback((authenticatedUser: User) => {
+  const handlePostAuthSync = useCallback(async (authenticatedUser: User) => {
     setUser(authenticatedUser);
+    await pullServerStateOnLogin(authenticatedUser.id);
     mergeCartOnLogin(authenticatedUser.id);
     mergeWishlistOnLogin(authenticatedUser.id);
+    // ดันผลรวมกลับขึ้น server (converge — เครื่องอื่นได้ค่าล่าสุดด้วย)
+    await authService.pushUserState(authenticatedUser.id);
   }, []);
 
   const login = useCallback(
@@ -121,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         const { user: authUser } = await authService.login(email, pass);
-        handlePostAuthSync(authUser);
+        await handlePostAuthSync(authUser);
         return authUser;
       } finally {
         setIsLoading(false);
@@ -135,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         const { user: authUser } = await authService.register(name, email, pass, subscribeNewsletter);
-        handlePostAuthSync(authUser);
+        await handlePostAuthSync(authUser);
         return authUser;
       } finally {
         setIsLoading(false);

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { getApiBaseUrl } from '../services/apiClient';
+import { getApiBaseUrl, NGROK_BYPASS_HEADERS } from '../services/apiClient';
 
 export type ApiHealthStatus = 'idle' | 'checking' | 'online' | 'offline';
 
@@ -18,7 +18,7 @@ const CHECK_TIMEOUT_MS = 8000;
  * เช็กว่าเส้น API ต่อได้ไหมแบบเดียวกับที่ dashboard ฝั่ง backend ทำ
  * (`GET {base}/` — public endpoint ตอบ 200 JSON ไม่ต้องใช้ token)
  *
- * ใช้ plain fetch ไม่มี header พิเศษ = simple request ไม่เกิด preflight
+ * ใช้ plain fetch + bypass header ของ ngrok (ไม่งั้น tunnel คืนหน้า warning HTML แทน JSON)
  * ถ้าเบราว์เซอร์อ่านคำตอบไม่ได้ (CORS/challenge/เน็ตล่ม/timeout) = offline
  *
  * ตั้งใจให้เช็กเฉพาะตอน user กดเท่านั้น (เริ่มที่ idle ไม่ยิงเอง) เพราะทุกครั้ง
@@ -41,7 +41,11 @@ export function useApiHealth(): ApiHealth {
     const timeout = window.setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
     const started = performance.now();
     try {
-      const res = await fetch(`${baseUrl}/`, { cache: 'no-store', signal: controller.signal });
+      const res = await fetch(`${baseUrl}/`, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { ...NGROK_BYPASS_HEADERS },
+      });
       const text = await res.text();
       let data: { success?: boolean; count?: number } | null = null;
       try {

@@ -189,7 +189,7 @@ export default function CheckoutPage() {
         shippingCarrier: selectedShipping.carrier,
       };
 
-      const createdOrder = orderService.createOrder(orderData);
+      const createdOrder = await orderService.createOrder(orderData);
 
       // Track analytics + send order confirmation email via backend
       trackEvent('purchase', {

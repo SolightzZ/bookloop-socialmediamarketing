@@ -6,6 +6,7 @@ coverage/
 *.log
 !.env.example
 activities.txt
+.vscode
 
 # PHP Backend
 src_backend/vendor/

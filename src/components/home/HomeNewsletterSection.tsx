@@ -32,7 +32,9 @@ export const HomeNewsletterSection: React.FC = () => {
     text: string;
   } | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://unfitting-discount-lantern.ngrok-free.dev/htdocs/api';
+  // เลี่ยงหน้า interstitial ของ ngrok free (ไม่ส่งจะได้ HTML แทน JSON)
+  const BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
 
   // Check if current logged-in user is already subscribed
   useEffect(() => {
@@ -43,6 +45,7 @@ export const HomeNewsletterSection: React.FC = () => {
         try {
           const res = await fetch(
             `${API_BASE_URL}/newsletter_status.php?email=${encodeURIComponent(user.email)}`,
+            { headers: BYPASS_HEADERS },
           );
           if (!res.ok) return;
           const data = await res.json();
@@ -92,6 +95,7 @@ export const HomeNewsletterSection: React.FC = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json;charset=UTF-8',
+          ...BYPASS_HEADERS,
         },
         body: JSON.stringify({
           email: trimmedEmail,
