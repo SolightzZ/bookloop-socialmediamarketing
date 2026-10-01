@@ -1,5 +1,4 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
-import { showToast } from '../utils/alerts';
 import { apiClient, ApiError, NGROK_BYPASS_HEADERS } from './apiClient';
 
 export interface UserAccountData {
@@ -11,45 +10,6 @@ export interface UserAccountData {
 
 const SESSION_TOKEN_KEY = 'bookloop_auth_session_token';
 const USER_DATA_PREFIX = 'bookloop_user_data_';
-// key กลางของ "ผู้เยี่ยมชม" — ตรงกับ WISHLIST_STORAGE_KEY ใน AuthContext / WishlistContext
-const GUEST_WISHLIST_KEY = 'bookloop_wishlist';
-
-// ─── Local demo fallback ─────────────────────────────────────────────
-// InfinityFree free ดัก request ข้าม origin ที่ edge (หน้า challenge ?i=1 +
-// third-party cookie ถูก browser บล็อก) ทำให้ fetch ล้มระดับเครือข่าย
-// (ApiError status 0 — browser ไม่อนุญาตให้อ่าน response เลย) ก่อนถึง PHP เสมอ
-// fallback นี้ให้สมัคร/ล็อกอิน/ใช้งานต่อได้โดยเก็บบัญชีบนเครื่อง (localStorage)
-// โหมดนี้ชัดเจนว่าเป็น "บัญชีบนเครื่อง" ไม่ใช่บัญชีบน server — เมื่อ backend
-// ต่อถึง (same-origin /app หรือย้ายโฮสต์) ระบบจะกลับไปใช้ server เป็นหลักเอง
-const LOCAL_USERS_KEY = 'bookloop_local_users';
-const LOCAL_RESETS_KEY = 'bookloop_local_resets';
-const OFFLINE_NOTICE_KEY = 'bookloop_offline_notice_shown';
-
-interface LocalPasswordReset {
-   token: string;
-   userId: string;
-   expiresAt: number;
-   usedAt: number | null;
-}
-
-function loadLocalResets(): LocalPasswordReset[] {
-   try {
-      const raw = localStorage.getItem(LOCAL_RESETS_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-   } catch {
-      return [];
-   }
-}
-
-function saveLocalResets(resets: LocalPasswordReset[]): void {
-   try {
-      localStorage.setItem(LOCAL_RESETS_KEY, JSON.stringify(resets));
-   } catch {
-      // storage เต็ม — ปล่อยให้ caller จัดการต่อ
-   }
-}
 
 // debounce push ข้ามเครื่อง — รวม mutation รัวๆ (กด + หลายครั้ง) ให้เหลือ 1 request
 const userStatePushTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -66,17 +26,6 @@ export function scheduleUserStatePush(userId: string): void {
    );
 }
 
-interface LocalAccount extends User {
-   passHash: string;
-}
-
-export function isBackendUnreachable(e: unknown): boolean {
-   return (
-      e instanceof ApiError &&
-      (e.status === 0 || e.message.includes('HTML แทน JSON'))
-   );
-}
-
 /** session ที่เก็บใน localStorage (ใช้หา userId ปัจจุบันโดยไม่ต้องพึ่ง backend) */
 export function getStoredSession(): { token: string; userId: string; expiresAt: number } | null {
    try {
@@ -88,82 +37,6 @@ export function getStoredSession(): { token: string; userId: string; expiresAt: 
    } catch {
       return null;
    }
-}
-
-export function notifyOfflineMode(): void {
-   try {
-      if (sessionStorage.getItem(OFFLINE_NOTICE_KEY)) return;
-      sessionStorage.setItem(OFFLINE_NOTICE_KEY, '1');
-   } catch {
-      // private browsing — ข้ามการกัน toast ซ้ำ
-   }
-   try {
-      showToast('โหมดออฟไลน์', 'ต่อ backend ไม่ได้ ใช้บัญชีบนเครื่องนี้ชั่วคราว', 'warning');
-   } catch {
-      // toast ล้มต้องไม่พัง auth flow
-   }
-}
-
-export function loadLocalAccounts(): LocalAccount[] {
-   try {
-      const raw = localStorage.getItem(LOCAL_USERS_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-   } catch {
-      return [];
-   }
-}
-
-export function saveLocalAccounts(accounts: LocalAccount[]): void {
-   try {
-      localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(accounts));
-   } catch {
-      // storage เต็ม — ปล่อยให้ caller ล้มตามธรรมชาติ
-   }
-}
-
-export function toPublicUser(account: LocalAccount): User {
-   const { passHash: _passHash, ...publicUser } = account;
-   return publicUser as User;
-}
-
-async function sha256Hex(text: string): Promise<string> {
-   const data = new TextEncoder().encode(text);
-   if (typeof crypto !== 'undefined' && crypto.subtle) {
-      const digest = await crypto.subtle.digest('SHA-256', data);
-      return Array.from(new Uint8Array(digest))
-         .map((b) => b.toString(16).padStart(2, '0'))
-         .join('');
-   }
-   // fallback เผื่อ non-secure context รุ่นเก่า — ดีกว่าเก็บ plaintext
-   let h1 = 0xdeadbeef;
-   let h2 = 0x41c6ce57;
-   for (let i = 0; i < text.length; i++) {
-      const ch = text.charCodeAt(i);
-      h1 = Math.imul(h1 ^ ch, 2654435761);
-      h2 = Math.imul(h2 ^ ch, 1597334677);
-   }
-   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-   return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
-}
-
-function randomLocalId(prefix: string): string {
-   try {
-      const bytes = new Uint8Array(4);
-      crypto.getRandomValues(bytes);
-      return `${prefix}${Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')}`;
-   } catch {
-      return `${prefix}${Date.now().toString(16)}${Math.floor(Math.random() * 0xffff).toString(16)}`;
-   }
-}
-
-function writeLocalSession(token: string, userId: string): void {
-   localStorage.setItem(
-      SESSION_TOKEN_KEY,
-      JSON.stringify({ token, userId, expiresAt: Date.now() + 86400000 * 7 }),
-   );
 }
 
 class AuthService {
@@ -197,80 +70,19 @@ class AuthService {
    }
 
    public async login(email: string, password: string): Promise<{ user: User; token: string }> {
-      try {
-         const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_login.php', { email, password });
+      const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_login.php', { email, password });
 
-         localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }));
+      localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }));
 
-         return { user: result.user, token: result.token };
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         return this.loginLocal(email, password);
-      }
-   }
-
-   private async loginLocal(email: string, password: string): Promise<{ user: User; token: string }> {
-      const clean = email.toLowerCase().trim();
-      const account = loadLocalAccounts().find((a) => a.email.toLowerCase() === clean);
-      if (!account) {
-         throw new Error('ไม่พบบัญชีนี้บนเครื่อง (โหมดออฟไลน์) กรุณาสมัครสมาชิกใหม่');
-      }
-      if ((await sha256Hex(password)) !== account.passHash) {
-         throw new Error('รหัสผ่านไม่ถูกต้อง');
-      }
-      const token = randomLocalId('bl_local_');
-      writeLocalSession(token, account.id);
-      notifyOfflineMode();
-      return { user: toPublicUser(account), token };
+      return { user: result.user, token: result.token };
    }
 
    public async register(name: string, email: string, password: string, subscribeNewsletter: boolean = false): Promise<{ user: User; token: string }> {
-      try {
-         const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_register.php', { name, email, password, subscribeNewsletter });
+      const result = await apiClient.post<{ success: boolean; user: User; token: string }>('auth_register.php', { name, email, password, subscribeNewsletter });
 
-         localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }));
+      localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ token: result.token, userId: result.user.id, expiresAt: Date.now() + 86400000 * 7 }));
 
-         return { user: result.user, token: result.token };
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         return this.registerLocal(name, email, password);
-      }
-   }
-
-   private async registerLocal(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
-      const cleanName = name.trim();
-      const cleanEmail = email.toLowerCase().trim();
-      if (!cleanName || !cleanEmail || !password) {
-         throw new Error('กรุณากรอกข้อมูลให้ครบถ้วน');
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-         throw new Error('รูปแบบอีเมลไม่ถูกต้อง');
-      }
-      if (password.length < 6) {
-         throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
-      }
-      const accounts = loadLocalAccounts();
-      if (accounts.some((a) => a.email.toLowerCase() === cleanEmail)) {
-         throw new Error('อีเมลนี้ถูกใช้งานในระบบแล้ว กรุณาใช้อีเมลอื่นหรือเข้าสู่ระบบ');
-      }
-      const now = new Date().toISOString();
-      const account: LocalAccount = {
-         id: randomLocalId('usr_local_'),
-         name: cleanName,
-         email: cleanEmail,
-         passHash: await sha256Hex(password),
-         avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(cleanName) + '&backgroundColor=0f2942,1565c0',
-         phone: '',
-         bio: 'สมาชิกรักการอ่านแห่ง BookLoop',
-         address: {},
-         createdAt: now,
-      } as LocalAccount;
-      accounts.push(account);
-      saveLocalAccounts(accounts);
-      const token = randomLocalId('bl_local_');
-      writeLocalSession(token, account.id);
-      notifyOfflineMode();
-      return { user: toPublicUser(account), token };
+      return { user: result.user, token: result.token };
    }
 
    public getCurrentUser(): User | null {
@@ -296,17 +108,7 @@ class AuthService {
              }
           }
        } catch {
-          // Backend unavailable — fallback บัญชีบนเครื่อง (โหมดออฟไลน์)
-          try {
-             const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
-             const session = rawSession ? JSON.parse(rawSession) : null;
-             if (session?.userId) {
-                const account = loadLocalAccounts().find((a) => a.id === session.userId);
-                if (account) return toPublicUser(account);
-             }
-          } catch {
-             // ignore
-          }
+          // ต่อ backend ไม่ได้ — คืน null ให้ caller จัดการต่อ (ไม่มีโหมดออฟไลน์)
        }
 
        return null;
@@ -345,22 +147,7 @@ class AuthService {
           // 401/403 = token ฝั่ง server ใช้ไม่ได้แล้ว → ลบทิ้ง จะได้ไม่ยิง auth_me.php ซ้ำทุกครั้งที่ mount
           // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
           if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-             // session ของโหมดออฟไลน์ที่ใช้ต่อไม่ได้แล้ว → ย้ายข้อมูลของบัญชีบนเครื่องกลับเป็น guest
-             this.releaseOfflineSessionDataToGuest();
              this.clearStoredSession();
-          }
-          // ต่อ backend ไม่ได้ (CORS/edge block) → ใช้บัญชีบนเครื่องต่อ session เดิม
-          if (isBackendUnreachable(e)) {
-             try {
-                const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
-                const session = rawSession ? JSON.parse(rawSession) : null;
-                if (session?.userId && Date.now() <= session.expiresAt) {
-                   const account = loadLocalAccounts().find((a) => a.id === session.userId);
-                   if (account) return toPublicUser(account);
-                }
-             } catch {
-                // ignore
-             }
           }
        }
 
@@ -373,39 +160,6 @@ class AuthService {
          localStorage.removeItem(SESSION_TOKEN_KEY);
       } catch (e) {
          console.warn('Could not clear stored session', e);
-      }
-   }
-
-   /**
-    * session ที่เซิร์ฟเวอร์ปฏิเสธ (401/403) อาจเป็น session ของ "บัญชีบนเครื่อง" (โหมดออฟไลน์)
-    *
-    * ตอน login ระบบย้ายรายการโปรดจาก key กลาง (guest) ไปเป็น key ของ user แล้วลบ key กลางทิ้ง
-    * (mergeWishlistOnLogin) — ถ้าล้าง session เฉย ๆ รายการโปรดจะดูเหมือนหายไป
-    * จึงย้ายกลับเป็นของ guest ก่อนล้าง (ย้ายกลับปลอดภัย: login ครั้งถัดไปจะ merge เข้า user ให้เอง)
-    *
-    * ตะกร้าไม่ต้องย้าย: mergeCartOnLogin เขียนทั้ง key กลางและ key ของ user อยู่แล้ว
-    */
-   private releaseOfflineSessionDataToGuest(): void {
-      try {
-         const session = getStoredSession();
-         if (!session || !session.token.startsWith('bl_local_')) return;
-
-         const userWishlistKey = `${GUEST_WISHLIST_KEY}_${session.userId}`;
-         const userWishlistRaw = localStorage.getItem(userWishlistKey);
-         if (!userWishlistRaw) return;
-
-         const userWishlist: unknown = JSON.parse(userWishlistRaw);
-         if (Array.isArray(userWishlist) && userWishlist.length > 0) {
-            const guestRaw = localStorage.getItem(GUEST_WISHLIST_KEY);
-            const guestWishlist: string[] = guestRaw ? JSON.parse(guestRaw) : [];
-            const merged = Array.from(new Set([...guestWishlist, ...(userWishlist as string[])]));
-            localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(merged));
-         }
-
-         localStorage.removeItem(userWishlistKey);
-         window.dispatchEvent(new Event('bookloop_wishlist_updated'));
-      } catch {
-         // storage ปิด/ข้อมูลเสีย — ข้ามไป ไม่ให้ auth flow พัง
       }
    }
 
@@ -422,133 +176,36 @@ class AuthService {
    }
 
    public async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
-      try {
-         const result = await apiClient.post<{ success: boolean; user: User }>('auth_update_profile.php', updates);
+      const result = await apiClient.post<{ success: boolean; user: User }>('auth_update_profile.php', updates);
 
-         if (result.success && result.user) {
-            return result.user;
-         }
-
-         throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         const accounts = loadLocalAccounts();
-         const account = accounts.find((a) => a.id === userId);
-         if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
-         const allowed: (keyof User)[] = ['name', 'phone', 'bio', 'address', 'avatar'];
-         for (const field of allowed) {
-            if (updates[field] !== undefined) {
-               (account as unknown as Record<string, unknown>)[field] = updates[field];
-            }
-         }
-         saveLocalAccounts(accounts);
-         notifyOfflineMode();
-         return toPublicUser(account);
+      if (result.success && result.user) {
+         return result.user;
       }
+
+      throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
    }
 
    public async deleteAccount(password: string): Promise<void> {
       try {
          await apiClient.delete<{ success: boolean; message: string }>('auth_delete_account.php', { password });
-      } catch (e) {
-         // โหมดออฟไลน์: ตรวจรหัสผ่านกับบัญชีบนเครื่องก่อนลบ
-         if (!isBackendUnreachable(e)) throw e;
-         try {
-            const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
-            const session = rawSession ? JSON.parse(rawSession) : null;
-            const accounts = loadLocalAccounts();
-            const account = accounts.find((a) => a.id === session?.userId);
-            if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
-            if ((await sha256Hex(password)) !== account.passHash) {
-               throw new Error('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
-            }
-            saveLocalAccounts(accounts.filter((a) => a.id !== account.id));
-         } catch (err) {
-            // ล้าง session ต่อตามปกติ ( semantics เดียวกับ path server)
-            this.logout();
-            if (err instanceof Error && err.message === 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง') throw err;
-            return;
-         }
       } finally {
          this.logout();
       }
    }
 
    public async requestPasswordReset(email: string): Promise<{ success: boolean; message: string; resetToken?: string }> {
-      try {
-         const result = await apiClient.post<{ success: boolean; message: string; resetToken?: string }>('auth_forgot_password.php', { email });
-         return { success: true, message: result.message, resetToken: result.resetToken };
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         return this.requestPasswordResetLocal(email);
-      }
-   }
-
-   private requestPasswordResetLocal(email: string): { success: boolean; message: string; resetToken?: string } {
-      const generic = 'หากอีเมลนี้มีบัญชีอยู่ในระบบ เราได้เตรียมลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว (ลิงก์มีอายุ 1 ชั่วโมง)';
-      const account = loadLocalAccounts().find((a) => a.email.toLowerCase() === email.toLowerCase().trim());
-      if (!account) return { success: true, message: generic };
-      const resets = loadLocalResets().filter((r) => !r.usedAt && r.expiresAt > Date.now());
-      const token = randomLocalId('bl_rst_local_');
-      resets.push({ token, userId: account.id, expiresAt: Date.now() + 3600000, usedAt: null });
-      saveLocalResets(resets);
-      notifyOfflineMode();
-      return { success: true, message: generic, resetToken: token };
+      const result = await apiClient.post<{ success: boolean; message: string; resetToken?: string }>('auth_forgot_password.php', { email });
+      return { success: true, message: result.message, resetToken: result.resetToken };
    }
 
    public async resetPassword(token: string, newPassword: string): Promise<boolean> {
-      try {
-         const result = await apiClient.post<{ success: boolean; message: string }>('auth_reset_password.php', { token, newPassword });
-         return result.success;
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         return this.resetPasswordLocal(token, newPassword);
-      }
-   }
-
-   private async resetPasswordLocal(token: string, newPassword: string): Promise<boolean> {
-      if (!newPassword || newPassword.length < 6) {
-         throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
-      }
-      const resets = loadLocalResets();
-      const entry = resets.find((r) => r.token === token);
-      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) {
-         throw new Error('ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว');
-      }
-      const accounts = loadLocalAccounts();
-      const account = accounts.find((a) => a.id === entry.userId);
-      if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
-      account.passHash = await sha256Hex(newPassword);
-      saveLocalAccounts(accounts);
-      entry.usedAt = Date.now();
-      saveLocalResets(resets);
-      notifyOfflineMode();
-      return true;
+      const result = await apiClient.post<{ success: boolean; message: string }>('auth_reset_password.php', { token, newPassword });
+      return result.success;
    }
 
    public async changePassword(userId: string, oldPass: string, newPass: string): Promise<boolean> {
-      try {
-         const result = await apiClient.post<{ success: boolean; message: string }>('auth_change_password.php', { oldPassword: oldPass, newPassword: newPass });
-         return result.success;
-      } catch (e) {
-         if (!isBackendUnreachable(e)) throw e;
-         if (!newPass || newPass.length < 6) {
-            throw new Error('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
-         }
-         const accounts = loadLocalAccounts();
-         const account = accounts.find((a) => a.id === userId);
-         if (!account) throw new Error('ไม่พบบัญชีบนเครื่อง');
-         if ((await sha256Hex(oldPass)) !== account.passHash) {
-            throw new Error('รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
-         }
-         if (oldPass === newPass) {
-            throw new Error('รหัสผ่านใหม่ต้องแตกต่างจากรหัสผ่านเดิม');
-         }
-         account.passHash = await sha256Hex(newPass);
-         saveLocalAccounts(accounts);
-         notifyOfflineMode();
-         return true;
-      }
+      const result = await apiClient.post<{ success: boolean; message: string }>('auth_change_password.php', { oldPassword: oldPass, newPassword: newPass });
+      return result.success;
    }
 
    // ─── user_state sync (ตะกร้า + รายการโปรดข้ามเครื่อง) ───

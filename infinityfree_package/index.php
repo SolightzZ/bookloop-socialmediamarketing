@@ -79,7 +79,11 @@ $isLocal = $host !== '' && (
 );
 if ($isLocal) {
     $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    // หลัง ngrok/reverse proxy TLS ถูกถอดที่ proxy แล้ว (HTTPS=off) — ต้องดู X-Forwarded-Proto ที่ proxy ส่งมาด้วย
+    // ไม่งั้นหน้าที่เปิดผ่าน https:// จะได้ BASE เป็น http:// แล้ว dashboard ยิง poll กลับเป็น http (mixed content)
+    $forwardedProto = strtolower(trim((explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0] ?? ''));
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+    $scheme = $isHttps ? 'https' : 'http';
     $BASE_URL = $scheme . '://' . $host . ($scriptDir === '' || $scriptDir === '/' ? '' : $scriptDir);
 } else {
     $BASE_URL = 'https://unfitting-discount-lantern.ngrok-free.dev';

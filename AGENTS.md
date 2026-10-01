@@ -7,7 +7,7 @@
 - `npm run build` — Vite production build to `dist/`
 - `npm run preview` / `npm run clean` — preview build / rm `dist` + `server.js`
 
-**Order:** `lint` → `build`. No test suite (`src_backend/email/orderConfirmEmail.test.php` is a manual browser preview only).
+**Order:** `lint` → `build`. No test suite.
 
 ## Stack
 
@@ -22,16 +22,16 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 
 - **Entry:** `src/main.tsx` → `src/App.tsx` → `src/app/router.tsx` (`AppRouter`) → `src/app/providers.tsx` (`AppProviders`)
 - **Providers (nesting order matters):** `ErrorBoundary` → `ThemeProvider` → `AuthProvider` → `CartProvider` → `WishlistProvider` → `NotificationProvider` → `RecentlyViewedProvider` → `PriceAlertProvider` — see `src/app/providers.tsx:13`
-- **Routing:** All pages in `src/pages/` are `React.lazy()` + `Suspense` (`PageLoadingSkeleton`). `RequireAuth` guards `/checkout`, `/order/success`, `/orders/:orderId`; `ProtectedRoute` guards `/account/*`. Basename is auto-detected in `src/app/router.tsx:32` — **must stay in sync with `vite.config.ts:10` base** when renaming repo.
+- **Routing:** All pages in `src/pages/` are `React.lazy()` + `Suspense` (`PageLoadingSkeleton`). `RequireAuth` guards `/checkout`, `/order/success`, `/orders/:orderId`; `ProtectedRoute` guards `/account/*`. Basename auto-derives from `import.meta.env.BASE_URL` (`src/app/router.tsx:38`) — renaming repo only requires updating `base` in `vite.config.ts:10`.
 - **State:** React Context only (no Redux/Zustand). Contexts in `src/context/` + hooks in `src/hooks/` (`useCart`, `useWishlist`). Book data is hardcoded in `src/data/books.ts`, categories in `src/data/categories.ts` — no API.
-- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://unfitting-discount-lantern.ngrok-free.dev/api` fallback. Local dev overrides via `.env` (`http://localhost:8000/api`). Auto-attaches `Bearer` token from `bookloop_auth_session_token` in localStorage. PHP backend must be running separately for auth to work.
+- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://unfitting-discount-lantern.ngrok-free.dev/api` fallback. Token from `bookloop_auth_session_token` in localStorage is sent in query string (GET/DELETE) or JSON body (POST) — never via `Authorization` header (shared hosts strip it). PHP backend must be running separately for auth to work.
 
 ## Auth & Data Flow
 
-- **Backend:** PHP in `src_backend/api/` (`auth_login.php`, `auth_register.php`, `auth_logout.php`, `auth_me.php`, etc.) — file-based storage in `src_backend/data/` (`users.json`, `tokens.json`). See `src_backend/AGENTS.md` for backend details.
+- **Backend:** PHP in `infinityfree_package/htdocs/api/` (`auth_login.php`, `auth_register.php`, `auth_logout.php`, `auth_me.php`, etc.) — file-based storage in `infinityfree_package/htdocs/data/` (`users.json`, `tokens.json`). Run locally with `php -S localhost:8000 -t infinityfree_package/htdocs`, expose via ngrok for Pages builds.
 - **Frontend session:** `src/services/authService.ts` + `src/context/AuthContext.tsx`. Token stored as JSON `{token, userId, expiresAt}` under `bookloop_auth_session_token` (7-day expiry). `getCurrentSessionUser()` deduplicates concurrent `auth_me.php` calls; 401/403 clears token, 5xx preserves it.
 - **Guest merge:** On login/register `AuthContext` merges guest `bookloop_cart`/`bookloop_wishlist` (localStorage) into user-specific keys (`bookloop_user_data_<id>`, `bookloop_wishlist_<id>`) — capped by `src/data/books.ts:stock`. Dispatches `bookloop_cart_updated` / `bookloop_wishlist_updated` events.
-- **Env:** Frontend uses `VITE_API_BASE_URL`; backend uses `src_backend/.env` (`SMTP_*`, `ALLOWED_ORIGIN`). `.env` files are gitignored — see `.env.example` for shape.
+- **Env:** Frontend uses root `VITE_API_BASE_URL` (`.env`, tracked — see `.env.example`); backend uses `infinityfree_package/htdocs/.env` (`SMTP_*`, `ALLOWED_ORIGIN`, gitignored — see `htdocs/.env.example`). Backend `.env` is fingerprint-cached per request, no restart needed after editing.
 
 ## Conventions
 
@@ -42,15 +42,16 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 
 ## Deploy
 
-- GitHub Pages workflow `.github/workflows/deploy.yml` — triggers on push to `dev`/`main` (or manual dispatch), Node 24, `npm run build`, then `cp dist/index.html dist/404.html` for SPA fallback.
-- Local base is `/`; CI base is `/bookloop-socialmediamarketing/` (`vite.config.ts:10`). Renaming repo requires updating both `vite.config.ts` and `src/app/router.tsx:32`.
+- GitHub Pages workflow `.github/workflows/deploy.yml` — triggers on push to `dev`/`main` (or manual dispatch), Node 24, `npm run build` with `VITE_API_BASE_URL` from repo vars (fallback ngrok), then `cp dist/index.html dist/404.html` for SPA fallback.
+- Local base is `/`; CI base is `/bookloop-socialmediamarketing/` (`vite.config.ts:10`). Renaming repo requires updating only `vite.config.ts` (router basename follows automatically).
 
 ## Backend
 
-PHP newsletter / auth service lives in `src_backend/` — its own instruction file is `src_backend/AGENTS.md`. Do not edit `src_backend/email/` (frozen for submission). Rate limiting / logging docs are there.
+PHP newsletter / auth service lives in `infinityfree_package/htdocs/` (`api/`, `auth/`, `config/`, `Services/`, `email/`, `data/`). Health-check page is `infinityfree_package/index.php` (local only, never upload to production). Backend data (`data/*.json|log|txt`), `.env`, and `vendor/` are gitignored. Do not edit `email/` templates unless requested.
 
 ## Gotchas
 
-- `.gitignore` ignores `package-lock.json` — CI `deploy.yml` falls back to `npm install` when lockfile is absent; do not assume `npm ci`.
+- `.gitignore` lists `package-lock.json` but it is currently tracked — CI `deploy.yml` falls back to `npm install` when lockfile is absent; do not assume `npm ci`.
 - No ESLint/Prettier — `npm run lint` failures are type errors only.
 - `tsconfig.json` sets `allowImportingTsExtensions: true` and `skipLibCheck: true` — import paths may include `.ts` extensions intentionally.
+- Backend `users.json`/`tokens.json` are per-machine files (gitignored) — accounts registered on ngrok-local do not exist on production and vice versa.

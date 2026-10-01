@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
-import { showSuccess } from '../utils/alerts';
+import { showSuccess, showError } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { apiClient } from '../services/apiClient';
 import { authService, getStoredSession } from '../services/authService';
@@ -35,8 +35,8 @@ export default function SellPage() {
       price: Number(data.price),
     });
 
-    // บันทึกลง backend (best-effort — ออฟไลน์ก็ยังลงขายในเครื่องได้)
-    let listingId = `LST-local-${Date.now().toString(36)}`;
+    // บันทึกลง backend (ต้องสำเร็จ — ไม่มีโหมดออฟไลน์)
+    let listingId: string;
     let cover = image;
     try {
       const result = await apiClient.post<{
@@ -54,13 +54,15 @@ export default function SellPage() {
         story: data.story,
         image,
       });
-      if (result.success && result.listing) {
-        listingId = result.listing.id;
-        // รูปที่ server เก็บเป็นไฟล์แล้ว — ใช้ path ฝั่ง server ถ้า frontend อยู่ same-origin ไม่ได้
-        // เก็บ dataURL เดิมไว้แสดงผลบนเครื่อง (Account tab) จึงไม่ทับ cover
+      if (!result.listing) {
+        throw new Error('เซิร์ฟเวอร์ตอบกลับไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง');
       }
-    } catch {
-      // backend ไม่พร้อม — เก็บเฉพาะบนเครื่อง (โหมดออฟไลน์)
+      listingId = result.listing.id;
+      // รูปที่ server เก็บเป็นไฟล์แล้ว — ใช้ path ฝั่ง server ถ้า frontend อยู่ same-origin ไม่ได้
+      // เก็บ dataURL เดิมไว้แสดงผลบนเครื่อง (Account tab) จึงไม่ทับ cover
+    } catch (err: any) {
+      showError('ลงขายไม่สำเร็จ', err?.message || 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง', true);
+      return;
     }
 
     // mirror ลงโปรไฟล์บนเครื่อง (แท็บ "หนังสือของฉัน" ใน Account)

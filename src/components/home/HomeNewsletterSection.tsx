@@ -130,18 +130,11 @@ export const HomeNewsletterSection: React.FC = () => {
         showError('ไม่สำเร็จ', errorMsg, true);
       }
     } catch {
-      // Offline fallback simulation for static hosting (GitHub Pages) or when PHP server is offline
-      setIsSubscribed(true);
       setStatusMessage({
-        type: 'success',
-        text: 'สมัครรับข่าวสารสำเร็จ! (บันทึกข้อมูลเรียบร้อยแล้ว)',
+        type: 'error',
+        text: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง',
       });
-      showSuccess('สมัครสำเร็จ', 'บันทึกอีเมลของคุณในระบบเรียบร้อยแล้ว');
-      trackEvent('campaign_click', {
-        source: 'newsletter_hero_section',
-        action: 'subscribe_newsletter_demo_fallback',
-        email: trimmedEmail,
-      });
+      showError('ไม่สำเร็จ', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง', true);
     } finally {
       setLoading(false);
     }
