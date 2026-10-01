@@ -8,8 +8,9 @@ $appOk = true;
 $envError = '';
 
 // 1) config + .env โหลดได้หรือไม่ (config.php จะ throw ถ้าไม่มี .env)
+// ไฟล์นี้อยู่ข้าง ๆ htdocs/ (ไม่ได้อยู่ใน docroot) จึงต้องชี้เข้าไปใน htdocs/
 try {
-    require_once __DIR__ . '/config/config.php';
+    require_once __DIR__ . '/htdocs/config/config.php';
     $checks['env'] = ['ok' => true, 'label' => 'config + .env', 'detail' => ''];
 } catch (Throwable $e) {
     $appOk = false;
@@ -81,8 +82,12 @@ if ($isLocal) {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $BASE_URL = $scheme . '://' . $host . ($scriptDir === '' || $scriptDir === '/' ? '' : $scriptDir);
 } else {
-    $BASE_URL = 'https://panitijahem.xo.je';
+    $BASE_URL = 'https://unfitting-discount-lantern.ngrok-free.dev';
 }
+
+// ลิงก์ไป backend (api/, email/) ต้องผ่าน /htdocs เพราะไฟล์นี้อยู่ข้าง ๆ htdocs/
+// ไม่ได้อยู่ใน docroot — บน production ไม่ได้อัปโหลดไฟล์นี้จึงไม่กระทบ
+$BACKEND_BASE = $isLocal ? $BASE_URL . '/htdocs' : $BASE_URL;
 
 // แยกสาเหตุ: ไฟล์หลักไม่ครบ (config/ ฯลฯ) vs แค่ .env หาย — วิธีแก้คนละอย่างกัน
 // config.php throw ข้อความ ".env file not found" เฉพาะกรณีไฟล์หลักครบแต่ขาด .env
@@ -520,7 +525,7 @@ SMTP_ENCRYPTION=tls
 MAIL_TIMEOUT=15
 MAIL_FROM_ADDRESS=ใส่อีเมลผู้ส่ง@gmail.com
 MAIL_FROM_NAME=BookLoop
-ALLOWED_ORIGIN=https://solightzz.github.io,https://panitijahem.xo.je,http://localhost:3000
+ALLOWED_ORIGIN=https://solightzz.github.io,https://unfitting-discount-lantern.ngrok-free.dev,http://localhost:3000
 SUBSCRIBERS_FILE=subscribers.txt
 ACTIVITIES_FILE=activities.txt
 LOG_FILE=error.log
@@ -617,13 +622,13 @@ GENERATED_IMAGES_PATH=images/generated</div>
   <div class="card">
     <h2>ทดสอบเร็ว</h2>
     <p>
-      <a class="btn" href="<?= $BASE_URL ?>/email/subscribe_form.php">📧 ฟอร์มทดสอบอีเมล</a>
-      <a class="btn" href="<?= $BASE_URL ?>/api/auth_me.php">🔌 เทส API</a>
+      <a class="btn" href="<?= $BACKEND_BASE ?>/email/subscribe_form.php">📧 ฟอร์มทดสอบอีเมล</a>
+      <a class="btn" href="<?= $BACKEND_BASE ?>/api/auth_me.php">🔌 เทส API</a>
     </p>
     <p><a href="<?= $BASE_URL ?>/?format=json">ดูสถานะแบบ JSON</a></p>
-    <p><a href="<?= $BASE_URL ?>/api/">api/ รายชื่อ endpoint (JSON)</a></p>
-    <p><a href="<?= $BASE_URL ?>/api/auth_me.php">api/auth_me.php</a> (ต้องได้ JSON)</p>
-    <p><a href="<?= $BASE_URL ?>/email/subscribe_form.php">ฟอร์ม subscribe ทดสอบ</a></p>
+    <p><a href="<?= $BACKEND_BASE ?>/api/">api/ รายชื่อ endpoint (JSON)</a></p>
+    <p><a href="<?= $BACKEND_BASE ?>/api/auth_me.php">api/auth_me.php</a> (ต้องได้ JSON)</p>
+    <p><a href="<?= $BACKEND_BASE ?>/email/subscribe_form.php">ฟอร์ม subscribe ทดสอบ</a></p>
   </div>
 
   <p class="meta">PHP <?= PHP_VERSION ?> · <span id="metaTime"><?= date('Y-m-d H:i:s') ?></span> · <a href="<?= $BASE_URL ?>/?format=json">?format=json</a> สำหรับ health check</p>

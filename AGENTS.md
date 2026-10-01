@@ -24,7 +24,7 @@ React 19 + TypeScript 5.8 + Vite 6 + MUI v9 + Emotion + Tailwind CSS v4 + React 
 - **Providers (nesting order matters):** `ErrorBoundary` → `ThemeProvider` → `AuthProvider` → `CartProvider` → `WishlistProvider` → `NotificationProvider` → `RecentlyViewedProvider` → `PriceAlertProvider` — see `src/app/providers.tsx:13`
 - **Routing:** All pages in `src/pages/` are `React.lazy()` + `Suspense` (`PageLoadingSkeleton`). `RequireAuth` guards `/checkout`, `/order/success`, `/orders/:orderId`; `ProtectedRoute` guards `/account/*`. Basename is auto-detected in `src/app/router.tsx:32` — **must stay in sync with `vite.config.ts:10` base** when renaming repo.
 - **State:** React Context only (no Redux/Zustand). Contexts in `src/context/` + hooks in `src/hooks/` (`useCart`, `useWishlist`). Book data is hardcoded in `src/data/books.ts`, categories in `src/data/categories.ts` — no API.
-- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://panitijahem.xo.je/api` fallback (production). Local dev overrides via `.env` (`http://localhost:8000/api`). Auto-attaches `Bearer` token from `bookloop_auth_session_token` in localStorage. PHP backend must be running separately for auth to work.
+- **API client:** `src/services/apiClient.ts` — `VITE_API_BASE_URL` env or `https://unfitting-discount-lantern.ngrok-free.dev/api` fallback. Local dev overrides via `.env` (`http://localhost:8000/api`). Auto-attaches `Bearer` token from `bookloop_auth_session_token` in localStorage. PHP backend must be running separately for auth to work.
 
 ## Auth & Data Flow
 
