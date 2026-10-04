@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Skeleton, Typography, SxProps, Theme } from '@mui/material';
 import { MenuBook as BookIcon } from '@mui/icons-material';
-import { motion } from 'motion/react';
 
 interface SafeImageProps {
   src?: string | null;
@@ -114,7 +113,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
           }}
         />
       )}
-      <motion.img
+      <img
         src={src}
         alt={alt}
         loading={loading}
@@ -125,14 +124,14 @@ export const SafeImage: React.FC<SafeImageProps> = ({
           setIsLoading(false);
           setHasError(true);
         }}
-        initial={{ opacity: 0, scale: 1.03 }}
-        animate={{ opacity: isLoading ? 0 : 1, scale: isLoading ? 1.03 : 1 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
         style={{
           width: '100%',
           height: '100%',
           objectFit: objectFit,
           display: 'block',
+          opacity: isLoading ? 0 : 1,
+          transform: isLoading ? 'scale(1.03)' : 'scale(1)',
+          transition: 'opacity 0.35s ease-out, transform 0.35s ease-out',
         }}
       />
     </Box>

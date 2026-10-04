@@ -73,7 +73,7 @@ export const LandingBookCard: React.FC<LandingBookCardProps> = ({ book }) => {
             borderColor: '#CBD5E1',
           },
           '&:focus-visible': {
-            outline: '2px solid #1976D2',
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
             outlineOffset: '2px',
           },
         }}
@@ -106,10 +106,7 @@ export const LandingBookCard: React.FC<LandingBookCardProps> = ({ book }) => {
             sx={{
               width: '100%',
               height: '100%',
-              transition: 'transform 300ms ease',
-              '&:hover': {
-                transform: 'scale(1.03)',
-              },
+              transform: 'scale(1.1)',
             }}
           />
         </Box>
@@ -153,7 +150,8 @@ export const LandingBookCard: React.FC<LandingBookCardProps> = ({ book }) => {
                 transform: 'scale(1.08)',
               },
               '&:focus-visible': {
-                outline: '2px solid #1976D2',
+                outline: '2px solid rgba(15, 23, 42, 0.2)',
+                outlineOffset: '2px',
               },
             }}
           >

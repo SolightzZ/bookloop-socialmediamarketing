@@ -1,10 +1,27 @@
 @import "tailwindcss";
 
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: hidden;
+  }
+}
+
 /* Layout stabilization and overflow protection across all breakpoints */
-html,
+html {
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
+  margin: 0;
   overflow-x: hidden;
-  max-width: 100vw;
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -30,9 +47,9 @@ button,
   box-sizing: border-box;
 }
 
-/* Accessible focus ring for keyboard navigation */
+/* Accessible focus ring for keyboard navigation — Swiss Neutral Offset Outline */
 :focus-visible {
-  outline: 2px solid #1565C0 !important;
+  outline: 2px solid rgba(15, 23, 42, 0.2) !important;
   outline-offset: 2px !important;
 }
 
@@ -47,6 +64,16 @@ button,
 .MuiOutlinedInput-root .MuiIconButton-root:focus-visible,
 .MuiInputAdornment-root:focus-within .MuiIconButton-root:focus-visible {
   outline: none !important;
+}
+
+/* Ensure SweetAlert2 modals and alerts are always on the topmost layer above Drawers and AppBars */
+.swal2-container {
+  z-index: 99999 !important;
+}
+
+.swal2-popup {
+  font-family: "Noto Sans Thai", sans-serif !important;
+  border-radius: 16px !important;
 }
 
 /* --------------------------------------------------
@@ -69,15 +96,14 @@ button,
   50%       { transform: translate(calc(-50% + 14px), calc(-50% + 10px)) scale(1.06); opacity: 0.07; }
 }
 
-/* ── L02: Large Gradient Flow — background-position 0%→100%, 32s ── */
+/* ── L02: Large Gradient Flow — GPU composite transform instead of background-position ── */
 @keyframes bl-gradient-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%, 100% { transform: scale(1.04) translate3d(0, 0, 0); }
+  50%      { transform: scale(1.10) translate3d(-1.5%, 1%, 0); }
 }
 .bl-gradient-flow {
   animation: bl-gradient-flow 32s ease-in-out infinite;
-  will-change: background-position;
+  will-change: transform;
 }
 
 /* ── L03: Cloud Drift — X -15→15, 25-55s ── */
@@ -300,6 +326,38 @@ button,
 .hero-paused .bl-dust,
 .hero-paused .bl-sparkle {
   animation-play-state: paused !important;
+}
+
+/* --------------------------------------------------
+   TRUST STRIP — infinite benefit marquee (GPU transform only)
+   Seamless loop: track holds 4x sets, animates 0 → -50%
+   -------------------------------------------------- */
+@keyframes bl-trust-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.trust-marquee-track {
+  animation: bl-trust-marquee 32s linear infinite;
+  will-change: transform;
+}
+/* Pause (not reset) on hover — desktop calm/premium feel */
+.trust-marquee:hover .trust-marquee-track {
+  animation-play-state: paused;
+}
+@media (max-width: 768px) {
+  .trust-marquee-track {
+    animation-duration: 24s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trust-marquee-track {
+    animation: none !important;
+  }
+  .trust-marquee {
+    overflow-x: auto !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
 }
 
 /* --------------------------------------------------

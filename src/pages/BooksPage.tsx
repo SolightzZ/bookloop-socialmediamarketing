@@ -1,24 +1,26 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Container, Typography, Grid, Button, Drawer, IconButton, FormControl, InputLabel, Select, MenuItem, TextField, Paper } from '@mui/material';
 import {
-  FilterList as FilterIcon,
+  Box,
+  Container,
+  Typography,
+  Button,
+  Drawer,
+  IconButton,
+  FormControl,
+  Select,
+  MenuItem,
+  InputBase,
+} from '@mui/material';
+import {
   Search as SearchIcon,
-  Close as CloseIcon,
-  MenuBook as BookIcon,
-  TuneRounded,
-  ExploreRounded,
-  AutoAwesomeRounded,
-  ArrowDownwardRounded,
-  ArrowUpwardRounded,
-  StarRounded,
-  SortByAlphaRounded,
-  SearchOffRounded,
-  RestartAltRounded,
-  FavoriteRounded,
-  VerifiedRounded,
-} from '@mui/icons-material';
-import { books } from '../data/books';
+  X as CloseIcon,
+  SlidersHorizontal,
+  ArrowUpDown,
+  BookOpen,
+} from 'lucide-react';
+import { books, Book } from '../data/books';
+import { listingService } from '../services/listingService';
 import { BookCard } from '../components/BookCard';
 import { useWishlist } from '../hooks/useWishlist';
 import { trackEvent } from '../utils/analytics';
@@ -27,695 +29,680 @@ import { BookActiveFilters } from '../components/books/BookActiveFilters';
 import { BookPaginationControls } from '../components/books/BookPaginationControls';
 import { BreadcrumbsNav } from '../components/common/BreadcrumbsNav';
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 12;
 
 export default function BooksPage() {
-   const [searchParams, setSearchParams] = useSearchParams();
-   const { wishlist, isInWishlist } = useWishlist();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { wishlist, isInWishlist } = useWishlist();
 
-   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-   const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
 
-   const query = searchParams.get('q') || '';
-   const category = searchParams.get('category') || '';
-   const condition = searchParams.get('condition') || '';
-   const maxPriceParam = searchParams.get('maxPrice');
-   const sort = searchParams.get('sort') || 'recommended';
-   const onlyFavorites = searchParams.get('favorite') === 'true';
-   const pageParam = parseInt(searchParams.get('page') || '1', 10);
-   const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+  const query = searchParams.get('q') || '';
+  const category = searchParams.get('category') || '';
+  const condition = searchParams.get('condition') || '';
+  const maxPriceParam = searchParams.get('maxPrice');
+  const sort = searchParams.get('sort') || 'recommended';
+  const onlyFavorites = searchParams.get('favorite') === 'true';
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
-   const [priceRange, setPriceRange] = useState<number>(maxPriceParam ? Number(maxPriceParam) : 2000);
+  const [priceRange, setPriceRange] = useState<number>(maxPriceParam ? Number(maxPriceParam) : 2000);
+  const [activeListings, setActiveListings] = useState<Book[]>([]);
 
-   useEffect(() => {
-      setSearchInput(query);
-   }, [query]);
-
-   const handleSearchSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (searchInput.trim()) {
-         searchParams.set('q', searchInput.trim());
-         trackEvent('search_book', { query: searchInput.trim() });
-      } else {
-         searchParams.delete('q');
+  useEffect(() => {
+    let isMounted = true;
+    listingService.getActiveListings().then((items) => {
+      if (isMounted && items.length > 0) {
+        setActiveListings(items);
       }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      searchParams.set('q', searchInput.trim());
+      trackEvent('search_book', { query: searchInput.trim() });
+    } else {
+      searchParams.delete('q');
+    }
+    searchParams.delete('page');
+    setSearchParams(searchParams);
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    if (cat === 'ทั้งหมด') {
+      searchParams.delete('category');
+    } else {
+      searchParams.set('category', cat);
+      trackEvent('view_category', { category: cat });
+    }
+    searchParams.delete('page');
+    setSearchParams(searchParams);
+  };
+
+  const handleConditionChange = (cond: string) => {
+    if (cond === 'ทั้งหมด') {
+      searchParams.delete('condition');
+    } else {
+      searchParams.set('condition', cond);
+    }
+    searchParams.delete('page');
+    setSearchParams(searchParams);
+  };
+
+  const handlePriceChangeCommitted = (_: any, newValue: number | number[]) => {
+    const val = newValue as number;
+    setPriceRange(val);
+    if (val < 2000) {
+      searchParams.set('maxPrice', val.toString());
+    } else {
+      searchParams.delete('maxPrice');
+    }
+    searchParams.delete('page');
+    setSearchParams(searchParams);
+  };
+
+  const handleSortChange = (newSort: string) => {
+    searchParams.set('sort', newSort);
+    searchParams.delete('page');
+    setSearchParams(searchParams);
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    if (value === 1) {
       searchParams.delete('page');
-      setSearchParams(searchParams);
-   };
+    } else {
+      searchParams.set('page', value.toString());
+    }
+    setSearchParams(searchParams);
+    window.scrollTo({ top: 180, behavior: 'smooth' });
+  };
 
-   const handleCategoryChange = (cat: string) => {
-      if (cat === 'ทั้งหมด') {
-         searchParams.delete('category');
-      } else {
-         searchParams.set('category', cat);
-         trackEvent('view_category', { category: cat });
-      }
-      searchParams.delete('page');
-      setSearchParams(searchParams);
-   };
+  const clearAllFilters = () => {
+    setSearchInput('');
+    setPriceRange(2000);
+    setSearchParams({});
+  };
 
-   const handleConditionChange = (cond: string) => {
-      if (cond === 'ทั้งหมด') {
-         searchParams.delete('condition');
-      } else {
-         searchParams.set('condition', cond);
-      }
-      searchParams.delete('page');
-      setSearchParams(searchParams);
-   };
+  const filteredBooks = useMemo(() => {
+    let result = [...activeListings, ...books];
 
-   const handlePriceChangeCommitted = (_: any, newValue: number | number[]) => {
-      const val = newValue as number;
-      setPriceRange(val);
-      if (val < 2000) {
-         searchParams.set('maxPrice', val.toString());
-      } else {
-         searchParams.delete('maxPrice');
-      }
-      searchParams.delete('page');
-      setSearchParams(searchParams);
-   };
+    if (onlyFavorites) {
+      result = result.filter((b) => isInWishlist(b.id));
+    }
 
-   const handleSortChange = (newSort: string) => {
-      searchParams.set('sort', newSort);
-      searchParams.delete('page');
-      setSearchParams(searchParams);
-   };
+    if (query) {
+      const q = query.toLowerCase();
+      result = result.filter(
+        (b) =>
+          b.title.toLowerCase().includes(q) ||
+          b.author.toLowerCase().includes(q) ||
+          (b.isbn && b.isbn.toLowerCase().includes(q)) ||
+          (b.tags && b.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    }
 
-   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
-      if (value === 1) {
-         searchParams.delete('page');
-      } else {
-         searchParams.set('page', value.toString());
-      }
-      setSearchParams(searchParams);
-      // Keep the first result below the sticky mobile navbar after pagination.
-      // Scrolling to 120px used to place the card image underneath the AppBar
-      // on narrow devices such as Pixel 3 XL.
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-   };
+    if (category && category !== 'ทั้งหมด') {
+      result = result.filter((b) => b.category === category);
+    }
 
-   const clearAllFilters = () => {
-      setSearchInput('');
-      setPriceRange(2000);
-      setSearchParams({});
-   };
+    if (condition && condition !== 'ทั้งหมด') {
+      result = result.filter((b) => b.condition === condition);
+    }
 
-   const filteredBooks = useMemo(() => {
-      let result = [...books];
+    if (maxPriceParam) {
+      const maxP = Number(maxPriceParam);
+      result = result.filter((b) => b.price <= maxP);
+    }
 
-      if (onlyFavorites) {
-         result = result.filter((b) => isInWishlist(b.id));
-      }
+    switch (sort) {
+      case 'price_asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price_desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating':
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'title_asc':
+        result.sort((a, b) => a.title.localeCompare(b.title, 'th'));
+        break;
+      default:
+        result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        break;
+    }
 
-      if (query) {
-         const q = query.toLowerCase();
-         result = result.filter(
-            (b) =>
-               b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn && b.isbn.toLowerCase().includes(q)) || (b.tags && b.tags.some((t) => t.toLowerCase().includes(q))),
-         );
-      }
+    return result;
+  }, [query, category, condition, maxPriceParam, sort, onlyFavorites, wishlist, activeListings]);
 
-      if (category && category !== 'ทั้งหมด') {
-         result = result.filter((b) => b.category === category);
-      }
+  const totalPages = Math.ceil(filteredBooks.length / ITEMS_PER_PAGE);
+  const validPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+  const paginatedBooks = useMemo(() => {
+    const startIndex = (validPage - 1) * ITEMS_PER_PAGE;
+    return filteredBooks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredBooks, validPage]);
 
-      if (condition && condition !== 'ทั้งหมด') {
-         result = result.filter((b) => b.condition === condition);
-      }
+  const activeFiltersCount = [
+    query ? 1 : 0,
+    category ? 1 : 0,
+    condition ? 1 : 0,
+    maxPriceParam ? 1 : 0,
+    onlyFavorites ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
 
-      if (maxPriceParam) {
-         const maxP = Number(maxPriceParam);
-         result = result.filter((b) => b.price <= maxP);
-      }
+  return (
+    <Box sx={{ bgcolor: '#F7F9FC', minHeight: '100vh', pb: { xs: 6, sm: 8 } }}>
+      <Container
+        maxWidth="lg"
+        sx={{
+          maxWidth: '1240px !important',
+          px: { xs: 2, sm: 2.5, md: 3 },
+          pt: { xs: 2, sm: 2.5, md: 3 },
+        }}
+      >
+        {/* 1. Breadcrumbs (Small 12-13px, muted, not in a card) */}
+        <BreadcrumbsNav
+          items={
+            category
+              ? [{ label: 'ค้นหาหนังสือ', path: '/books' }, { label: category }]
+              : onlyFavorites
+              ? [{ label: 'รายการโปรด' }]
+              : query
+              ? [{ label: 'ค้นหาหนังสือ', path: '/books' }, { label: `"${query}"` }]
+              : [{ label: 'ค้นหาหนังสือ' }]
+          }
+          sx={{ mb: 1.5 }}
+        />
 
-      switch (sort) {
-         case 'price_asc':
-            result.sort((a, b) => a.price - b.price);
-            break;
-         case 'price_desc':
-            result.sort((a, b) => b.price - a.price);
-            break;
-         case 'rating':
-            result.sort((a, b) => b.rating - a.rating);
-            break;
-         case 'title_asc':
-            result.sort((a, b) => a.title.localeCompare(b.title, 'th'));
-            break;
-         default:
-            result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-            break;
-      }
+        {/* 2. Page Title & Supporting Text (Clean, no giant card) */}
+        <Box sx={{ mb: 2.5 }}>
+          <Typography
+            variant="h1"
+            sx={{
+              fontWeight: 800,
+              color: '#0F2F52',
+              fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+              lineHeight: 1.25,
+              mb: 0.5,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {onlyFavorites ? 'หนังสือในรายการโปรด' : 'ค้นหาหนังสือ'}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: '#64748B',
+              fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+            }}
+          >
+            ค้นพบหนังสือมือสองที่ใช่สำหรับคุณ
+          </Typography>
+        </Box>
 
-      return result;
-   }, [query, category, condition, maxPriceParam, sort, onlyFavorites, wishlist]);
+        {/* 3. Search Bar (Primary interaction, 44-48px height, rounded 10-12px) */}
+        <Box
+          component="form"
+          role="search"
+          onSubmit={handleSearchSubmit}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: '#FFFFFF',
+            border: '1px solid #DCE6F0',
+            borderRadius: '12px',
+            p: 0.5,
+            mb: 3,
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            '&:focus-within': {
+              borderColor: '#1976D2',
+              boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.12)',
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              pl: 1.5,
+              color: '#64748B',
+            }}
+          >
+            <SearchIcon size={20} />
+          </Box>
 
-   const totalPages = Math.ceil(filteredBooks.length / ITEMS_PER_PAGE);
-   const validPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
-   const paginatedBooks = useMemo(() => {
-      const startIndex = (validPage - 1) * ITEMS_PER_PAGE;
-      return filteredBooks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-   }, [filteredBooks, validPage]);
+          <InputBase
+            fullWidth
+            placeholder="ค้นหาชื่อหนังสือ ผู้เขียน หรือ ISBN..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            inputProps={{
+              'aria-label': 'ค้นหาชื่อหนังสือ ผู้เขียน หรือ ISBN',
+            }}
+            sx={{
+              px: 1.5,
+              fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+              color: '#0F2F52',
+            }}
+          />
 
-   const activeFiltersCount = [query ? 1 : 0, category ? 1 : 0, condition ? 1 : 0, maxPriceParam ? 1 : 0, onlyFavorites ? 1 : 0].reduce((a, b) => a + b, 0);
+          {searchInput && (
+            <IconButton
+              size="small"
+              aria-label="ล้างคำค้นหา"
+              onClick={() => {
+                setSearchInput('');
+                searchParams.delete('q');
+                searchParams.delete('page');
+                setSearchParams(searchParams);
+              }}
+              sx={{ p: 0.75, color: '#94A3B8', mr: 0.5 }}
+            >
+              <CloseIcon size={16} />
+            </IconButton>
+          )}
 
-   return (
-      <Box sx={{ py: { xs: 3, sm: 4, md: 6 }, bgcolor: 'background.default', minHeight: '100vh' }}>
-         <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-            {/* Breadcrumbs */}
-            <BreadcrumbsNav
-               items={
-                  category
-                     ? [{ label: 'ค้นหาหนังสือ', path: '/books' }, { label: category }]
-                     : onlyFavorites
-                        ? [{ label: 'รายการโปรด' }]
-                        : query
-                           ? [{ label: 'ค้นหาหนังสือ', path: '/books' }, { label: `"${query}"` }]
-                           : [{ label: 'ค้นหาหนังสือ' }]
-               }
-            />
-            {/* Header Banner */}
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              height: 40,
+              px: { xs: 2, sm: 3 },
+              borderRadius: '8px',
+              bgcolor: '#1976D2',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              textTransform: 'none',
+              boxShadow: 'none',
+              flexShrink: 0,
+              '&:hover': {
+                bgcolor: '#1565C0',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            ค้นหา
+          </Button>
+        </Box>
+
+        {/* 4. Active Filter Chips (if any) */}
+        <BookActiveFilters
+          query={query}
+          category={category}
+          condition={condition}
+          maxPriceParam={maxPriceParam}
+          onlyFavorites={onlyFavorites}
+          onClearQuery={() => {
+            searchParams.delete('q');
+            searchParams.delete('page');
+            setSearchInput('');
+            setSearchParams(searchParams);
+          }}
+          onClearCategory={() => {
+            searchParams.delete('category');
+            searchParams.delete('page');
+            setSearchParams(searchParams);
+          }}
+          onClearCondition={() => {
+            searchParams.delete('condition');
+            searchParams.delete('page');
+            setSearchParams(searchParams);
+          }}
+          onClearPrice={() => {
+            searchParams.delete('maxPrice');
+            searchParams.delete('page');
+            setPriceRange(2000);
+            setSearchParams(searchParams);
+          }}
+          onClearFavorite={() => {
+            searchParams.delete('favorite');
+            searchParams.delete('page');
+            setSearchParams(searchParams);
+          }}
+        />
+
+        {/* 5. Result Toolbar (Clean single row: พบ X เล่ม | เรียงตาม: [ แนะนำ v ]) */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 2.5,
+            gap: 1.5,
+          }}
+        >
+          {/* Result Count */}
+          <Typography
+            sx={{
+              fontWeight: 700,
+              color: '#0F2F52',
+              fontSize: { xs: '0.9rem', sm: '0.95rem' },
+            }}
+          >
+            พบ {filteredBooks.length} เล่ม
+          </Typography>
+
+          {/* Right Controls: Sort & Mobile Filter Toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Mobile Filter Button */}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setMobileFilterOpen(true)}
+              startIcon={<SlidersHorizontal size={15} />}
+              sx={{
+                display: { xs: 'inline-flex', md: 'none' },
+                height: 36,
+                px: 1.5,
+                borderRadius: '8px',
+                borderColor: activeFiltersCount > 0 ? '#1976D2' : '#DCE6F0',
+                bgcolor: activeFiltersCount > 0 ? '#F0F7FF' : '#FFFFFF',
+                color: activeFiltersCount > 0 ? '#1976D2' : '#0F2F52',
+                fontWeight: 600,
+                fontSize: '0.8125rem',
+                textTransform: 'none',
+              }}
+            >
+              ตัวกรอง {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ''}
+            </Button>
+
+            {/* Sort Select */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#64748B',
+                  fontSize: '0.8125rem',
+                  display: { xs: 'none', sm: 'inline' },
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                เรียงตาม:
+              </Typography>
+
+              <FormControl size="small">
+                <Select
+                  value={sort}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  aria-label="เรียงลำดับหนังสือ"
+                  sx={{
+                    height: 36,
+                    borderRadius: '8px',
+                    bgcolor: '#FFFFFF',
+                    fontSize: '0.825rem',
+                    fontWeight: 600,
+                    color: '#0F2F52',
+                    minWidth: { xs: 120, sm: 140 },
+                    '& fieldset': {
+                      borderColor: '#DCE6F0',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#94A3B8',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976D2',
+                    },
+                  }}
+                >
+                  <MenuItem value="recommended">หนังสือแนะนำ</MenuItem>
+                  <MenuItem value="price_asc">ราคา: ต่ำไปสูง</MenuItem>
+                  <MenuItem value="price_desc">ราคา: สูงไปต่ำ</MenuItem>
+                  <MenuItem value="rating">คะแนนรีวิวสูงสุด</MenuItem>
+                  <MenuItem value="title_asc">ชื่อหนังสือ (ก-ฮ)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* 6. Main Layout: Lightweight Sidebar (Desktop) + Book Grid */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: { xs: 0, md: 3 },
+          }}
+        >
+          {/* Desktop Filter Sidebar (224px width, clean white surface, sticky) */}
+          <Box
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              width: 224,
+              flexShrink: 0,
+              position: 'sticky',
+              top: 84,
+            }}
+          >
             <Box
-               sx={{
-                  p: { xs: 2.5, sm: 3 },
-                  borderRadius: 3.5,
-                  border: '1.5px solid #E2E8F0',
-                  bgcolor: '#FFFFFF',
-                  boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)',
-                  mb: { xs: 3, md: 4 },
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                  flexWrap: 'wrap',
-                  gap: 2,
-               }}>
-               <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.8 }}>
-                     <Box
-                        sx={{
-                           display: 'inline-flex',
-                           alignItems: 'center',
-                           gap: 0.6,
-                           px: 1.2,
-                           py: 0.35,
-                           borderRadius: 9999,
-                           bgcolor: onlyFavorites ? '#FFF1F2' : '#EAF4FF',
-                           color: onlyFavorites ? '#E11D48' : '#1976D2',
-                           border: onlyFavorites ? '1px solid #FFE4E6' : '1px solid #DBEAFE',
-                           fontWeight: 800,
-                           fontSize: '0.75rem',
-                        }}>
-                        {onlyFavorites ? (
-                           <FavoriteRounded sx={{ fontSize: 14, color: '#E11D48' }} />
-                        ) : (
-                           <ExploreRounded sx={{ fontSize: 14 }} />
-                        )}
-                        {onlyFavorites ? 'รายการโปรด' : 'หนังสือทั้งหมด'}
-                     </Box>
-                     <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, fontSize: '0.78rem' }}>
-                        หนังสือจากชุมชน BookLoop ระบุสภาพโดยผู้ขาย
-                     </Typography>
-                  </Box>
-
-                  <Typography
-                     variant="h4"
-                     sx={{
-                        fontWeight: 900,
-                        color: '#0F2D4A',
-                        fontSize: { xs: '1.45rem', sm: '1.9rem' },
-                        lineHeight: 1.25,
-                        letterSpacing: '-0.02em',
-                        mb: 0.4,
-                     }}>
-                     {onlyFavorites ? 'หนังสือในรายการโปรดของคุณ' : 'ค้นหาและเลือกซื้อหนังสือ'}
-                  </Typography>
-
-                  <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.85rem' }}>
-                     พบหนังสือทั้งหมด <strong>{filteredBooks.length}</strong> เล่ม จากชุมชน BookLoop
-                  </Typography>
-               </Box>
-
-               {onlyFavorites && (
-                  <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
-                     <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                           searchParams.delete('favorite');
-                           searchParams.delete('page');
-                           setSearchParams(searchParams);
-                        }}
-                        sx={{
-                           borderRadius: 2.5,
-                           textTransform: 'none',
-                           fontWeight: 700,
-                           fontSize: '0.85rem',
-                           color: '#1976D2',
-                           borderColor: '#CBD5E1',
-                           bgcolor: '#FFFFFF',
-                           px: 2,
-                           py: 0.75,
-                           whiteSpace: 'nowrap',
-                           '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
-                        }}
-                     >
-                        ← ดูหนังสือทั้งหมดในคลัง
-                     </Button>
-                  </Box>
-               )}
-
-               <Box sx={{ display: { xs: 'block', md: 'none' }, width: { xs: '100%', sm: 'auto' } }}>
-                  <Button
-                     fullWidth
-                     startIcon={<TuneRounded />}
-                     variant="outlined"
-                     onClick={() => setMobileFilterOpen(true)}
-                     sx={{
-                        borderRadius: 2.5,
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        borderColor: activeFiltersCount > 0 ? '#1976D2' : '#CBD5E1',
-                        color: activeFiltersCount > 0 ? '#1976D2' : '#0F2D4A',
-                        bgcolor: activeFiltersCount > 0 ? '#F0F7FF' : '#FFFFFF',
-                     }}>
-                     ตัวกรอง {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ''}
-                  </Button>
-               </Box>
-            </Box>
-
-            <Box
-               sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' },
-                  gap: { xs: 2.5, md: 4 },
-                  alignItems: 'start',
-               }}>
-               {/* Desktop Filter Sidebar */}
-               <Box sx={{ display: { xs: 'none', md: 'block' }, width: 240 }}>
-                  <Paper sx={{ p: 3, borderRadius: 3, border: '1.5px solid #E2E8F0', position: 'sticky', top: 90 }}>
-                     <BookFilterSidebar
-                        category={category}
-                        condition={condition}
-                        priceRange={priceRange}
-                        onlyFavorites={onlyFavorites}
-                        activeFiltersCount={activeFiltersCount}
-                        onCategoryChange={handleCategoryChange}
-                        onConditionChange={handleConditionChange}
-                        onPriceChange={(val) => setPriceRange(val)}
-                        onPriceChangeCommitted={handlePriceChangeCommitted}
-                        onClearAll={clearAllFilters}
-                        onClearFavorite={() => {
-                           searchParams.delete('favorite');
-                           searchParams.delete('page');
-                           setSearchParams(searchParams);
-                        }}
-                     />
-                  </Paper>
-               </Box>
-
-               {/* Book Grid and Controls */}
-               <Box sx={{ minWidth: 0, width: '100%' }}>
-                  {/* Search Input and Sort Row */}
-                  <Box
-                     sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: { xs: 1.5, sm: 2 },
-                        mb: { xs: 2.5, md: 3 },
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                     }}>
-                     <Box
-                        component="form"
-                        role="search"
-                        onSubmit={handleSearchSubmit}
-                        sx={{
-                           display: 'flex',
-                           flexGrow: 1,
-                           width: { xs: '100%', sm: 'auto' },
-                           minWidth: 0,
-                           maxWidth: { xs: '100%', sm: 420 },
-                        }}>
-                        <TextField
-                           placeholder="พิมพ์ชื่อหนังสือ, ผู้เขียน, หรือ ISBN..."
-                           size="small"
-                           fullWidth
-                           value={searchInput}
-                           onChange={(e) => setSearchInput(e.target.value)}
-                           slotProps={{
-                              input: {
-                                 startAdornment: <SearchIcon sx={{ color: '#1976D2', mr: 1, fontSize: 20 }} />,
-                                 endAdornment: searchInput ? (
-                                    <IconButton
-                                       size="small"
-                                       aria-label="ล้างคำค้นหา"
-                                       onClick={() => {
-                                          setSearchInput('');
-                                          searchParams.delete('q');
-                                          searchParams.delete('page');
-                                          setSearchParams(searchParams);
-                                       }}
-                                       sx={{ p: 0.5, color: '#94A3B8' }}>
-                                       <CloseIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                 ) : undefined,
-                                 'aria-label': 'พิมพ์ชื่อหนังสือ, ผู้เขียน, หรือ ISBN',
-                              },
-                           }}
-                           sx={{
-                              bgcolor: '#FFFFFF',
-                              borderRadius: 2.5,
-                              '& .MuiOutlinedInput-root': {
-                                 borderRadius: 2.5,
-                              },
-                              minWidth: 0,
-                              flex: 1,
-                           }}
-                        />
-                        <Button
-                           type="submit"
-                           variant="contained"
-                           startIcon={<SearchIcon sx={{ fontSize: 18 }} />}
-                           sx={{
-                              ml: 1,
-                              px: { xs: 1.75, sm: 2.5 },
-                              borderRadius: 2.5,
-                              fontWeight: 700,
-                              textTransform: 'none',
-                              bgcolor: '#1976D2',
-                              flexShrink: 0,
-                              boxShadow: 'none',
-                           }}>
-                           ค้นหา
-                        </Button>
-                     </Box>
-
-                     <FormControl size="small" sx={{ width: { xs: '100%', sm: 'auto' }, minWidth: { sm: 190 }, bgcolor: '#FFFFFF' }}>
-                        <InputLabel id="books-sort-label">เรียงลำดับ</InputLabel>
-                        <Select
-                           labelId="books-sort-label"
-                           value={sort}
-                           label="เรียงลำดับ"
-                           onChange={(e) => handleSortChange(e.target.value)}
-                           sx={{ borderRadius: 2.5 }}
-                        >
-                           <MenuItem value="recommended">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <AutoAwesomeRounded sx={{ fontSize: 16, color: '#F59E0B' }} />
-                                 <span>หนังสือแนะนำ</span>
-                              </Box>
-                           </MenuItem>
-                           <MenuItem value="price_asc">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <ArrowDownwardRounded sx={{ fontSize: 16, color: '#16A34A' }} />
-                                 <span>ราคา: ต่ำไปสูง</span>
-                              </Box>
-                           </MenuItem>
-                           <MenuItem value="price_desc">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <ArrowUpwardRounded sx={{ fontSize: 16, color: '#2563EB' }} />
-                                 <span>ราคา: สูงไปต่ำ</span>
-                              </Box>
-                           </MenuItem>
-                           <MenuItem value="rating">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <StarRounded sx={{ fontSize: 16, color: '#F59E0B' }} />
-                                 <span>คะแนนรีวิวสูงสุด</span>
-                              </Box>
-                           </MenuItem>
-                           <MenuItem value="title_asc">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <SortByAlphaRounded sx={{ fontSize: 16, color: '#6366F1' }} />
-                                 <span>ชื่อหนังสือ (ก-ฮ)</span>
-                              </Box>
-                           </MenuItem>
-                        </Select>
-                     </FormControl>
-                  </Box>
-
-                  {/* Active Filter Chips */}
-                  <BookActiveFilters
-                     query={query}
-                     category={category}
-                     condition={condition}
-                     maxPriceParam={maxPriceParam}
-                     onlyFavorites={onlyFavorites}
-                     onClearQuery={() => {
-                        searchParams.delete('q');
-                        searchParams.delete('page');
-                        setSearchInput('');
-                        setSearchParams(searchParams);
-                     }}
-                     onClearCategory={() => {
-                        searchParams.delete('category');
-                        searchParams.delete('page');
-                        setSearchParams(searchParams);
-                     }}
-                     onClearCondition={() => {
-                        searchParams.delete('condition');
-                        searchParams.delete('page');
-                        setSearchParams(searchParams);
-                     }}
-                     onClearPrice={() => {
-                        searchParams.delete('maxPrice');
-                        searchParams.delete('page');
-                        setPriceRange(2000);
-                        setSearchParams(searchParams);
-                     }}
-                     onClearFavorite={() => {
-                        searchParams.delete('favorite');
-                        searchParams.delete('page');
-                        setSearchParams(searchParams);
-                     }}
-                  />
-
-                  {/* Results counter and page indicator */}
-                  {filteredBooks.length > 0 && (
-                     <Box
-                        sx={{
-                           display: 'flex',
-                           justifyContent: 'space-between',
-                           alignItems: { xs: 'flex-start', sm: 'center' },
-                           flexDirection: { xs: 'column', sm: 'row' },
-                           gap: { xs: 1, sm: 2 },
-                           mb: { xs: 2, md: 2.5 },
-                           px: 0.5,
-                        }}>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: '0.8rem', sm: '0.9rem' }, lineHeight: 1.5 }}>
-                           แสดง{' '}
-                           <strong>
-                              {(validPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(validPage * ITEMS_PER_PAGE, filteredBooks.length)}
-                           </strong>{' '}
-                           จากทั้งหมด <strong>{filteredBooks.length}</strong> เล่ม (หน้า {validPage}/{totalPages})
-                        </Typography>
-                        {totalPages > 1 && (
-                           <Typography
-                              variant="caption"
-                              sx={{ color: 'primary.main', fontWeight: 700, bgcolor: 'rgba(23, 105, 170, 0.08)', px: 1.5, py: 0.5, borderRadius: 1.5, alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
-                              แสดงหน้าละ 9 เล่ม
-                           </Typography>
-                        )}
-                     </Box>
-                  )}
-
-                  {/* Books Grid */}
-                  {filteredBooks.length === 0 ? (
-                     onlyFavorites ? (
-                        <Paper
-                           elevation={0}
-                           sx={{
-                              p: { xs: 4, sm: 6 },
-                              textAlign: 'center',
-                              borderRadius: 3.5,
-                              border: '1.5px solid #FFE4E6',
-                              bgcolor: '#FFFFFF',
-                           }}>
-                           <Box
-                              sx={{
-                                 width: 72,
-                                 height: 72,
-                                 borderRadius: '50%',
-                                 bgcolor: '#FFF1F2',
-                                 display: 'flex',
-                                 alignItems: 'center',
-                                 justifyContent: 'center',
-                                 mx: 'auto',
-                                 mb: 2,
-                              }}>
-                              <FavoriteRounded sx={{ fontSize: 36, color: '#E11D48' }} />
-                           </Box>
-                           <Typography variant="h6" sx={{ color: '#0F2D4A', fontWeight: 800, mb: 0.8, fontSize: '1.15rem' }}>
-                              {wishlist.length === 0
-                                 ? 'ยังไม่มีหนังสือในรายการโปรด'
-                                 : 'ไม่พบหนังสือที่ตรงกับตัวกรองในรายการโปรด'}
-                           </Typography>
-                           <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 460, mx: 'auto', fontSize: '0.85rem' }}>
-                              {wishlist.length === 0
-                                 ? 'กดไอคอนหัวใจบนหนังสือที่คุณสนใจ เพื่อบันทึกไว้ดูหรือเปรียบเทียบราคาในภายหลัง'
-                                 : 'ลองปรับเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูหนังสือเล่มอื่นที่คุณบันทึกไว้ในรายการโปรด'}
-                           </Typography>
-                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                              {wishlist.length > 0 && (
-                                 <Button
-                                    variant="outlined"
-                                    onClick={() => {
-                                       setSearchInput('');
-                                       setSearchParams({ favorite: 'true' });
-                                    }}
-                                    sx={{
-                                       borderRadius: 2.5,
-                                       px: 2.5,
-                                       py: 1,
-                                       fontWeight: 700,
-                                       textTransform: 'none',
-                                       borderColor: '#CBD5E1',
-                                       color: '#0F2D4A',
-                                    }}>
-                                    แสดงรายการโปรดทั้งหมด ({wishlist.length})
-                                 </Button>
-                              )}
-                              <Button
-                                 variant="contained"
-                                 onClick={() => {
-                                    searchParams.delete('favorite');
-                                    searchParams.delete('page');
-                                    setSearchParams(searchParams);
-                                 }}
-                                 sx={{
-                                    borderRadius: 2.5,
-                                    px: 3,
-                                    py: 1,
-                                    fontWeight: 700,
-                                    textTransform: 'none',
-                                    bgcolor: '#1976D2',
-                                    boxShadow: 'none',
-                                 }}>
-                                 สำรวจหนังสือทั้งหมดในคลัง
-                              </Button>
-                           </Box>
-                        </Paper>
-                     ) : (
-                        <Paper
-                           elevation={0}
-                           sx={{
-                              p: { xs: 4, sm: 6 },
-                              textAlign: 'center',
-                              borderRadius: 3.5,
-                              border: '1.5px solid #E2E8F0',
-                              bgcolor: '#FFFFFF',
-                           }}>
-                           <Box
-                              sx={{
-                                 width: 72,
-                                 height: 72,
-                                 borderRadius: '50%',
-                                 bgcolor: '#F1F5F9',
-                                 display: 'flex',
-                                 alignItems: 'center',
-                                 justifyContent: 'center',
-                                 mx: 'auto',
-                                 mb: 2,
-                              }}>
-                              <SearchOffRounded sx={{ fontSize: 36, color: '#64748B' }} />
-                           </Box>
-                           <Typography variant="h6" sx={{ color: '#0F2D4A', fontWeight: 800, mb: 0.8, fontSize: '1.15rem' }}>
-                              ไม่พบหนังสือที่ตรงกับเงื่อนไขการค้นหา
-                           </Typography>
-                           <Typography variant="body2" sx={{ color: '#64748B', mb: 3, maxWidth: 440, mx: 'auto', fontSize: '0.85rem' }}>
-                              ลองปรับเปลี่ยนคำค้นหา ขยายช่วงราคา หรือล้างตัวกรองทั้งหมดเพื่อดูหนังสือรายการอื่นในคลัง
-                           </Typography>
-                           <Button
-                              variant="contained"
-                              startIcon={<RestartAltRounded />}
-                              onClick={clearAllFilters}
-                              sx={{
-                                 borderRadius: 2.5,
-                                 px: 3,
-                                 py: 1,
-                                 fontWeight: 700,
-                                 textTransform: 'none',
-                                 bgcolor: '#1976D2',
-                                 boxShadow: 'none',
-                              }}>
-                              ล้างตัวกรองทั้งหมด
-                           </Button>
-                        </Paper>
-                     )
-                  ) : (
-                     <>
-                        <Box
-                           sx={{
-                              display: 'grid',
-                              gridTemplateColumns: {
-                                 xs: 'repeat(auto-fill, minmax(145px, 1fr))',
-                                 sm: 'repeat(auto-fill, minmax(175px, 1fr))',
-                                 md: 'repeat(auto-fill, minmax(195px, 1fr))',
-                                 lg: 'repeat(auto-fill, minmax(215px, 1fr))',
-                              },
-                              gap: { xs: 2, sm: 2.5, md: 3 },
-                              alignItems: 'stretch',
-                           }}>
-                           {paginatedBooks.map((book, index) => (
-                              <Box key={book.id} sx={{ height: '100%' }}>
-                                 <BookCard book={book} priority={index < 4} />
-                              </Box>
-                           ))}
-                        </Box>
-
-                        {/* Pagination Controls */}
-                        <BookPaginationControls totalPages={totalPages} currentPage={validPage} totalBooks={filteredBooks.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={handlePageChange} />
-                     </>
-                  )}
-               </Box>
-            </Box>
-         </Container>
-
-         {/* Mobile Filter Drawer */}
-         <Drawer
-            anchor="right"
-            open={mobileFilterOpen}
-            onClose={() => setMobileFilterOpen(false)}
-            slotProps={{
-               paper: {
-                  sx: { width: '85%', maxWidth: 360, p: 2 },
-               },
-            }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-               <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  ตัวกรองค้นหา
-               </Typography>
-               <IconButton onClick={() => setMobileFilterOpen(false)} aria-label="ปิดตัวกรอง">
-                  <CloseIcon />
-               </IconButton>
-            </Box>
-            <BookFilterSidebar
-               category={category}
-               condition={condition}
-               priceRange={priceRange}
-               onlyFavorites={onlyFavorites}
-               activeFiltersCount={activeFiltersCount}
-               onCategoryChange={(cat) => {
-                  handleCategoryChange(cat);
-                  setMobileFilterOpen(false);
-               }}
-               onConditionChange={(cond) => {
-                  handleConditionChange(cond);
-                  setMobileFilterOpen(false);
-               }}
-               onPriceChange={(val) => setPriceRange(val)}
-               onPriceChangeCommitted={handlePriceChangeCommitted}
-               onClearAll={() => {
-                  clearAllFilters();
-                  setMobileFilterOpen(false);
-               }}
-               onClearFavorite={() => {
+              sx={{
+                bgcolor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '1px solid #E5EAF0',
+                p: 2.25,
+                boxShadow: '0 1px 3px rgba(15, 47, 82, 0.02)',
+              }}
+            >
+              <BookFilterSidebar
+                category={category}
+                condition={condition}
+                priceRange={priceRange}
+                onlyFavorites={onlyFavorites}
+                activeFiltersCount={activeFiltersCount}
+                onCategoryChange={handleCategoryChange}
+                onConditionChange={handleConditionChange}
+                onPriceChange={(val) => setPriceRange(val)}
+                onPriceChangeCommitted={handlePriceChangeCommitted}
+                onClearAll={clearAllFilters}
+                onClearFavorite={() => {
                   searchParams.delete('favorite');
                   searchParams.delete('page');
                   setSearchParams(searchParams);
-                  setMobileFilterOpen(false);
-               }}
-            />
-         </Drawer>
-      </Box>
-   );
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* Book Grid Area */}
+          <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+            {filteredBooks.length === 0 ? (
+              /* Clean Minimal Empty State */
+              <Box
+                sx={{
+                  bgcolor: '#FFFFFF',
+                  borderRadius: '12px',
+                  border: '1px solid #E5EAF0',
+                  py: { xs: 6, sm: 8 },
+                  px: 3,
+                  textAlign: 'center',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    bgcolor: '#F1F5F9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2,
+                    color: '#64748B',
+                  }}
+                >
+                  <BookOpen size={24} />
+                </Box>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, color: '#0F2F52', mb: 0.5 }}
+                >
+                  ไม่พบหนังสือ
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#64748B', mb: 2.5, maxWidth: 360, mx: 'auto' }}
+                >
+                  ลองค้นหาด้วยคำอื่น หรือปรับตัวกรอง
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={clearAllFilters}
+                  sx={{
+                    bgcolor: '#1976D2',
+                    borderRadius: '8px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 2.5,
+                    py: 0.75,
+                    boxShadow: 'none',
+                    '&:hover': {
+                      bgcolor: '#1565C0',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  ล้างตัวกรอง
+                </Button>
+              </Box>
+            ) : (
+              <>
+                {/* Responsive CSS Grid (4 cols on 1280px+, 3 cols on 1024px, 2 cols on mobile/tablet) */}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      sm: 'repeat(2, 1fr)',
+                      md: 'repeat(3, 1fr)',
+                      lg: 'repeat(4, 1fr)',
+                    },
+                    gap: { xs: 1.75, sm: 2, md: 2.25 },
+                    alignItems: 'stretch',
+                  }}
+                >
+                  {paginatedBooks.map((book, index) => (
+                    <Box key={book.id} sx={{ height: '100%' }}>
+                      <BookCard book={book} priority={index < 4} />
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Compact Centered Pagination */}
+                <BookPaginationControls
+                  totalPages={totalPages}
+                  currentPage={validPage}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
+          </Box>
+        </Box>
+      </Container>
+
+      {/* Mobile Filter Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              width: '85%',
+              maxWidth: 320,
+              p: 2.5,
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+            pb: 1.5,
+            borderBottom: '1px solid #E2E8F0',
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0F2F52' }}>
+            ตัวกรอง
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setMobileFilterOpen(false)}
+            aria-label="ปิดตัวกรอง"
+            sx={{ color: '#64748B' }}
+          >
+            <CloseIcon size={18} />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5 }}>
+          <BookFilterSidebar
+            category={category}
+            condition={condition}
+            priceRange={priceRange}
+            onlyFavorites={onlyFavorites}
+            activeFiltersCount={activeFiltersCount}
+            onCategoryChange={(cat) => {
+              handleCategoryChange(cat);
+              setMobileFilterOpen(false);
+            }}
+            onConditionChange={(cond) => {
+              handleConditionChange(cond);
+              setMobileFilterOpen(false);
+            }}
+            onPriceChange={(val) => setPriceRange(val)}
+            onPriceChangeCommitted={handlePriceChangeCommitted}
+            onClearAll={() => {
+              clearAllFilters();
+              setMobileFilterOpen(false);
+            }}
+            onClearFavorite={() => {
+              searchParams.delete('favorite');
+              searchParams.delete('page');
+              setSearchParams(searchParams);
+              setMobileFilterOpen(false);
+            }}
+          />
+        </Box>
+
+        <Box sx={{ pt: 2, borderTop: '1px solid #E2E8F0', mt: 'auto' }}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => setMobileFilterOpen(false)}
+            sx={{
+              bgcolor: '#1976D2',
+              borderRadius: '8px',
+              fontWeight: 700,
+              textTransform: 'none',
+              py: 1,
+              boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#1565C0',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            ดูผลลัพธ์ ({filteredBooks.length} เล่ม)
+          </Button>
+        </Box>
+      </Drawer>
+    </Box>
+  );
 }

@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Paper,
-  Typography,
-  Divider,
-  Box,
-  Button,
-} from '@mui/material';
-import {
-  ShieldOutlined as ShieldIcon,
-  LocalShippingOutlined as ShippingIcon,
-} from '@mui/icons-material';
+import { Typography, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { AnimatedCounter } from '../common/AnimatedCounter';
@@ -21,6 +11,10 @@ interface CartOrderSummaryProps {
   onCheckout: () => void;
 }
 
+/**
+ * CartOrderSummary — tonal summary surface (#E8EEF5) on the
+ * #F5F7FA page. Distinct functional area, subtle border, no shadow.
+ */
 export const CartOrderSummary: React.FC<CartOrderSummaryProps> = ({
   cartCount,
   subtotal,
@@ -30,90 +24,115 @@ export const CartOrderSummary: React.FC<CartOrderSummaryProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 2.5, sm: 3.5 },
-        borderRadius: 3,
-        border: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
-        position: { xs: 'static', md: 'sticky' },
-        top: 90,
-      }}
+    <Box
+      component="aside"
+      aria-label="สรุปรายการคำสั่งซื้อ"
+      sx={{ position: { md: 'sticky' }, top: 88 }}
     >
-      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 1 }}>
-        สรุปรายการคำสั่งซื้อ
+      <Typography
+        variant="h2"
+        sx={{ fontWeight: 700, color: '#102A43', fontSize: '1.125rem', letterSpacing: '-0.01em', mb: 0 }}
+      >
+        สรุปคำสั่งซื้อ
       </Typography>
-      <Divider sx={{ my: 2 }} />
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography sx={{ color: 'text.secondary' }}>ยอดรวมสินค้า ({cartCount} เล่ม)</Typography>
-        <Typography sx={{ fontWeight: 600 }}>{formatCurrency(subtotal)}</Typography>
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography sx={{ color: 'text.secondary' }}>ค่าจัดส่ง (Demo)</Typography>
-        <Typography sx={{ fontWeight: 600, color: 'success.main' }}>
-          ฟรี (ส่งเสริมการอ่าน)
-        </Typography>
-      </Box>
-
-      {savings > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-          <Typography sx={{ color: 'success.main' }}>ประหยัดได้ทั้งหมด</Typography>
-          <Typography sx={{ color: 'success.main', fontWeight: 'bold' }}>
-            - {formatCurrency(savings)}
-          </Typography>
-        </Box>
-      )}
-
-      <Divider sx={{ my: 2 }} />
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          ยอดชำระสุทธิ
-        </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          <AnimatedCounter value={subtotal} />
-        </Typography>
-      </Box>
-
-      <Button
-        variant="contained"
-        fullWidth
-        size="large"
-        onClick={onCheckout}
+      <Box
         sx={{
-          py: 1.6,
-          fontSize: '1.05rem',
-          fontWeight: 700,
-          borderRadius: 2,
-          mb: 1.5,
+          bgcolor: '#FFFFFF',
+          border: '1px solid #D6E0EA',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(15, 53, 87, 0.06)',
+          mt: 2,
+          p: { xs: 2.5, md: 3 },
         }}
       >
-        ดำเนินการชำระเงิน
-      </Button>
-
-      <Button
-        variant="outlined"
-        fullWidth
-        onClick={() => navigate('/books')}
-        sx={{ borderRadius: 2 }}
-      >
-        เลือกซื้อหนังสือต่อ
-      </Button>
-
-      {/* Trust Badges */}
-      <Box sx={{ mt: 3, pt: 2.5, borderTop: '1px solid #F0F4F8' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'text.secondary' }}>
-          <ShieldIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
-          <Typography variant="caption">การจำลองคำสั่งซื้อปลอดภัย ไม่มีการตัดเงินจริง</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1.5 }}>
+          <Typography sx={{ color: '#62748A', fontSize: '0.9rem' }}>
+            สินค้า ({cartCount} เล่ม)
+          </Typography>
+          <Typography sx={{ fontWeight: 600, color: '#102A43', fontSize: '0.95rem', fontVariantNumeric: 'tabular-nums' }}>
+            {formatCurrency(subtotal)}
+          </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-          <ShippingIcon sx={{ fontSize: 18, color: 'success.main' }} />
-          <Typography variant="caption">ส่งเสริมวงจรหมุนเวียนหนังสือและลดทรัพยากร</Typography>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1.5 }}>
+          <Typography sx={{ color: '#62748A', fontSize: '0.9rem' }}>ค่าจัดส่ง</Typography>
+          <Typography sx={{ fontWeight: 700, color: '#18864B', fontSize: '0.9rem' }}>
+            ฟรี
+          </Typography>
         </Box>
+
+        {savings > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1.5 }}>
+            <Typography sx={{ color: '#18864B', fontSize: '0.9rem' }}>ประหยัดได้ทั้งหมด</Typography>
+            <Typography sx={{ color: '#18864B', fontWeight: 700, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}>
+              − {formatCurrency(savings)}
+            </Typography>
+          </Box>
+        )}
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            mt: 2.5,
+            pt: 2,
+            borderTop: '1px solid #D6E0EA',
+          }}
+        >
+          <Typography sx={{ fontWeight: 700, color: '#102A43', fontSize: '0.95rem' }}>
+            ยอดชำระสุทธิ
+          </Typography>
+          <Typography
+            sx={{ fontWeight: 800, color: '#102A43', fontSize: '1.75rem', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}
+            aria-label={`ยอดชำระสุทธิ ${formatCurrency(subtotal)}`}
+          >
+            <AnimatedCounter value={subtotal} />
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          fullWidth
+          size="large"
+          onClick={onCheckout}
+          sx={{
+            mt: 2.5,
+            minHeight: 52,
+            py: 1.5,
+            fontSize: '1rem',
+            fontWeight: 800,
+            borderRadius: '8px',
+            bgcolor: '#1976D2',
+            boxShadow: 'none',
+            whiteSpace: 'nowrap',
+            '&:hover': { bgcolor: '#1565C0', boxShadow: 'none' },
+            '&:focus-visible': { outline: '2px solid #0F3557', outlineOffset: '2px' },
+          }}
+        >
+          ดำเนินการชำระเงิน
+        </Button>
+
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={() => navigate('/books')}
+          sx={{
+            mt: 1.5,
+            minHeight: 48,
+            borderRadius: '8px',
+            borderColor: '#D6E0EA',
+            color: '#0F3557',
+            fontWeight: 700,
+            bgcolor: '#FFFFFF',
+            '&:hover': { borderColor: '#1976D2', color: '#1976D2', bgcolor: '#FFFFFF' },
+            '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+          }}
+        >
+          เลือกซื้อหนังสือต่อ
+        </Button>
       </Box>
-    </Paper>
+    </Box>
   );
 };

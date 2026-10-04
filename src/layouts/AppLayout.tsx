@@ -8,7 +8,6 @@ import { Header } from '../components/layout/Header';
 import { AppMobileDrawer } from '../components/layout/AppMobileDrawer';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { Footer } from '../components/layout/Footer';
-import { ScrollProgressBar } from '../components/common/ScrollProgressBar';
 
 export const AppLayout: React.FC = () => {
    const { cartCount } = useCart();
@@ -38,7 +37,6 @@ export const AppLayout: React.FC = () => {
 
    return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-         <ScrollProgressBar />
          <Header
             cartCount={cartCount}
             wishlistCount={wishlist.length}
@@ -56,7 +54,7 @@ export const AppLayout: React.FC = () => {
                flexGrow: 1,
                display: 'flex',
                flexDirection: 'column',
-               pt: isHomePage ? 0 : { xs: '68px', sm: '76px', md: '84px' },
+               pt: isHomePage ? 0 : { xs: '64px', sm: '68px', md: '72px' },
             }}>
             <Outlet />
          </Box>

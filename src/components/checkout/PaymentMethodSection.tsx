@@ -2,17 +2,14 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Radio,
   Chip,
   Alert,
 } from '@mui/material';
 import {
-  PaymentOutlined as PaymentIcon,
   QrCodeScanner as QrIcon,
   AccountBalanceWalletOutlined as WalletIcon,
   LocalAtmOutlined as CodIcon,
-  CheckCircle as ActiveCheckIcon,
   InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 import { PaymentMethod, PaymentStatus } from '../../types/order';
@@ -66,60 +63,62 @@ export const PaymentMethodSection: React.FC<PaymentMethodSectionProps> = ({
   onPaymentStatusChange,
 }) => {
   return (
-    <Paper
-      elevation={0}
+    <Box
+      component="section"
+      aria-label="วิธีการชำระเงิน"
       sx={{
         p: { xs: 2.5, sm: 3.5 },
-        borderRadius: 3,
-        border: '1px solid #E2E8F0',
+        borderRadius: '10px',
+        border: '1px solid #D6E0EA',
         bgcolor: '#FFFFFF',
+        boxShadow: '0 2px 8px rgba(15, 53, 87, 0.04)',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 2,
-            bgcolor: 'rgba(16, 42, 67, 0.08)',
-            color: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2.5 }}>
+        <Typography
+          aria-hidden
+          sx={{ fontWeight: 800, color: '#1976D2', fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}
         >
-          <PaymentIcon sx={{ fontSize: 20 }} />
-        </Box>
+          03
+        </Typography>
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.1rem' }}>
-            3. วิธีการชำระเงิน
+          <Typography variant="h2" sx={{ fontWeight: 700, color: '#102A43', fontSize: '1.15rem', letterSpacing: '-0.01em' }}>
+            วิธีการชำระเงิน
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ color: '#62748A' }}>
             เลือกช่องทางชำระเงินที่ต้องการ
           </Typography>
         </Box>
       </Box>
 
       {/* Payment Options List */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {PAYMENT_OPTIONS.map((opt) => {
           const isSelected = selectedMethod === opt.id;
           return (
-            <Paper
+            <Box
               key={opt.id}
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={0}
               onClick={() => onSelectMethod(opt.id)}
-              elevation={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectMethod(opt.id);
+                }
+              }}
               sx={{
                 p: 2.5,
-                borderRadius: 2.5,
-                border: isSelected ? '2px solid #102A43' : '1px solid #E2E8F0',
-                bgcolor: isSelected ? 'rgba(16, 42, 67, 0.02)' : '#FFFFFF',
+                borderRadius: '8px',
+                border: isSelected ? '2px solid #1976D2' : '1px solid #D6E0EA',
+                bgcolor: isSelected ? 'rgba(25, 118, 210, 0.04)' : '#FFFFFF',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative',
+                transition: 'border-color 180ms ease',
                 '&:hover': {
-                  borderColor: isSelected ? '#102A43' : '#94A3B8',
+                  borderColor: isSelected ? '#1976D2' : '#94A3B8',
                 },
+                '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
@@ -176,7 +175,7 @@ export const PaymentMethodSection: React.FC<PaymentMethodSectionProps> = ({
                   )}
                 </Box>
               </Box>
-            </Paper>
+            </Box>
           );
         })}
       </Box>
@@ -191,10 +190,10 @@ export const PaymentMethodSection: React.FC<PaymentMethodSectionProps> = ({
       )}
 
       {selectedMethod === 'cod' && (
-        <Alert severity="info" sx={{ mt: 2.5, borderRadius: 2 }}>
+        <Alert severity="info" sx={{ mt: 2.5, borderRadius: '8px' }}>
           คุณเลือกชำระเงินปลายทาง (Cash on Delivery) เจ้าหน้าที่ขนส่งจะโทรนัดหมายล่วงหน้าก่อนนำจ่ายพัสดุ
         </Alert>
       )}
-    </Paper>
+    </Box>
   );
 };

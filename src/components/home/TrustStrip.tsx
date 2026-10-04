@@ -1,53 +1,56 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import {
-  LocalOfferOutlined as TagIcon,
-  VerifiedUserOutlined as ShieldIcon,
-  AutoStoriesOutlined as BookIcon,
-  SyncAltOutlined as LoopIcon,
-} from '@mui/icons-material';
-import { AppContainer } from '../common/Container';
+import { Tag, ShieldCheck, BookOpen, ArrowLeftRight } from 'lucide-react';
 
 interface TrustItem {
   icon: React.ReactNode;
   iconBg: string;
+  iconColor: string;
   title: string;
   subtitle: string;
 }
 
-const trustItems: TrustItem[] = [
+const benefits: TrustItem[] = [
   {
-    icon: <TagIcon sx={{ fontSize: 22, color: '#10B981' }} />,
+    icon: <Tag size={16} strokeWidth={2.2} />,
     iconBg: '#E8F5E9',
+    iconColor: '#10B981',
     title: 'ประหยัดได้ 40-70%',
     subtitle: 'เมื่อเทียบกับราคาปกมือหนึ่ง',
   },
   {
-    icon: <ShieldIcon sx={{ fontSize: 22, color: '#1976D2' }} />,
+    icon: <ShieldCheck size={16} strokeWidth={2.2} />,
     iconBg: '#EAF4FF',
+    iconColor: '#1976D2',
     title: 'ระบุสภาพทุกเล่ม',
     subtitle: 'มีรูปจริงและคำอธิบายจากผู้ขาย',
   },
   {
-    icon: <BookIcon sx={{ fontSize: 22, color: '#D97706' }} />,
+    icon: <BookOpen size={16} strokeWidth={2.2} />,
     iconBg: '#FFFBEB',
+    iconColor: '#D97706',
     title: 'เรื่องราวจากเจ้าของเดิม',
     subtitle: 'อ่านบันทึกที่เจ้าของเล่มเขียนไว้',
   },
   {
-    icon: <LoopIcon sx={{ fontSize: 22, color: '#1976D2' }} />,
+    icon: <ArrowLeftRight size={16} strokeWidth={2.2} />,
     iconBg: '#EAF4FF',
+    iconColor: '#1976D2',
     title: 'ส่งต่อได้หลายรอบ',
     subtitle: 'อ่านจบแล้วส่งต่อให้คนถัดไป',
   },
 ];
 
+// Duplicate 4x so one half of the track (2 sets) always exceeds the viewport.
+// Animating translateX(0 → -50%) then loops seamlessly outside the visible area.
+const marqueeItems: TrustItem[] = [...benefits, ...benefits, ...benefits, ...benefits];
+
 /**
- * TrustStrip component.
- * Floating rounded white capsule matching the Mainimages.png reference prototype.
- * - Single unified horizontal capsule (borderRadius: 24)
- * - Subtle vertical separators
- * - Soft elevation and colorful circular icon badges
+ * TrustStrip — auto-scrolling infinite benefit marquee.
+ * - GPU-friendly CSS transform animation (no JS loop, no setState per frame)
+ * - Seamless loop via duplicated track + translateX(-50%)
+ * - Edge fade mask, hover-pause, reduced-motion respected
+ * - Compact cards (~20% smaller): 250–290px desktop, 220–250px mobile
  */
 export const TrustStrip: React.FC = () => {
   return (
@@ -57,70 +60,93 @@ export const TrustStrip: React.FC = () => {
       sx={{
         position: 'relative',
         zIndex: 20,
-        py: { xs: 3, md: 4 },
-        mt: { xs: -2, md: -3 },
+        py: { xs: 2.5, md: 3.5 },
+        mt: { xs: -1.5, md: -2.5 },
+        overflow: 'hidden',
       }}
     >
-      <AppContainer>
-        {/* Floating Capsule Container */}
+      {/* Edge-fade marquee viewport */}
+      <Box
+        className="trust-marquee"
+        sx={{
+          overflow: 'hidden',
+          // Subtle left/right fade so cards enter & leave naturally
+          WebkitMaskImage:
+            'linear-gradient(to right, transparent 0, black 48px, black calc(100% - 48px), transparent 100%)',
+          maskImage:
+            'linear-gradient(to right, transparent 0, black 48px, black calc(100% - 48px), transparent 100%)',
+          '@media (max-width: 768px)': {
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%)',
+            maskImage:
+              'linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%)',
+          },
+        }}
+      >
+        {/* Animated track */}
         <Box
+          className="trust-marquee-track"
           sx={{
-            bgcolor: '#FFFFFF',
-            borderRadius: { xs: 4, md: 6 },
-            p: { xs: 2.5, sm: 3, md: '20px 36px' },
-            boxShadow: '0 16px 40px -8px rgba(15, 45, 74, 0.09), 0 2px 8px rgba(15, 45, 74, 0.03)',
-            border: '1px solid #EDF2F7',
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(2, 1fr)',
-              md: 'repeat(4, 1fr)',
-            },
-            gap: { xs: 2, sm: 3, md: 4 },
-            alignItems: 'center',
+            display: 'flex',
+            width: 'max-content',
+            alignItems: 'stretch',
+            py: 1,
+            willChange: 'transform',
           }}
         >
-          {trustItems.map((item, index) => (
+          {marqueeItems.map((item, index) => (
             <Box
               key={index}
+              aria-hidden={index >= benefits.length ? true : undefined}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: { xs: 1.25, sm: 1.75, md: 2 },
-                px: { md: 1 },
-                borderRight: {
-                  md: index < trustItems.length - 1 ? '1px solid #EEF2F6' : 'none',
-                },
+                gap: 1.25,
+                flexShrink: 0,
+                width: { xs: 232, sm: 248, md: 268 },
+                minHeight: { xs: 72, md: 78 },
+                maxHeight: { xs: 80, md: 86 },
+                mr: { xs: 1.5, md: 2 },
+                px: { xs: 1.5, md: 1.75 },
+                py: 1.25,
+                bgcolor: 'rgba(255, 255, 255, 0.92)',
+                border: '1px solid rgba(25, 118, 210, 0.10)',
+                borderRadius: '22px',
+                boxShadow:
+                  '0 10px 24px -10px rgba(15, 45, 74, 0.12), 0 2px 6px rgba(15, 45, 74, 0.04)',
+                backdropFilter: 'blur(6px)',
               }}
             >
-              {/* Circular Icon Container */}
+              {/* Small colored circular icon */}
               <Box
                 sx={{
-                  width: { xs: 36, sm: 42, md: 44 },
-                  height: { xs: 36, sm: 42, md: 44 },
+                  width: { xs: 30, md: 34 },
+                  height: { xs: 30, md: 34 },
                   borderRadius: '50%',
                   bgcolor: item.iconBg,
+                  color: item.iconColor,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  '& .MuiSvgIcon-root': {
-                    fontSize: { xs: 18, sm: 22 },
-                  },
                 }}
               >
                 {item.icon}
               </Box>
 
-              {/* Text Info */}
+              {/* Text */}
               <Box sx={{ minWidth: 0 }}>
                 <Typography
                   variant="subtitle2"
                   sx={{
                     fontWeight: 700,
-                    color: '#0F2D4A',
-                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: '0.95rem' },
-                    lineHeight: 1.25,
+                    color: '#102A43',
+                    fontSize: { xs: '0.76rem', md: '0.82rem' },
+                    lineHeight: 1.3,
                     letterSpacing: '-0.01em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   {item.title}
@@ -129,10 +155,13 @@ export const TrustStrip: React.FC = () => {
                   variant="caption"
                   sx={{
                     color: '#627D98',
-                    fontSize: { xs: '0.7rem', sm: '0.78rem', md: '0.8rem' },
+                    fontSize: { xs: '0.66rem', md: '0.7rem' },
                     display: 'block',
-                    lineHeight: 1.25,
+                    lineHeight: 1.3,
                     mt: 0.25,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   {item.subtitle}
@@ -141,7 +170,7 @@ export const TrustStrip: React.FC = () => {
             </Box>
           ))}
         </Box>
-      </AppContainer>
+      </Box>
     </Box>
   );
 };

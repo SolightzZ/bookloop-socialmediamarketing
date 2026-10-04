@@ -27,11 +27,14 @@ export const Hero: React.FC<HeroProps> = ({
   onSearchSubmit,
 }) => {
   const heroRef = useRef<HTMLDivElement>(null);
-  const mousePos = useRef({ x: 0, y: 0 });
-  const currentPos = useRef({ x: 0, y: 0 });
+  const mousePos = useRef({ x: 0.5, y: 0.5 });
+  const currentPos = useRef({ x: 0.5, y: 0.5 });
   const animationFrame = useRef<number | null>(null);
   const isTouchDevice = useRef(false);
   const isHeroVisible = useRef(true);
+  const isAnimating = useRef(false);
+  const cachedEls = useRef<{ el: HTMLElement; mul: number }[] | null>(null);
+  const heroRect = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
 
   const springConfig = { stiffness: 0.04, damping: 0.88 };
 
@@ -46,30 +49,41 @@ export const Hero: React.FC<HeroProps> = ({
 
   const updateParallax = useCallback(() => {
     if (isTouchDevice.current || !isHeroVisible.current) {
-      animationFrame.current = requestAnimationFrame(updateParallax);
+      isAnimating.current = false;
       return;
     }
 
     const dx = mousePos.current.x - currentPos.current.x;
     const dy = mousePos.current.y - currentPos.current.y;
+
+    // Settle threshold: sleep when stationary to prevent layout thrashing & CPU burn
+    if (Math.abs(dx) < 0.0004 && Math.abs(dy) < 0.0004) {
+      isAnimating.current = false;
+      return;
+    }
+
     currentPos.current.x += dx * springConfig.stiffness;
     currentPos.current.y += dy * springConfig.stiffness;
 
-    const els = heroRef.current?.querySelectorAll<HTMLElement>('[data-parallax]');
-    els?.forEach((el) => {
-      const key = el.getAttribute('data-parallax') || 'glow';
-      const mul = parallaxMultipliers[key] ?? 2;
-      const ox = (currentPos.current.x - 0.5) * mul;
-      const oy = (currentPos.current.y - 0.5) * mul;
-      el.style.setProperty('--parallax-x', `${ox}px`);
-      el.style.setProperty('--parallax-y', `${oy}px`);
-      // Combine with CSS animation transform via extra wrapper would be ideal;
-      // we use translate on a CSS variable so keyframe animations (which also
-      // set transform) are not clobbered — consume via filter in CSS if needed.
-      // For now use direct translate3d but preserve via translate layer:
-      // Apply as additional translate that stacks with animation's transform.
-      el.style.transform = `translate3d(${ox}px, ${oy}px, 0)`;
-    });
+    if (!cachedEls.current && heroRef.current) {
+      const nodeList = heroRef.current.querySelectorAll<HTMLElement>('[data-parallax]');
+      cachedEls.current = Array.from(nodeList).map((el) => {
+        const key = el.getAttribute('data-parallax') || 'glow';
+        return { el, mul: parallaxMultipliers[key] ?? 2 };
+      });
+    }
+
+    const items = cachedEls.current;
+    if (items) {
+      const px = currentPos.current.x - 0.5;
+      const py = currentPos.current.y - 0.5;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const ox = px * item.mul;
+        const oy = py * item.mul;
+        item.el.style.transform = `translate3d(${ox}px, ${oy}px, 0)`;
+      }
+    }
 
     animationFrame.current = requestAnimationFrame(updateParallax);
   }, []);
@@ -87,11 +101,39 @@ export const Hero: React.FC<HeroProps> = ({
       isTouchDevice.current = true;
     }
 
+    const updateHeroRect = () => {
+      if (heroRef.current) {
+        const r = heroRef.current.getBoundingClientRect();
+        heroRect.current = {
+          left: r.left,
+          top: r.top,
+          width: r.width || 1,
+          height: r.height || 1,
+        };
+      }
+    };
+    updateHeroRect();
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (isTouchDevice.current || !heroRef.current) return;
-      const rect = heroRef.current.getBoundingClientRect();
+      if (isTouchDevice.current || !isHeroVisible.current) return;
+      let rect = heroRect.current;
+      if (!rect) {
+        updateHeroRect();
+        rect = heroRect.current;
+      }
+      if (!rect) return;
       mousePos.current.x = (e.clientX - rect.left) / rect.width;
       mousePos.current.y = (e.clientY - rect.top) / rect.height;
+
+      // Wake up animation loop on pointer movement
+      if (!isAnimating.current) {
+        isAnimating.current = true;
+        animationFrame.current = requestAnimationFrame(updateParallax);
+      }
+    };
+
+    const handleScrollOrResize = () => {
+      updateHeroRect();
     };
 
     // Pause expensive bg animations when Hero leaves viewport
@@ -101,6 +143,14 @@ export const Hero: React.FC<HeroProps> = ({
         if (heroRef.current) {
           heroRef.current.classList.toggle('hero-paused', !entry.isIntersecting);
         }
+        if (!entry.isIntersecting) {
+          if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
+          isAnimating.current = false;
+        } else if (!isAnimating.current && !isTouchDevice.current) {
+          updateHeroRect();
+          isAnimating.current = true;
+          animationFrame.current = requestAnimationFrame(updateParallax);
+        }
       },
       { threshold: 0.05 },
     );
@@ -108,13 +158,19 @@ export const Hero: React.FC<HeroProps> = ({
 
     if (!isTouchDevice.current) {
       window.addEventListener('mousemove', handleMouseMove, { passive: true });
+      window.addEventListener('resize', handleScrollOrResize, { passive: true });
+      window.addEventListener('scroll', handleScrollOrResize, { passive: true });
+      isAnimating.current = true;
       animationFrame.current = requestAnimationFrame(updateParallax);
     }
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize);
       observer.disconnect();
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
+      isAnimating.current = false;
     };
   }, [updateParallax]);
 

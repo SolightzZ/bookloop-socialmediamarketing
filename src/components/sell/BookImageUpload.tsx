@@ -1,37 +1,27 @@
-import React, { useState, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  LinearProgress,
-  Alert,
-  Tooltip,
-} from '@mui/material';
-import {
-  CloudUploadOutlined as UploadIcon,
-  DeleteOutlineRounded as DeleteIcon,
-  CachedRounded as ReplaceIcon,
-  CheckCircleRounded as SuccessIcon,
-  WbSunnyOutlined,
-  ImportContactsRounded,
-  SearchRounded,
-  AddPhotoAlternateRounded,
-} from '@mui/icons-material';
+import React, { useRef, useState } from 'react';
+import { Box, Typography, Button, IconButton, FormHelperText } from '@mui/material';
+import { UploadCloud, X, Plus } from 'lucide-react';
+import { compressImageToDataUrl } from '../../utils/imageCompressor';
 
 export interface BookImageUploadProps {
-  imagePreview: string | null;
-  onImageSelected: (dataUrl: string) => void;
-  onImageRemoved: () => void;
+  images?: string[];
+  onImagesChange?: (images: string[]) => void;
+  // Legacy / fallback props
+  imagePreview?: string | null;
+  onImageSelected?: (dataUrl: string) => void;
+  onImageRemoved?: () => void;
   error?: string | null;
   touched?: boolean;
 }
 
+const MAX_IMAGES = 5;
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export const BookImageUpload: React.FC<BookImageUploadProps> = ({
+  images,
+  onImagesChange,
   imagePreview,
   onImageSelected,
   onImageRemoved,
@@ -40,59 +30,79 @@ export const BookImageUpload: React.FC<BookImageUploadProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  const validateAndProcessFile = (file: File) => {
+  // Normalize image list: support either images array or single imagePreview
+  const currentImages: string[] = React.useMemo(() => {
+    if (images && images.length > 0) return images;
+    if (imagePreview) return [imagePreview];
+    return [];
+  }, [images, imagePreview]);
+
+  const updateImages = (newImages: string[]) => {
+    if (onImagesChange) {
+      onImagesChange(newImages);
+    }
+    if (onImageSelected && newImages.length > 0) {
+      onImageSelected(newImages[0]);
+    } else if (onImageRemoved && newImages.length === 0) {
+      onImageRemoved();
+    }
+  };
+
+  const processFiles = (fileList: FileList | File[]) => {
     setClientError(null);
+    const files = Array.from(fileList);
+    const remainingSlots = MAX_IMAGES - currentImages.length;
 
-    const fileType = file.type.toLowerCase();
-    const isAllowedType =
-      ALLOWED_MIME_TYPES.includes(fileType) ||
-      file.name.toLowerCase().endsWith('.jpg') ||
-      file.name.toLowerCase().endsWith('.jpeg') ||
-      file.name.toLowerCase().endsWith('.png') ||
-      file.name.toLowerCase().endsWith('.webp');
-
-    if (!isAllowedType) {
-      setClientError('รูปแบบไฟล์ไม่ถูกต้อง รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP');
+    if (remainingSlots <= 0) {
+      setClientError(`สามารถเพิ่มรูปได้สูงสุด ${MAX_IMAGES} รูป`);
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setClientError(`ขนาดไฟล์ใหญ่เกินกำหนด (ขนาดไฟล์สูงสุดไม่เกิน ${MAX_FILE_SIZE_MB} MB)`);
-      return;
-    }
+    const filesToProcess = files.slice(0, remainingSlots);
 
-    setIsUploading(true);
-    setUploadProgress(30);
+    Promise.all(
+      filesToProcess.map(async (file) => {
+        const fileType = file.type.toLowerCase();
+        const isAllowed =
+          ALLOWED_MIME_TYPES.includes(fileType) ||
+          file.name.toLowerCase().endsWith('.jpg') ||
+          file.name.toLowerCase().endsWith('.jpeg') ||
+          file.name.toLowerCase().endsWith('.png') ||
+          file.name.toLowerCase().endsWith('.webp');
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadProgress(80);
-      setTimeout(() => {
-        setUploadProgress(100);
-        setTimeout(() => {
-          setIsUploading(false);
-          const result = e.target?.result as string;
-          onImageSelected(result);
-        }, 120);
-      }, 150);
-    };
+        if (!isAllowed) {
+          throw new Error('รูปแบบไฟล์ไม่ถูกต้อง รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP');
+        }
 
-    reader.onerror = () => {
-      setIsUploading(false);
-      setClientError('เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ กรุณาลองใหม่อีกครั้ง');
-    };
-
-    reader.readAsDataURL(file);
+        // ย่อและบีบอัดรูปภาพให้อยู่ในขนาด < 480KB เสมอ ป้องกัน Payload ใหญ่เกินกำหนด
+        return compressImageToDataUrl(file, {
+          maxDimension: 1280,
+          maxSizeBytes: 480 * 1024,
+          initialQuality: 0.82,
+        });
+      })
+    )
+      .then((compressedImages) => {
+        updateImages([...currentImages, ...compressedImages]);
+      })
+      .catch((err) => {
+        setClientError(err?.message || 'เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
+      });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      validateAndProcessFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(e.target.files);
+      // Reset input value so same file can be re-uploaded if needed
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    const updated = currentImages.filter((_, idx) => idx !== indexToRemove);
+    updateImages(updated);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -111,152 +121,56 @@ export const BookImageUpload: React.FC<BookImageUploadProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      validateAndProcessFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
     }
   };
 
+  const displayError = (touched && error) || clientError;
+
   return (
     <Box sx={{ width: '100%' }}>
-      {/* 3 Modern Photography Tips */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-          gap: 1.2,
-          mb: 2,
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            p: 1.2,
-            bgcolor: '#F0FDF4',
-            borderRadius: 2,
-            border: '1px solid #DCFCE7',
-          }}
-        >
-          <WbSunnyOutlined sx={{ fontSize: 18, color: '#16A34A' }} />
-          <Typography variant="caption" sx={{ color: '#15803D', fontWeight: 600, fontSize: '0.75rem' }}>
-            ถ่ายในที่แสงธรรมชาติชัดเจน
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            p: 1.2,
-            bgcolor: '#EFF6FF',
-            borderRadius: 2,
-            border: '1px solid #DBEAFE',
-          }}
-        >
-          <ImportContactsRounded sx={{ fontSize: 18, color: '#2563EB' }} />
-          <Typography variant="caption" sx={{ color: '#1D4ED8', fontWeight: 600, fontSize: '0.75rem' }}>
-            ถ่ายทั้งหน้าปกและสันหนังสือ
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            p: 1.2,
-            bgcolor: '#FEF3C7',
-            borderRadius: 2,
-            border: '1px solid #FDE68A',
-          }}
-        >
-          <SearchRounded sx={{ fontSize: 18, color: '#D97706' }} />
-          <Typography variant="caption" sx={{ color: '#B45309', fontWeight: 600, fontSize: '0.75rem' }}>
-            ซูมจุดตำหนิเพื่อความโปร่งใส
-          </Typography>
-        </Box>
-      </Box>
-
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/jpeg,image/png,image/webp"
         onChange={handleFileChange}
         style={{ display: 'none' }}
-        id="book-image-file-input"
+        id="book-image-upload-input"
       />
 
-      {/* Image Preview or Upload Zone */}
-      {imagePreview ? (
-        <Box
+      {/* Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          variant="subtitle1"
+          component="h2"
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2.5,
-            p: 2,
-            borderRadius: 3,
-            border: '1.5px solid #CBD5E1',
-            bgcolor: '#F8FAFC',
+            fontWeight: 700,
+            color: '#0F2F52',
+            fontSize: '1.05rem',
+            lineHeight: 1.3,
           }}
         >
-          <Box
-            component="img"
-            src={imagePreview}
-            alt="ภาพตัวอย่างหนังสือ"
-            sx={{
-              width: 100,
-              height: 130,
-              objectFit: 'cover',
-              borderRadius: 2,
-              boxShadow: '0 4px 10px rgba(15, 45, 74, 0.12)',
-              border: '1px solid #E2E8F0',
-            }}
-          />
+          รูปหนังสือ <Box component="span" sx={{ color: '#EF4444' }}>*</Box>
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#64748B',
+            fontSize: '0.825rem',
+            display: 'block',
+            mt: 0.25,
+          }}
+        >
+          เพิ่มรูปเพื่อให้ผู้ซื้อเห็นสภาพจริง
+        </Typography>
+      </Box>
 
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#16A34A', mb: 0.5 }}>
-              <SuccessIcon sx={{ fontSize: 18 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.875rem' }}>
-                อัปโหลดรูปภาพหนังสือเรียบร้อย
-              </Typography>
-            </Box>
-            <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mb: 2, fontSize: '0.78rem' }}>
-              รูปภาพนี้จะแสดงเป็นหน้าปกหลักในหน้ารายการหนังสือและผลการค้นหา
-            </Typography>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<ReplaceIcon sx={{ fontSize: 16 }} />}
-                onClick={() => fileInputRef.current?.click()}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderColor: '#CBD5E1',
-                  color: '#0F2D4A',
-                }}
-              >
-                เปลี่ยนรูปภาพ
-              </Button>
-              <Tooltip title="ลบรูปภาพนี้">
-                <IconButton
-                  size="small"
-                  onClick={onImageRemoved}
-                  sx={{ color: '#EF4444', bgcolor: '#FEE2E2', borderRadius: 2 }}
-                >
-                  <DeleteIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-        </Box>
-      ) : (
+      {/* Uploader / Thumbnails */}
+      {currentImages.length === 0 ? (
+        /* Empty State: Compact Upload Area */
         <Box
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -264,9 +178,10 @@ export const BookImageUpload: React.FC<BookImageUploadProps> = ({
           onClick={() => fileInputRef.current?.click()}
           sx={{
             border: isDragging ? '2px dashed #1976D2' : '2px dashed #CBD5E1',
-            bgcolor: isDragging ? '#EFF6FF' : '#F8FAFC',
-            borderRadius: 3.5,
-            p: { xs: 3, sm: 4 },
+            borderRadius: '14px',
+            bgcolor: isDragging ? '#F0F7FF' : '#F8FAFD',
+            py: { xs: 3.5, sm: 4 },
+            px: 2,
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -278,61 +193,243 @@ export const BookImageUpload: React.FC<BookImageUploadProps> = ({
         >
           <Box
             sx={{
-              width: 52,
-              height: 52,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
-              bgcolor: isDragging ? '#DBEAFE' : '#EAF4FF',
+              bgcolor: '#EAF4FF',
               color: '#1976D2',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               mx: 'auto',
-              mb: 1.5,
+              mb: 1.25,
             }}
           >
-            {isDragging ? <AddPhotoAlternateRounded sx={{ fontSize: 28 }} /> : <UploadIcon sx={{ fontSize: 28 }} />}
+            <UploadCloud size={24} strokeWidth={2} />
           </Box>
 
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F2D4A', mb: 0.5, fontSize: '0.95rem' }}>
-            คลิกเพื่อเลือกไฟล์ หรือลากรูปภาพมาวางที่นี่
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              color: '#0F2F52',
+              fontSize: '0.9375rem',
+              mb: 0.5,
+            }}
+          >
+            เพิ่มรูปหนังสือ
           </Typography>
 
-          <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mb: 1.5, fontSize: '0.78rem' }}>
-            รองรับไฟล์ JPG, PNG หรือ WEBP (ขนาดไม่เกิน 5 MB)
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#64748B',
+              fontSize: '0.78rem',
+              display: 'block',
+              mb: 1.75,
+            }}
+          >
+            JPG, PNG · สูงสุด 5 MB (สูงสุด {MAX_IMAGES} รูป)
           </Typography>
 
           <Button
             variant="contained"
             size="small"
-            startIcon={<UploadIcon />}
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
             sx={{
               bgcolor: '#1976D2',
-              borderRadius: 9999,
-              px: 3,
-              py: 0.8,
-              fontWeight: 700,
-              fontSize: '0.82rem',
+              color: '#FFFFFF',
+              fontWeight: 600,
+              fontSize: '0.8125rem',
+              px: 2.25,
+              py: 0.7,
+              borderRadius: '8px',
               textTransform: 'none',
               boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#1259A8',
+                boxShadow: 'none',
+              },
             }}
           >
-            เลือกรูปภาพจากเครื่อง
+            อัปโหลดรูป
           </Button>
         </Box>
-      )}
+      ) : (
+        /* Populated State: Horizontal Thumbnails [ Thumbnail ] [ Thumbnail ] [ + เพิ่มรูป ] */
+        <Box>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              alignItems: 'center',
+            }}
+          >
+            {currentImages.map((imgUrl, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  position: 'relative',
+                  width: { xs: 96, sm: 108 },
+                  height: { xs: 114, sm: 128 },
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: idx === 0 ? '2px solid #1976D2' : '1px solid #E2EAF2',
+                  bgcolor: '#F1F5F9',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(15, 47, 82, 0.06)',
+                }}
+              >
+                <Box
+                  component="img"
+                  src={imgUrl}
+                  alt={`รูปหนังสือที่ ${idx + 1}`}
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
 
-      {/* Uploading progress bar */}
-      {isUploading && (
-        <Box sx={{ mt: 1.5 }}>
-          <LinearProgress variant="determinate" value={uploadProgress} sx={{ borderRadius: 2, height: 6 }} />
+                {/* Cover badge for first image */}
+                {idx === 0 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      right: 4,
+                      bgcolor: 'rgba(25, 118, 210, 0.92)',
+                      color: '#FFFFFF',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      py: 0.25,
+                      textAlign: 'center',
+                      borderRadius: '4px',
+                      letterSpacing: '0.01em',
+                    }}
+                  >
+                    รูปหลัก
+                  </Box>
+                )}
+
+                {/* Remove button */}
+                <IconButton
+                  size="small"
+                  aria-label="ลบรูป"
+                  onClick={() => handleRemoveImage(idx)}
+                  sx={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    bgcolor: 'rgba(15, 23, 42, 0.72)',
+                    color: '#FFFFFF',
+                    width: 22,
+                    height: 22,
+                    p: 0,
+                    '&:hover': {
+                      bgcolor: '#EF4444',
+                    },
+                    transition: 'background-color 0.15s ease',
+                  }}
+                >
+                  <X size={13} strokeWidth={2.5} />
+                </IconButton>
+              </Box>
+            ))}
+
+            {/* Add More Slot if < MAX_IMAGES */}
+            {currentImages.length < MAX_IMAGES && (
+              <Box
+                onClick={() => fileInputRef.current?.click()}
+                sx={{
+                  width: { xs: 96, sm: 108 },
+                  height: { xs: 114, sm: 128 },
+                  borderRadius: '12px',
+                  border: '2px dashed #93C5FD',
+                  bgcolor: '#F8FAFD',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.5,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    borderColor: '#1976D2',
+                    bgcolor: '#EFF6FF',
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    bgcolor: '#EAF4FF',
+                    color: '#1976D2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: '#1976D2',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  เพิ่มรูป
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: '#94A3B8',
+                    fontSize: '0.68rem',
+                  }}
+                >
+                  ({currentImages.length}/{MAX_IMAGES})
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              mt: 1.25,
+              color: '#64748B',
+              fontSize: '0.78rem',
+            }}
+          >
+            JPG, PNG · สูงสุด 5 MB (รูปแรกจะเป็นรูปหน้าปกหลัก)
+          </Typography>
         </Box>
       )}
 
-      {/* Errors */}
-      {(clientError || (touched && error)) && (
-        <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2, fontSize: '0.8rem' }}>
-          {clientError || error}
-        </Alert>
+      {/* Validation Error Feedback */}
+      {displayError && (
+        <FormHelperText
+          error
+          sx={{
+            mt: 1,
+            fontSize: '0.8rem',
+            fontWeight: 500,
+          }}
+        >
+          {displayError}
+        </FormHelperText>
       )}
     </Box>
   );

@@ -1,20 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  TextField,
-  InputAdornment,
-  Chip,
-} from '@mui/material';
-import {
-  LocalOfferRounded,
-  MonetizationOnOutlined,
-  CalculateRounded,
-  SavingsOutlined,
-} from '@mui/icons-material';
+import { Box, Typography, TextField, InputAdornment } from '@mui/material';
 
-interface PricingSectionProps {
+export interface PricingSectionProps {
   price: string;
   originalPrice: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string } }) => void;
@@ -44,177 +31,174 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       ? Math.round(((numOriginal - numPrice) / numOriginal) * 100)
       : 0;
 
-  const handleApplyDiscountPreset = (percent: number) => {
-    if (numOriginal > 0) {
-      const calculatedPrice = Math.round(numOriginal * (1 - percent / 100));
-      onChange({ target: { name: 'price', value: String(calculatedPrice) } });
-      onBlur('price');
-    }
-  };
-
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Section Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box
+      {/* Section Title */}
+      <Box sx={{ mb: 2.5 }}>
+        <Typography
+          variant="subtitle1"
+          component="h2"
           sx={{
-            width: 32,
-            height: 32,
-            borderRadius: 2,
-            bgcolor: '#EAF4FF',
-            color: '#1976D2',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            fontWeight: 700,
+            color: '#0F2F52',
+            fontSize: '1.05rem',
+            lineHeight: 1.3,
           }}
         >
-          <LocalOfferRounded sx={{ fontSize: 18 }} />
-        </Box>
-        <Box>
-          <Typography
-            variant="h6"
-            component="h2"
-            sx={{ fontWeight: 800, color: '#0F2D4A', fontSize: '1.05rem', lineHeight: 1.2 }}
-          >
-            ราคาและการส่งต่อ
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.78rem' }}>
-            กำหนดราคาขายที่ยุติธรรมและเหมาะสมกับสภาพหนังสือ เพื่อเพิ่มโอกาสส่งต่อได้เร็ว
-          </Typography>
-        </Box>
+          ราคาหนังสือ
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#64748B',
+            fontSize: '0.825rem',
+            display: 'block',
+            mt: 0.25,
+          }}
+        >
+          กำหนดราคาขายที่คุณต้องการ
+        </Typography>
       </Box>
 
-      <Grid container spacing={2}>
-        {/* Original Price */}
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            fullWidth
-            label="ราคาปกเดิมโดยประมาณ (ถ้าทราบ)"
-            name="originalPrice"
-            value={originalPrice}
-            onChange={(e) => handleNumericInput('originalPrice', e.target.value)}
-            onBlur={() => onBlur('originalPrice')}
-            error={Boolean(touched.originalPrice && errors.originalPrice)}
-            helperText={
-              touched.originalPrice && errors.originalPrice
-                ? errors.originalPrice
-                : 'ระบุราคาที่พิมพ์ไว้หลังปกหนังสือ'
-            }
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ color: '#0F2D4A', fontWeight: 700 }}>
-                    ฿
-                  </InputAdornment>
-                ),
-                inputMode: 'numeric',
-              },
+      {/* 2 Column Grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: { xs: 2.5, sm: 2.5 },
+        }}
+      >
+        {/* ราคาที่ต้องการ (ราคาขายจริง) */}
+        <Box>
+          <Typography
+            component="label"
+            htmlFor="sell-field-price"
+            sx={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: '#0F2F52',
+              mb: 0.75,
             }}
-            placeholder="395"
-            size="small"
-          />
-
-          {/* Quick Discount Presets when Original Price exists */}
-          {numOriginal > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mt: 1 }}>
-              <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.72rem' }}>
-                ตั้งราคาด่วน:
-              </Typography>
-              {[40, 50, 60, 70].map((pct) => (
-                <Chip
-                  key={pct}
-                  label={`ลด ${pct}%`}
-                  size="small"
-                  onClick={() => handleApplyDiscountPreset(pct)}
-                  sx={{
-                    height: 22,
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    bgcolor: '#EFF6FF',
-                    color: '#1D4ED8',
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: '#DBEAFE' },
-                  }}
-                />
-              ))}
-            </Box>
-          )}
-        </Grid>
-
-        {/* Selling Price */}
-        <Grid size={{ xs: 12, sm: 6 }}>
+          >
+            ราคาที่ต้องการ (บาท) <Box component="span" sx={{ color: '#EF4444' }}>*</Box>
+          </Typography>
           <TextField
-            fullWidth
-            required
-            label="ราคาที่ต้องการขายจริง"
+            id="sell-field-price"
             name="price"
+            fullWidth
+            size="small"
             value={price}
+            placeholder="200"
             onChange={(e) => handleNumericInput('price', e.target.value)}
             onBlur={() => onBlur('price')}
             error={Boolean(touched.price && errors.price)}
-            helperText={touched.price && errors.price ? errors.price : 'ราคาขายที่ผู้ซื้อชำระจริง (บาท)'}
+            helperText={touched.price && errors.price ? errors.price : ''}
             slotProps={{
               input: {
                 startAdornment: (
-                  <InputAdornment position="start" sx={{ color: '#0F2D4A', fontWeight: 800 }}>
+                  <InputAdornment position="start" sx={{ color: '#64748B', fontWeight: 600 }}>
                     ฿
                   </InputAdornment>
                 ),
                 inputMode: 'numeric',
+                sx: {
+                  borderRadius: '10px',
+                  bgcolor: '#FFFFFF',
+                  fontSize: '0.9375rem',
+                  '& fieldset': {
+                    borderColor: '#E2EAF2',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#94A3B8',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1976D2',
+                  },
+                },
               },
             }}
-            placeholder="200"
-            size="small"
           />
-        </Grid>
-      </Grid>
+        </Box>
 
-      {/* Smart Live Calculator Preview Card */}
+        {/* ราคาหนังสือเดิม (ราคาปกเดิม) */}
+        <Box>
+          <Typography
+            component="label"
+            htmlFor="sell-field-original-price"
+            sx={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: '#0F2F52',
+              mb: 0.75,
+            }}
+          >
+            ราคาปกเดิม (ถ้าทราบ)
+          </Typography>
+          <TextField
+            id="sell-field-original-price"
+            name="originalPrice"
+            fullWidth
+            size="small"
+            value={originalPrice}
+            placeholder="395"
+            onChange={(e) => handleNumericInput('originalPrice', e.target.value)}
+            onBlur={() => onBlur('originalPrice')}
+            error={Boolean(touched.originalPrice && errors.originalPrice)}
+            helperText={touched.originalPrice && errors.originalPrice ? errors.originalPrice : ''}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ color: '#64748B', fontWeight: 600 }}>
+                    ฿
+                  </InputAdornment>
+                ),
+                inputMode: 'numeric',
+                sx: {
+                  borderRadius: '10px',
+                  bgcolor: '#FFFFFF',
+                  fontSize: '0.9375rem',
+                  '& fieldset': {
+                    borderColor: '#E2EAF2',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#94A3B8',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1976D2',
+                  },
+                },
+              },
+            }}
+          />
+        </Box>
+      </Box>
+
+      {/* Subtle Live Summary Hint */}
       {numPrice > 0 && (
         <Box
           sx={{
             mt: 2,
-            p: 1.8,
+            p: 1.5,
             bgcolor: '#F0FDF4',
+            borderRadius: '10px',
             border: '1px solid #DCFCE7',
-            borderRadius: 2.5,
             display: 'flex',
-            flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 1.5,
+            flexWrap: 'wrap',
+            gap: 1,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MonetizationOnOutlined sx={{ fontSize: 22, color: '#16A34A' }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 800, color: '#166534', fontSize: '0.85rem' }}>
-                คุณจะได้รับเงินเต็ม: ฿{numPrice.toLocaleString()}
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#15803D', fontSize: '0.75rem' }}>
-                BookLoop ไม่หักค่าธรรมเนียมการขายสำหรับสมาชิกทั่วไป
-              </Typography>
-            </Box>
-          </Box>
+          <Typography variant="body2" sx={{ color: '#166534', fontWeight: 600, fontSize: '0.85rem' }}>
+            คุณจะได้รับเงิน: ฿{numPrice.toLocaleString()} · ไม่มีค่าธรรมเนียม
+          </Typography>
 
           {discountPercent > 0 && (
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.6,
-                bgcolor: '#DCFCE7',
-                color: '#15803D',
-                px: 1.2,
-                py: 0.4,
-                borderRadius: 1.5,
-                fontWeight: 800,
-                fontSize: '0.78rem',
-              }}
-            >
-              <SavingsOutlined sx={{ fontSize: 16 }} />
-              ผู้ซื้อประหยัดได้ {discountPercent}%
-            </Box>
+            <Typography variant="caption" sx={{ color: '#15803D', fontWeight: 700, fontSize: '0.78rem' }}>
+              ประหยัดจากราคาปก {discountPercent}%
+            </Typography>
           )}
         </Box>
       )}

@@ -12,7 +12,26 @@
  * - logging ต้องไม่ throw — flow หลักต้องไปต่อเสมอ
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api').replace(/\/+$/, '');
+function getLoggerApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const { hostname, origin, pathname } = window.location;
+    if (hostname.includes('xo.je') || pathname.startsWith('/app') || import.meta.env.BASE_URL === '/app/') {
+      return `${origin}/api`;
+    }
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      const envUrl = import.meta.env.VITE_API_BASE_URL;
+      if (envUrl && (envUrl.includes('localhost:8000') || envUrl.includes('127.0.0.1:8000'))) {
+        return envUrl.replace(/\/+$/, '');
+      }
+      return '/api';
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return 'https://panitijahem.xo.je/api';
+}
 
 function errorDetails(error: unknown): Record<string, string> {
   if (error instanceof Error) {
@@ -60,12 +79,11 @@ export function logError(message: string, error?: unknown, extraContext: Record<
     });
     // กัน context ก้อนยักษ์ (backend ปฏิเสธถ้า context เกิน 2KB)
     if (body.length > 3800) return;
-    fetch(`${API_BASE_URL}/log.php`, {
+    fetch(`${getLoggerApiBaseUrl()}/log.php`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json;charset=UTF-8',
-        'ngrok-skip-browser-warning': 'true',
       },
       body,
     }).catch(() => {

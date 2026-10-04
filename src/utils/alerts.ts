@@ -113,7 +113,8 @@ export const showConfirm = (
   title: string,
   text?: string,
   confirmText = 'ยืนยัน',
-  cancelText = 'ยกเลิก'
+  cancelText = 'ยกเลิก',
+  isDanger = false
 ) => {
   releaseFocus();
   return Swal.fire({
@@ -123,8 +124,11 @@ export const showConfirm = (
     showCancelButton: true,
     confirmButtonText: confirmText,
     cancelButtonText: cancelText,
-    confirmButtonColor: actionBlue,
+    confirmButtonColor: isDanger ? '#DC2626' : actionBlue,
     cancelButtonColor: mutedBorder,
     focusCancel: true,
+    customClass: {
+      popup: 'swal2-bookloop-popup',
+    },
   });
 };

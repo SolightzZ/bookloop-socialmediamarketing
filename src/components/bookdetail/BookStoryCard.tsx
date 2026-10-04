@@ -1,6 +1,5 @@
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
-import { AutoStoriesOutlined as StoryIcon } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 
 interface BookStoryCardProps {
   story: string;
@@ -8,71 +7,52 @@ interface BookStoryCardProps {
 }
 
 /**
- * Subtle editorial quote component for Book Story.
- * Emphasizes the emotional memory and reason for passing the book forward.
+ * BookStoryCard — editorial pull-quote for the book's story.
+ * Left accent border + italic type, no card chrome.
  */
 export const BookStoryCard: React.FC<BookStoryCardProps> = ({ story, sellerName }) => {
   if (!story) return null;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 3, sm: 4, md: 4.5 },
-        borderRadius: 3,
-        mb: 6,
-        border: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
-        boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)',
-      }}
+    <Box
+      component="section"
+      aria-label="เรื่องราวของหนังสือเล่มนี้"
+      sx={{ maxWidth: 720 }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 2 }}>
-        <StoryIcon sx={{ color: '#1976D2', fontSize: 24 }} />
-        <Typography
-          variant="h6"
-          component="h2"
-          sx={{
-            fontWeight: 800,
-            color: '#0F2D4A',
-            fontSize: { xs: '1.15rem', md: '1.25rem' },
-          }}
-        >
-          เรื่องราวของหนังสือเล่มนี้
-        </Typography>
-      </Box>
-
       <Typography
-        variant="body1"
+        variant="h2"
+        sx={{
+          fontWeight: 700,
+          color: '#102A43',
+          fontSize: { xs: '1.375rem', md: '1.5rem' },
+          letterSpacing: '-0.01em',
+          mb: 2,
+        }}
+      >
+        เรื่องราวของหนังสือเล่มนี้
+      </Typography>
+      <Box
         component="blockquote"
         sx={{
-          fontStyle: 'italic',
-          lineHeight: 1.8,
-          color: '#102A43',
-          fontSize: { xs: '1rem', md: '1.075rem' },
+          m: 0,
           pl: 2.5,
           borderLeft: '3px solid #1976D2',
-          my: 2,
         }}
       >
-        "{story}"
-      </Typography>
-
-      <Typography
-        variant="caption"
-        sx={{
-          color: '#627D98',
-          display: 'block',
-          mt: 2,
-          pl: 2.5,
-          fontWeight: 600,
-          fontSize: '0.825rem',
-        }}
-      >
-        ส่งต่อโดย{' '}
-        <Box component="strong" sx={{ color: '#0F2D4A' }}>
-          {sellerName}
-        </Box>
-      </Typography>
-    </Paper>
+        <Typography
+          sx={{
+            fontStyle: 'italic',
+            lineHeight: 1.8,
+            color: '#102A43',
+            fontSize: { xs: '1rem', md: '1.05rem' },
+          }}
+        >
+          “{story}”
+        </Typography>
+        <Typography sx={{ color: '#62748A', fontSize: '0.85rem', mt: 1.25, fontWeight: 600 }}>
+          ส่งต่อโดย {sellerName}
+        </Typography>
+      </Box>
+    </Box>
   );
 };

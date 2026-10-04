@@ -118,15 +118,15 @@ export const Header: React.FC<HeaderProps> = ({
         sx={{
           pointerEvents: 'auto',
           maxWidth: { lg: '1240px' },
-          bgcolor: '#F7FAFC',
-          backgroundColor: '#F7FAFC',
-          borderRadius: { xs: 3.5, md: 50 },
+          bgcolor: '#FFFFFF',
+          backgroundColor: '#FFFFFF',
+          borderRadius: { xs: 3, md: 50 },
           border: '1px solid',
-          borderColor: isScrolled ? '#CBD5E1' : '#E2E8F0',
+          borderColor: isScrolled ? '#CBD5E1' : '#E5EAF0',
           boxShadow: isScrolled
-            ? '0 1px 3px 0 rgba(15, 45, 74, 0.04), 0 1px 2px -1px rgba(15, 45, 74, 0.03)'
-            : '0 1px 2px 0 rgba(15, 45, 74, 0.02)',
-          px: { xs: 1.5, sm: 2, md: 1.75, lg: 2.5, xl: 3 },
+            ? '0 2px 6px -1px rgba(16, 42, 67, 0.08), 0 1px 3px 0 rgba(16, 42, 67, 0.04)'
+            : '0 1px 3px 0 rgba(16, 42, 67, 0.04)',
+          px: { xs: 2, sm: 2, md: 1.75, lg: 2.5, xl: 3 },
           py: 0,
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
@@ -138,8 +138,8 @@ export const Header: React.FC<HeaderProps> = ({
         <Toolbar
           disableGutters
           sx={{
-            height: { xs: 58, sm: 64, md: 72 },
-            minHeight: { xs: 58, sm: 64, md: 72 },
+            height: { xs: 60, sm: 64, md: 64 },
+            minHeight: { xs: 60, sm: 64, md: 64 },
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
               flexShrink: 0,
               whiteSpace: 'nowrap',
               '&:focus-visible': {
-                outline: '2px solid #1976D2',
+                outline: '2px solid rgba(15, 23, 42, 0.2)',
                 outlineOffset: '2px',
               },
             }}
@@ -196,13 +196,13 @@ export const Header: React.FC<HeaderProps> = ({
               sx={{
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
-                color: '#0F2D4A',
                 fontSize: { xs: '1.2rem', md: '1.25rem', lg: '1.45rem' },
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
               }}
             >
-              BookLoop
+              <Box component="span" sx={{ color: '#102A43' }}>Book</Box>
+              <Box component="span" sx={{ color: '#1976D2' }}>Loop</Box>
             </Typography>
           </Box>
 
@@ -272,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
                     color: isWishlistActive ? '#BE123C' : '#0F2D4A',
                     bgcolor: isWishlistActive ? '#FFE4E6' : 'rgba(15, 45, 74, 0.05)',
                   },
-                  '&:focus-visible': { outline: '2px solid #1976D2' },
+                  '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
                 }}
               >
                 <AnimatedBadge count={wishlistCount} color="error" max={99}>
@@ -296,7 +296,7 @@ export const Header: React.FC<HeaderProps> = ({
                   color: '#627D98',
                   p: { md: 0.6, lg: 1 },
                   '&:hover': { color: '#0F2D4A', bgcolor: 'rgba(15, 45, 74, 0.05)' },
-                  '&:focus-visible': { outline: '2px solid #1976D2' },
+                  '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
                 }}
               >
                 <AnimatedBadge count={cartCount} color="primary" max={99}>
@@ -337,8 +337,12 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setMobileSearchOpen((prev) => !prev)}
               aria-label={mobileSearchOpen ? 'ปิดช่องค้นหา' : 'ค้นหาหนังสือ'}
               sx={{
-                color: mobileSearchOpen ? '#1976D2' : '#627D98',
-                '&:focus-visible': { outline: '2px solid #1976D2' },
+                color: mobileSearchOpen ? '#1976D2' : '#102A43',
+                minWidth: 44,
+                minHeight: 44,
+                p: 1.2,
+                borderRadius: '10px',
+                '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
               }}
             >
               {mobileSearchOpen ? <CloseIcon sx={{ fontSize: 22 }} /> : <SearchIcon sx={{ fontSize: 22 }} />}
@@ -350,8 +354,12 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => navigate('/cart')}
               aria-label={`ตะกร้าสินค้า (${cartCount} รายการ)`}
               sx={{
-                color: '#627D98',
-                '&:focus-visible': { outline: '2px solid #1976D2' },
+                color: '#102A43',
+                minWidth: 44,
+                minHeight: 44,
+                p: 1.2,
+                borderRadius: '10px',
+                '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
               }}
             >
               <AnimatedBadge count={cartCount} color="primary" max={99}>
@@ -366,12 +374,16 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenMobileMenu}
               aria-label="เมนู"
               sx={{
-                color: '#0F2D4A',
-                ml: 0.5,
-                '&:focus-visible': { outline: '2px solid #1976D2' },
+                color: '#102A43',
+                minWidth: 44,
+                minHeight: 44,
+                p: 1.2,
+                borderRadius: '10px',
+                ml: 0.25,
+                '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
               }}
             >
-              <MenuIcon sx={{ fontSize: 26 }} />
+              <MenuIcon sx={{ fontSize: 24 }} />
             </IconButton>
           </Box>
         </Toolbar>

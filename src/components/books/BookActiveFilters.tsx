@@ -1,12 +1,5 @@
 import React from 'react';
 import { Box, Chip } from '@mui/material';
-import {
-  SearchRounded,
-  AutoStoriesRounded,
-  VerifiedRounded,
-  MonetizationOnOutlined,
-  FavoriteRounded,
-} from '@mui/icons-material';
 
 interface BookActiveFiltersProps {
   query: string;
@@ -20,6 +13,13 @@ interface BookActiveFiltersProps {
   onClearPrice: () => void;
   onClearFavorite: () => void;
 }
+
+const conditionMap: Record<string, string> = {
+  'Excellent': 'เหมือนใหม่',
+  'Very Good': 'สภาพดี',
+  'Good': 'พอใช้',
+  'Acceptable': 'มีตำหนิ',
+};
 
 export const BookActiveFilters: React.FC<BookActiveFiltersProps> = ({
   query,
@@ -40,65 +40,80 @@ export const BookActiveFilters: React.FC<BookActiveFiltersProps> = ({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 2.5 }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.8, mb: 2 }}>
       {query && (
         <Chip
-          icon={<SearchRounded sx={{ fontSize: 16 }} />}
           label={`ค้นหา: "${query}"`}
           size="small"
           onDelete={onClearQuery}
           sx={{
             bgcolor: '#F1F5F9',
-            fontWeight: 700,
-            fontSize: '0.78rem',
+            color: '#334155',
+            fontWeight: 600,
+            fontSize: '0.75rem',
             border: '1px solid #CBD5E1',
+            borderRadius: '6px',
           }}
         />
       )}
       {category && (
         <Chip
-          icon={<AutoStoriesRounded sx={{ fontSize: 16 }} />}
           label={`หมวด: ${category}`}
           size="small"
-          color="primary"
           onDelete={onClearCategory}
-          sx={{ fontWeight: 700, fontSize: '0.78rem' }}
+          sx={{
+            bgcolor: '#EAF4FF',
+            color: '#1976D2',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            border: '1px solid #BFDBFE',
+            borderRadius: '6px',
+          }}
         />
       )}
       {condition && (
         <Chip
-          icon={<VerifiedRounded sx={{ fontSize: 16 }} />}
-          label={`สภาพ: ${condition}`}
+          label={`สภาพ: ${conditionMap[condition] || condition}`}
           size="small"
-          color="secondary"
           onDelete={onClearCondition}
-          sx={{ fontWeight: 700, fontSize: '0.78rem' }}
+          sx={{
+            bgcolor: '#EAF4FF',
+            color: '#1976D2',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            border: '1px solid #BFDBFE',
+            borderRadius: '6px',
+          }}
         />
       )}
       {maxPriceParam && (
         <Chip
-          icon={<MonetizationOnOutlined sx={{ fontSize: 16 }} />}
-          label={`ราคาไม่เกิน ฿${Number(maxPriceParam).toLocaleString()}`}
+          label={`ราคา ≤ ฿${Number(maxPriceParam).toLocaleString()}`}
           size="small"
           onDelete={onClearPrice}
           sx={{
             bgcolor: '#F0FDF4',
             color: '#15803D',
-            borderColor: '#DCFCE7',
-            fontWeight: 700,
-            fontSize: '0.78rem',
+            border: '1px solid #DCFCE7',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            borderRadius: '6px',
           }}
         />
       )}
       {onlyFavorites && (
         <Chip
-          icon={<FavoriteRounded sx={{ fontSize: 16, color: '#E11D48 !important' }} />}
-          label="เฉพาะรายการโปรด"
+          label="รายการโปรด"
           size="small"
-          color="error"
-          variant="outlined"
           onDelete={onClearFavorite}
-          sx={{ fontWeight: 700, fontSize: '0.78rem', bgcolor: '#FFF1F2' }}
+          sx={{
+            bgcolor: '#FFF1F2',
+            color: '#E11D48',
+            border: '1px solid #FECDD3',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            borderRadius: '6px',
+          }}
         />
       )}
     </Box>

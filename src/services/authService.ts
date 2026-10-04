@@ -1,5 +1,5 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
-import { apiClient, ApiError, NGROK_BYPASS_HEADERS } from './apiClient';
+import { apiClient, ApiError, getApiBaseUrl } from './apiClient';
 import { logWarn } from '../utils/logger';
 
 export interface UserAccountData {
@@ -101,8 +101,8 @@ class AuthService {
 
            const xhr = new XMLHttpRequest();
            // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
-            xhr.open('GET', `${import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api'}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
-           xhr.setRequestHeader('ngrok-skip-browser-warning', NGROK_BYPASS_HEADERS['ngrok-skip-browser-warning']);
+            const baseUrl = getApiBaseUrl().replace(/\/+$/, "");
+            xhr.open("GET", `${baseUrl}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
            xhr.send();
 
           if (xhr.status === 200) {

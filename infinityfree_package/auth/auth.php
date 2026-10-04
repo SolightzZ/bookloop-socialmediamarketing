@@ -163,7 +163,7 @@ function createUser(string $name, string $email, string $password): array
         'password' => hashPassword($password),
         'avatar' => 'https://api.dicebear.com/7.x/initials/svg?seed=' . urlencode(trim($name)) . '&backgroundColor=0f2942,1565c0',
         'phone' => '',
-        'bio' => 'สมาชิกรักการอ่านแห่ง BookLoop',
+        'bio' => '',
         'address' => (object) [],
         'createdAt' => $now,
         'updatedAt' => $now,

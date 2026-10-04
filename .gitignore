@@ -35,3 +35,4 @@ infinityfree_package/data/*.json
 infinityfree_package/data/*.log
 infinityfree_package/data/*.txt
 infinityfree_package/UPLOAD-STEPS.txt
+.agent-memory

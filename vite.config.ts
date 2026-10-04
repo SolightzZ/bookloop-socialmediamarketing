@@ -2,13 +2,14 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
+import {infinityFreeProxyPlugin} from './vite-proxy';
 
 const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === 'true';
 
 export default defineConfig(() => {
   return {
     base: isGitHubPagesBuild ? '/bookloop-socialmediamarketing/' : '/',
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), infinityFreeProxyPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -34,6 +35,10 @@ export default defineConfig(() => {
               return 'routing-motion';
             }
 
+            if (id.includes('three')) {
+              return 'three';
+            }
+
             return 'vendor';
           },
         },
@@ -45,6 +50,13 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
   };
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { books } from '../../data/books';
@@ -15,8 +15,16 @@ export const CategoryExplorer: React.FC = () => {
     navigate(`/books?category=${encodeURIComponent(categoryName)}`);
   };
 
+  const categoryCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const b of books) {
+      map.set(b.category, (map.get(b.category) || 0) + 1);
+    }
+    return map;
+  }, []);
+
   const getBookCount = (categoryName: string) => {
-    return books.filter((b) => b.category === categoryName).length;
+    return categoryCountMap.get(categoryName) || 0;
   };
 
   return (

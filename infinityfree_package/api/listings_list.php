@@ -14,9 +14,22 @@ if (!defined('LISTINGS_FILE')) {
     define('LISTINGS_FILE', DATA_PATH . '/listings.json');
 }
 
+$id = trim((string) ($_GET['id'] ?? ''));
 $q = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
 $category = trim((string) ($_GET['category'] ?? ''));
 $mine = trim((string) ($_GET['mine'] ?? ''));
+
+$listings = loadJson(LISTINGS_FILE);
+
+// ดึงรายการเดียวโดยตรงตาม ID (?id=LST-...)
+if ($id !== '') {
+    foreach ($listings as $l) {
+        if (($l['id'] ?? '') === $id) {
+            jsonResponse(['success' => true, 'total' => 1, 'items' => [$l], 'count' => 1]);
+        }
+    }
+    jsonResponse(['success' => false, 'message' => 'ไม่พบข้อมูลรายการลงขายนี้', 'items' => [], 'total' => 0], 404);
+}
 
 // ?mine=1 ต้องล็อกอิน — ดูเฉพาะรายการของตัวเอง (รวมทุก status)
 $ownerId = null;
@@ -32,8 +45,6 @@ $limit = (int) ($_GET['limit'] ?? 20);
 $limit = max(1, min($limit, 50));
 $offset = max(0, (int) ($_GET['offset'] ?? 0));
 
-$listings = loadJson(LISTINGS_FILE);
-
 $filtered = array_values(array_filter($listings, function ($l) use ($q, $category, $ownerId) {
     if ($ownerId !== null) {
         if (($l['userId'] ?? '') !== $ownerId) {
@@ -47,7 +58,7 @@ $filtered = array_values(array_filter($listings, function ($l) use ($q, $categor
     }
     if ($q !== '') {
         $haystack = mb_strtolower(
-            ($l['title'] ?? '') . ' ' . ($l['author'] ?? '') . ' ' . ($l['isbn'] ?? '')
+            ($l['id'] ?? '') . ' ' . ($l['title'] ?? '') . ' ' . ($l['author'] ?? '') . ' ' . ($l['isbn'] ?? '')
         );
         if (!str_contains($haystack, $q)) {
             return false;

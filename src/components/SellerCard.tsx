@@ -1,122 +1,129 @@
 import React from 'react';
-import { Card, CardContent, Box, Typography, Avatar, Chip, Divider } from '@mui/material';
-import {
-  Verified as VerifiedIcon,
-  Star as StarIcon,
-  ShoppingBag as BagIcon,
-  Bolt as FastIcon,
-  LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Avatar, Button, Rating } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { BadgeCheck, MapPin } from 'lucide-react';
 import { Seller } from '../data/books';
 
 interface SellerCardProps {
   seller: Seller;
 }
 
+/**
+ * SellerCard — compact trustworthy marketplace seller profile.
+ * No outer card: avatar + identity, trust stats with separators,
+ * single focused "ดูร้านค้า" action.
+ */
 export const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
+  const navigate = useNavigate();
+
   return (
-    <Card
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
-        boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)',
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Avatar
-            src={seller.avatar}
-            alt={seller.name}
-            sx={{ width: 56, height: 56, border: '2px solid #D9E2EC' }}
-          />
-          <Box sx={{ flexGrow: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F2D4A' }}>
-                {seller.name}
-              </Typography>
-              {seller.verified && (
-                <Chip
-                  icon={<VerifiedIcon sx={{ fontSize: '14px !important', color: '#1976D2 !important' }} />}
-                  label="ผู้ขายยืนยันตัวตนแล้ว"
-                  size="small"
-                  sx={{
-                    bgcolor: 'rgba(25, 118, 210, 0.08)',
-                    color: '#1976D2',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    height: 22,
-                  }}
-                />
-              )}
-            </Box>
+    <Box component="section" aria-label={`ผู้ขาย ${seller.name}`}>
+      <Typography
+        variant="h2"
+        sx={{
+          fontWeight: 700,
+          color: '#102A43',
+          fontSize: { xs: '1.375rem', md: '1.5rem' },
+          letterSpacing: '-0.01em',
+          mb: 2.5,
+        }}
+      >
+        ผู้ขาย
+      </Typography>
+
+      {/* Identity */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Avatar
+          src={seller.avatar}
+          alt={`รูปโปรไฟล์ของ ${seller.name}`}
+          sx={{ width: 52, height: 52 }}
+        />
+        <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography sx={{ fontWeight: 800, color: '#102A43', fontSize: '1.05rem' }}>
+              {seller.name}
+            </Typography>
+            {seller.verified && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: '#1976D2',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                }}
+              >
+                <BadgeCheck size={15} aria-hidden />
+                ยืนยันตัวตนแล้ว
+              </Box>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25, flexWrap: 'wrap' }}>
+            <Typography sx={{ color: '#62748A', fontSize: '0.82rem' }}>
+              ขายแล้ว {seller.itemsSold} เล่ม · สมาชิกตั้งแต่ {seller.joinedAt}
+            </Typography>
             {seller.location && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
-                <LocationIcon sx={{ fontSize: 14, color: '#627D98' }} />
-                <Typography variant="caption" sx={{ color: '#627D98' }}>
-                  {seller.location}
-                </Typography>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, color: '#62748A', fontSize: '0.82rem' }}>
+                <MapPin size={13} aria-hidden />
+                {seller.location}
               </Box>
             )}
           </Box>
         </Box>
+      </Box>
 
-        {seller.bio && (
-          <Typography variant="body2" sx={{ mb: 2, fontStyle: 'italic', bgcolor: '#F7F9FC', p: 1.5, borderRadius: 1.5, color: '#627D98', border: '1px solid #EDF2F7' }}>
-            "{seller.bio}"
-          </Typography>
-        )}
-
-        <Divider sx={{ my: 2, borderColor: '#F0F4F8' }} />
-
-        {/* Stats Grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, textAlign: 'center' }}>
-          <Box sx={{ p: 1.25, bgcolor: '#F7F9FC', borderRadius: 1.5, border: '1px solid #EDF2F7' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
-              <StarIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F2D4A' }}>
-                {seller.rating}
-              </Typography>
-            </Box>
-            <Typography variant="caption" sx={{ color: '#627D98', display: 'block', fontSize: '0.75rem' }}>
-              คะแนนผู้ขาย
-            </Typography>
-          </Box>
-
-          <Box sx={{ p: 1.25, bgcolor: '#F7F9FC', borderRadius: 1.5, border: '1px solid #EDF2F7' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
-              <BagIcon sx={{ fontSize: 16, color: '#1976D2' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F2D4A' }}>
-                {seller.itemsSold}
-              </Typography>
-            </Box>
-            <Typography variant="caption" sx={{ color: '#627D98', display: 'block', fontSize: '0.75rem' }}>
-              ส่งต่อสำเร็จ
-            </Typography>
-          </Box>
-
-          <Box sx={{ p: 1.25, bgcolor: '#F7F9FC', borderRadius: 1.5, border: '1px solid #EDF2F7' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
-              <FastIcon sx={{ fontSize: 16, color: '#2E7D5B' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F2D4A' }}>
-                {seller.responseRate}%
-              </Typography>
-            </Box>
-            <Typography variant="caption" sx={{ color: '#627D98', display: 'block', fontSize: '0.75rem' }}>
-              ตอบแชท
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 2, justifyContent: 'center' }}>
-          <CalendarIcon sx={{ fontSize: 13, color: '#627D98' }} />
-          <Typography variant="caption" sx={{ color: '#627D98' }}>
-            เป็นสมาชิกตั้งแต่ {seller.joinedAt}
+      {/* Trust signals */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          flexWrap: 'wrap',
+          py: 1.75,
+          borderTop: '1px solid #D9E2EC',
+          borderBottom: '1px solid #D9E2EC',
+          mb: 2.5,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Rating
+            value={seller.rating}
+            precision={0.1}
+            readOnly
+            size="small"
+            aria-label={`คะแนนผู้ขาย ${seller.rating} จาก 5`}
+            sx={{ color: '#F5A623', '& .MuiRating-iconEmpty': { color: '#D9E2EC' } }}
+          />
+          <Typography sx={{ fontWeight: 800, color: '#102A43', fontSize: '0.9rem' }}>
+            {seller.rating.toFixed(1)}
           </Typography>
         </Box>
-      </CardContent>
-    </Card>
+        <Box aria-hidden sx={{ width: 1, height: 18, bgcolor: '#D9E2EC' }} />
+        <Typography sx={{ color: '#62748A', fontSize: '0.85rem' }}>
+          ตอบแชท <Box component="span" sx={{ color: '#102A43', fontWeight: 700 }}>{seller.responseRate}%</Box>
+        </Typography>
+      </Box>
+
+      <Button
+        variant="outlined"
+        fullWidth
+        onClick={() => navigate(`/seller/${seller.id}`)}
+        aria-label={`ดูร้านค้าของ ${seller.name}`}
+        sx={{
+          minHeight: 44,
+          borderRadius: '8px',
+          borderColor: '#D9E2EC',
+          color: '#0F3557',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          bgcolor: '#FFFFFF',
+          '&:hover': { borderColor: '#1976D2', color: '#1976D2', bgcolor: '#FFFFFF' },
+          '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+        }}
+      >
+        ดูร้านค้า
+      </Button>
+    </Box>
   );
 };

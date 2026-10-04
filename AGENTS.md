@@ -55,3 +55,25 @@ PHP newsletter / auth service lives in `infinityfree_package/` (`api/`, `auth/`,
 - No ESLint/Prettier — `npm run lint` failures are type errors only.
 - `tsconfig.json` sets `allowImportingTsExtensions: true` and `skipLibCheck: true` — import paths may include `.ts` extensions intentionally.
 - Backend `users.json`/`tokens.json` are per-machine files (gitignored) — accounts registered locally do not exist on production and vice versa.
+
+## Pending Work — Uncommitted (2026-10-04, branch `main`, 58 modified + 7 untracked)
+
+> `git status`: 56 modified (unstaged) + 2 staged deletions + 7 untracked. Do NOT commit unless asked. `lint` → `build` before commit.
+
+**Staged deletions (already `git rm --cached`-style, in index):** `src/components/common/ScrollProgressBar.tsx`, `src/components/home/HeroThreeScene.tsx` — removed usages in `src/layouts/AppLayout.tsx` (also drops top padding to `64/68/72px`) and Three.js scene. `vite.config.ts` adds `three` to `manualChunks`.
+
+**1. Backend connectivity rework (same-origin + proxy):** `src/services/apiClient.ts` now `getApiBaseUrl()` — xo.je/`/app/` → `${origin}/api`, localhost → `/api` proxy or `VITE_API_BASE_URL` if it points to `:8000`, else env/fallback. `authService.ts`, `utils/logger.ts`, `utils/analytics.ts` all call it instead of hardcoded env. `vite.config.ts` adds `server.proxy /api → http://127.0.0.1:8000` + `infinityFreeProxyPlugin()` from new untracked `vite-proxy.ts` (fetches `aes.js`, solves `__test` cookie via `vm`, caches cookie). `package.json` adds `dev:backend: php -S 127.0.0.1:8000 -t infinityfree_package`. `infinityfree_package/auth/auth.php:166` default `bio` `''` (was Thai placeholder).
+
+**2. Swiss-Neutral theme pass:** `src/theme/index.ts` — neutral `focus-visible` (`rgba(15,23,42,0.2)`), outlined input `#E2E8F0→#94A3B8→#0F172A+ring`, new `MuiAccordion/AccordionSummary/AccordionDetails`, `MuiMenu/Popover disableScrollLock`. `src/index.css` — `scrollbar-gutter:stable`, `overflow-x:hidden`, swal2 `z-index:99999` + rounded popup, `bl-gradient-flow` GPU transform (was `background-position`). `index.html` drops `Noto Serif Thai`. `utils/alerts.ts:showConfirm()` adds `isDanger` (red confirm).
+
+**3. Perf / a11y micro-fixes:** `Hero.tsx` — cached `[data-parallax]` els + cached rect, sleep loop (`isAnimating`, threshold `0.0004`), pause off-screen. `SafeImage.tsx` — `motion.img` → plain `img` + CSS transition. `TiltCard.tsx` — cache rect on enter. `SearchBar.tsx` — new `name` prop plumbed to `id/name/aria-label` (3 variants).
+
+**4. Navigation refactor:** `Header.tsx`, `MobileBottomNav.tsx` (now exports `AppNavMobilebar` + `NavItemConfig`, 5-col Swiss grid, `BookLoop Blue #0F6CF0`), `AppMobileDrawer.tsx` (~1100 lines rewrite), `Footer.tsx` (~300 lines rewrite), new `src/components/layout/AppNavMobilebar.tsx` re-export shim.
+
+**5. Sell flow split:** `SellBookForm.tsx` (~533 lines) decomposed — new untracked `BookInfoForm.tsx`, `ConditionSelector.tsx`, `DeliverySelector.tsx`, `SellStepIndicator.tsx`; reworked `BookImageUpload.tsx`, `PricingSection.tsx`, `SellHero.tsx`, `SellSteps.tsx`, `BookStorySection.tsx`, `SellPage.tsx`.
+
+**6. Page/component rewrites (largest diffs):** `AccountPage.tsx` (2335 lines), `BooksPage.tsx` (1371) + `BookFilterSidebar/BookActiveFilters/BookPaginationControls`, `BookCard.tsx` (623), `FeaturedBooksSection`, `HomeNewsletterSection`, `HeroContent/HeroActions/useAnimationState`, `CategoryExplorer/CategoryCard/CategoryTile/FeaturedCategoryCard`, `LandingBookCard/SocialCard/StoryCard`, `BookDiscoveryScene/BookDiscoveryResult`, `BookPurchaseBox/BookStoryCard`, `AuthButton/UserMenu/NotificationBell`, `LoginPage/OrderSuccessPage/HomePage` (trivial). New untracked `BookRecommendationSection.tsx`.
+
+**7. Config:** `.gitignore` adds `.agent-memory`. `vite.config.ts` proxy + `three` chunk (see above).
+
+**Agent handoff prompt (copy-paste):** `You are working in bookloop-socialmediamarketing, branch main with 58 modified + 7 untracked files (not committed). Run git status/diff HEAD to review. Key areas: getApiBaseUrl same-origin logic, vite-proxy.ts InfinityFree __test bypass, Swiss-Neutral theme, Sell form split (4 new files), Account/Books rewrites, 2 staged deletions (ScrollProgressBar, HeroThreeScene). Verify with npm run lint then npm run build. Do not commit, do not edit email/ templates, keep hero-paused/reduced-motion blocks, keep DISABLE_HMR watch logic.`

@@ -6,26 +6,11 @@ import {
   Typography,
   IconButton,
   Button,
-  Tooltip,
   CircularProgress,
 } from '@mui/material';
-import {
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  ShoppingCartOutlined as CartIcon,
-  Check as CheckIcon,
-  Star as StarIcon,
-  PersonOutlineRounded,
-  StorefrontOutlined,
-  AutoStoriesRounded,
-  ShareOutlined,
-  BlockOutlined,
-} from '@mui/icons-material';
+import { Heart, ShoppingCart, Check, Star } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { Book } from '../data/books';
-import { ConditionBadge } from './ConditionBadge';
-import { PriceComparison } from './PriceComparison';
 import { SafeImage } from './common/SafeImage';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
@@ -33,12 +18,19 @@ import { useAuth } from '../hooks/useAuth';
 import { LoginRequiredDialog } from './auth/LoginRequiredDialog';
 import { savePendingAction, PendingAction } from '../types/authGate';
 import { trackEvent } from '../utils/analytics';
-import { showToast } from '../utils/alerts';
+import { formatCurrency, calculateDiscount } from '../utils/formatCurrency';
 
 export interface BookCardProps {
   book: Book;
   priority?: boolean;
 }
+
+const conditionConfig: Record<string, { label: string; bg: string; color: string }> = {
+  'Excellent': { label: 'เหมือนใหม่', bg: '#DCFCE7', color: '#15803D' },
+  'Very Good': { label: 'สภาพดี', bg: '#E0F2FE', color: '#0369A1' },
+  'Good': { label: 'พอใช้', bg: '#FEF3C7', color: '#B45309' },
+  'Acceptable': { label: 'มีตำหนิ', bg: '#FFEDD5', color: '#C2410C' },
+};
 
 export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) => {
   const navigate = useNavigate();
@@ -50,6 +42,13 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
   const [cartState, setCartState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const isFavorite = isInWishlist(book.id);
+
+  const { percentage } = calculateDiscount(book.price, book.originalPrice);
+  const conditionMeta = conditionConfig[book.condition] || {
+    label: book.condition,
+    bg: '#F1F5F9',
+    color: '#475569',
+  };
 
   const handleCardClick = () => {
     trackEvent('view_product', { bookId: book.id, title: book.title, price: book.price });
@@ -75,8 +74,8 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
       setCartState('success');
       setTimeout(() => {
         setCartState('idle');
-      }, 1400);
-    }, 280);
+      }, 1200);
+    }, 250);
   };
 
   const handleModalLogin = () => {
@@ -96,84 +95,50 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
     toggleWishlist(book);
   };
 
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const shareData = {
-      title: book.title,
-      text: `${book.title} โดย ${book.author}`,
-      url: `${window.location.origin}/books/${book.id}`,
-    };
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {/* user cancelled */});
-    } else {
-      navigator.clipboard.writeText(shareData.url).then(() => {
-        showToast('คัดลอกลิงก์แล้ว', undefined, 'success');
-      }).catch(() => {
-        showToast('ไม่สามารถคัดลอกได้', undefined, 'error');
-      });
-    }
-  };
-
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-20px' }}
-        whileTap={{ scale: 0.985 }}
-        transition={{ type: 'spring', stiffness: 350, damping: 26 }}
-        className="h-full flex flex-col"
-      >
-        <Card
-          tabIndex={0}
-          role="article"
-          aria-label={`${book.title} โดย ${book.author} ราคา ${book.price} บาท`}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleCardClick();
-            }
-          }}
-          onClick={handleCardClick}
-          sx={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            borderRadius: 3,
-            border: '1px solid #E2E8F0',
-            bgcolor: '#FFFFFF',
-            cursor: 'pointer',
-            overflow: 'hidden',
-            transition: 'transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s cubic-bezier(0.2, 0, 0, 1), border-color 0.25s ease',
-            boxShadow: '0 2px 8px rgba(15, 41, 66, 0.04)',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '0 12px 28px rgba(15, 41, 66, 0.1)',
+      <Card
+        tabIndex={0}
+        role="article"
+        aria-label={`${book.title} โดย ${book.author} ราคา ${book.price} บาท`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCardClick();
+          }
+        }}
+        onClick={handleCardClick}
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          bgcolor: '#FFFFFF',
+          border: '1px solid #E5EAF0',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          boxShadow: '0 1px 3px rgba(15, 47, 82, 0.04)',
+          transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+          '&:hover': {
+            '@media (hover: hover)': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 20px rgba(15, 47, 82, 0.08)',
               borderColor: '#CBD5E1',
             },
-            '&:focus-visible': {
-              outline: '2px solid #1565C0',
-              outlineOffset: '2px',
-            },
-          }}
-        >
-      {/* 3:4 PORTRAIT BOOK COVER CONTAINER */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          pt: '133.33%', // 3:4 Aspect Ratio
-          bgcolor: '#F8FAFC',
-          overflow: 'hidden',
+          },
+          '&:focus-visible': {
+            outline: '2px solid #1976D2',
+            outlineOffset: '2px',
+          },
         }}
       >
+        {/* Book Image Container (Aspect Ratio 2:3) */}
         <Box
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
+            position: 'relative',
             width: '100%',
-            height: '100%',
+            aspectRatio: '2 / 3',
+            bgcolor: '#F1F5F9',
+            overflow: 'hidden',
           }}
         >
           <SafeImage
@@ -186,292 +151,284 @@ export const BookCard: React.FC<BookCardProps> = ({ book, priority = false }) =>
             sx={{
               width: '100%',
               height: '100%',
-              transition: 'transform 0.4s ease',
-              '&:hover': {
-                transform: 'scale(1.03)',
+              transition: 'transform 0.2s ease',
+              '@media (hover: hover)': {
+                '&:hover': {
+                  transform: 'scale(1.01)',
+                },
               },
             }}
           />
-        </Box>
 
-        {/* Sold / Out-of-stock overlay */}
-        {book.stock === 0 && (
-          <Box
+          {/* Out of Stock Overlay */}
+          {book.stock === 0 && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bgcolor: 'rgba(15, 23, 42, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
+              }}
+            >
+              <Typography
+                sx={{
+                  bgcolor: '#0F2F52',
+                  color: '#FFFFFF',
+                  px: 1.25,
+                  py: 0.4,
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                }}
+              >
+                ขายแล้ว
+              </Typography>
+            </Box>
+          )}
+
+          {/* Favorite Heart Button (Top-Right of Image) */}
+          <IconButton
+            size="small"
+            aria-label={isFavorite ? `นำ ${book.title} ออกจากรายการโปรด` : `เพิ่ม ${book.title} ในรายการโปรด`}
+            onClick={handleToggleFavorite}
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              bgcolor: 'rgba(15, 41, 66, 0.55)',
+              top: 8,
+              right: 8,
+              width: 32,
+              height: 32,
+              bgcolor: 'rgba(255, 255, 255, 0.92)',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              p: 0,
+              zIndex: 2,
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: '#FFFFFF',
+                transform: 'scale(1.06)',
+              },
+              '&:focus-visible': {
+                outline: '2px solid #1976D2',
+              },
+            }}
+          >
+            <Heart
+              size={17}
+              color={isFavorite ? '#EF4444' : '#64748B'}
+              fill={isFavorite ? '#EF4444' : 'none'}
+              strokeWidth={2}
+            />
+          </IconButton>
+        </Box>
+
+        {/* Card Content Area */}
+        <CardContent
+          sx={{
+            p: { xs: 1.25, sm: 1.5 },
+            display: 'flex',
+            flexDirection: 'column',
+            flexGrow: 1,
+            '&:last-child': { pb: { xs: 1.25, sm: 1.5 } },
+          }}
+        >
+          {/* Condition Badge & Rating Row */}
+          <Box
+            sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1,
-              pointerEvents: 'none',
+              justifyContent: 'space-between',
+              gap: 1,
+              mb: 0.75,
             }}
           >
             <Box
               sx={{
-                display: 'flex',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: conditionMeta.color,
+                bgcolor: conditionMeta.bg,
+                px: 0.85,
+                py: 0.2,
+                borderRadius: '6px',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 0.75,
-                bgcolor: '#0F2942',
-                color: '#FFFFFF',
-                px: 1.5,
-                py: 0.6,
-                borderRadius: 2,
-                fontWeight: 800,
-                fontSize: '0.8125rem',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.01em',
               }}
             >
-              <BlockOutlined sx={{ fontSize: 16 }} />
-              ขายแล้ว
+              {conditionMeta.label}
+            </Box>
+
+            {/* Rating */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.35 }}>
+              <Star size={13} color="#F59E0B" fill="#F59E0B" />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  color: '#0F2F52',
+                }}
+              >
+                {book.rating}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#94A3B8',
+                  fontSize: '0.7rem',
+                }}
+              >
+                ({book.reviewCount})
+              </Typography>
             </Box>
           </Box>
-        )}
 
-        {/* Category Pill - Clean & Modern */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            left: 10,
-            bgcolor: '#0F2942',
-            color: '#FFFFFF',
-            px: 1,
-            py: 0.35,
-            borderRadius: 1.5,
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            letterSpacing: '0.02em',
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}
-        >
-          <AutoStoriesRounded sx={{ fontSize: 13, color: '#38BDF8' }} />
-          {book.category}
-        </Box>
-
-        {/* Share Icon Button - top-left */}
-        <Tooltip title="แชร์">
-          <IconButton
-            size="small"
-            aria-label={`แชร์ ${book.title}`}
-            onClick={handleShare}
+          {/* Book Title (Max 2 lines) */}
+          <Typography
+            variant="subtitle2"
+            component="h2"
+            title={book.title}
             sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              bgcolor: '#FFFFFF',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-              p: 0.75,
-              transition: 'transform 0.15s ease, background-color 0.15s ease',
-              zIndex: 2,
-              '&:hover': {
-                bgcolor: '#FFFFFF',
-                transform: 'scale(1.08)',
-              },
-              '&:focus-visible': {
-                outline: '2px solid #1565C0',
-              },
+              fontWeight: 600,
+              fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+              lineHeight: 1.35,
+              color: '#0F2F52',
+              mb: 0.35,
+              height: '2.7em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
             }}
           >
-            <ShareOutlined sx={{ fontSize: 18, color: '#486581' }} />
-          </IconButton>
-        </Tooltip>
+            {book.title}
+          </Typography>
 
-        {/* Wishlist Icon Button - top-right */}
-        <Tooltip title={isFavorite ? 'นำออกจากรายการโปรด' : 'บันทึกในรายการโปรด'}>
-          <IconButton
-            size="small"
-            aria-label={isFavorite ? `นำ ${book.title} ออกจากรายการโปรด` : `บันทึก ${book.title} ในรายการโปรด`}
-            onClick={handleToggleFavorite}
+          {/* Author (1 line with ellipsis) */}
+          <Typography
+            variant="caption"
+            noWrap
             sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              bgcolor: '#FFFFFF',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-              p: 0.75,
-              transition: 'transform 0.15s ease, background-color 0.15s ease',
-              zIndex: 2,
-              '&:hover': {
-                bgcolor: '#FFFFFF',
-                transform: 'scale(1.08)',
-              },
-              '&:focus-visible': {
-                outline: '2px solid #1565C0',
-              },
+              color: '#64748B',
+              fontSize: '0.78rem',
+              mb: 1.25,
+              display: 'block',
             }}
           >
-            {isFavorite ? (
-              <FavoriteIcon color="error" sx={{ fontSize: 18 }} />
-            ) : (
-              <FavoriteBorderIcon sx={{ fontSize: 18, color: '#486581' }} />
-            )}
-          </IconButton>
-        </Tooltip>
-      </Box>
+            {book.author}
+          </Typography>
 
-      {/* CARD CONTENT */}
-      <CardContent
-        sx={{
-          p: { xs: 1.5, sm: 2 },
-          display: 'flex',
-          flexDirection: 'column',
-          flexGrow: 1,
-          '&:last-child': { pb: { xs: 1.5, sm: 2 } },
-        }}
-      >
-        {/* Condition + Rating Line */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 1,
-            gap: 1,
-          }}
-        >
-          <ConditionBadge condition={book.condition} size="small" />
-
-          {/* Rating */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-            <StarIcon sx={{ fontSize: 15, color: '#F59E0B' }} />
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, fontSize: '0.8125rem', color: '#0F2942' }}
-            >
-              {book.rating}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: '#94A3B8', fontSize: '0.75rem' }}
-            >
-              ({book.reviewCount})
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Priority 1: Title */}
-        <Typography
-          variant="subtitle1"
-          component="h3"
-          sx={{
-            fontWeight: 700,
-            lineHeight: 1.35,
-            height: '2.7em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            color: '#0F2942',
-            mb: 0.5,
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            letterSpacing: '-0.01em',
-          }}
-          title={book.title}
-        >
-          {book.title}
-        </Typography>
-
-        {/* Secondary: Author & Seller (Easy to read & clear) */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 2, overflow: 'hidden' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, minWidth: 0, flexShrink: 1 }}>
-            <PersonOutlineRounded sx={{ fontSize: 13, color: '#94A3B8' }} />
-            <Typography
-              variant="caption"
-              noWrap
+          {/* Price Row (Aligned at bottom) */}
+          <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid #F1F5F9' }}>
+            <Box
               sx={{
-                color: '#475569',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'baseline',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                mb: 1.25,
               }}
             >
-              {book.author}
-            </Typography>
-          </Box>
-          <Box component="span" sx={{ color: '#CBD5E1', flexShrink: 0 }}>•</Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, minWidth: 0, flexShrink: 1 }}>
-            <StorefrontOutlined sx={{ fontSize: 13, color: '#94A3B8' }} />
-            <Typography
-              variant="caption"
-              noWrap
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  color: '#0F2F52',
+                  lineHeight: 1.2,
+                }}
+              >
+                {formatCurrency(book.price)}
+              </Typography>
+
+              {book.originalPrice && book.originalPrice > book.price && (
+                <>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.75rem',
+                      color: '#94A3B8',
+                      textDecoration: 'line-through',
+                    }}
+                  >
+                    {formatCurrency(book.originalPrice)}
+                  </Typography>
+
+                  {percentage > 0 && (
+                    <Box
+                      sx={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: '#DC2626',
+                        bgcolor: '#FEE2E2',
+                        px: 0.6,
+                        py: 0.15,
+                        borderRadius: '4px',
+                      }}
+                    >
+                      -{percentage}%
+                    </Box>
+                  )}
+                </>
+              )}
+            </Box>
+
+            {/* Add to Cart CTA */}
+            <Button
+              variant="contained"
+              fullWidth
+              size="small"
+              disabled={cartState === 'loading' || book.stock === 0}
+              onClick={handleAddToCart}
+              aria-label={`เพิ่ม ${book.title} ลงในตะกร้า`}
+              startIcon={
+                cartState === 'loading' ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : cartState === 'success' ? (
+                  <Check size={16} strokeWidth={2.5} />
+                ) : (
+                  <ShoppingCart size={15} strokeWidth={2} />
+                )
+              }
               sx={{
-                color: '#64748B',
-                fontSize: '0.75rem',
+                height: 38,
+                fontWeight: 700,
+                fontSize: { xs: '0.8rem', sm: '0.825rem' },
+                borderRadius: '8px',
+                bgcolor: cartState === 'success' ? '#16A34A' : '#1976D2',
+                color: '#FFFFFF',
+                textTransform: 'none',
+                boxShadow: 'none',
+                '&:hover': {
+                  bgcolor: cartState === 'success' ? '#15803D' : '#1565C0',
+                  boxShadow: 'none',
+                },
               }}
             >
-              {book.seller.name}
-            </Typography>
+              {book.stock === 0
+                ? 'สินค้าหมด'
+                : cartState === 'loading'
+                ? 'กำลังเพิ่ม...'
+                : cartState === 'success'
+                ? 'เพิ่มแล้ว'
+                : 'เพิ่มลงตะกร้า'}
+            </Button>
           </Box>
-        </Box>
+        </CardContent>
+      </Card>
 
-        {/* Priority 2: Price Section & Add to Cart (Aligned at bottom) */}
-        <Box sx={{ mt: 'auto', pt: 1.5, borderTop: '1px solid #F1F5F9' }}>
-          <Box sx={{ mb: 1.5 }}>
-            <PriceComparison price={book.price} originalPrice={book.originalPrice} size="small" />
-          </Box>
-
-          <Button
-            variant={cartState === 'success' ? 'contained' : 'outlined'}
-            color={cartState === 'success' ? 'success' : 'primary'}
-            fullWidth
-            size="small"
-            disabled={cartState === 'loading'}
-            startIcon={
-              cartState === 'loading' ? (
-                <CircularProgress size={14} color="inherit" />
-              ) : cartState === 'success' ? (
-                <CheckIcon fontSize="small" />
-              ) : (
-                <CartIcon fontSize="small" />
-              )
-            }
-            onClick={handleAddToCart}
-            aria-label={`เพิ่ม ${book.title} ลงในตะกร้า`}
-            sx={{
-              py: { xs: 0.65, sm: 0.85 },
-              fontWeight: 700,
-              fontSize: { xs: '0.78rem', sm: '0.825rem' },
-              borderRadius: 2,
-              transition: 'all 0.2s ease',
-              ...(cartState === 'success'
-                ? {
-                    bgcolor: '#2E7D5B',
-                    color: '#FFFFFF',
-                    borderColor: '#2E7D5B',
-                  }
-                : {
-                    borderColor: '#D9E2EC',
-                    color: '#0F2942',
-                    '&:hover': {
-                      bgcolor: '#0F2942',
-                      color: '#FFFFFF',
-                      borderColor: '#0F2942',
-                    },
-                  }),
-            }}
-          >
-            {cartState === 'loading' ? 'กำลังเพิ่ม...' : cartState === 'success' ? 'เพิ่มแล้ว' : 'เพิ่มลงตะกร้า'}
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-    </motion.div>
-
-    {/* Authentication Gate Dialog */}
-    <LoginRequiredDialog
-      open={loginModalOpen}
-      onClose={() => setLoginModalOpen(false)}
-      onLogin={handleModalLogin}
-      mode="add-to-cart"
-    />
-  </>
-);
+      {/* Authentication Gate Dialog */}
+      <LoginRequiredDialog
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLogin={handleModalLogin}
+        mode="add-to-cart"
+      />
+    </>
+  );
 };

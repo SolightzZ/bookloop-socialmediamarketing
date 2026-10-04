@@ -95,8 +95,7 @@ if (!function_exists('corsHeaders')) {
         }
 
         header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
-        // ngrok-skip-browser-warning = เลี่ยงหน้า interstitial ของ ngrok free (fetch ต้องส่งมาจึงได้ JSON)
-        header("Access-Control-Allow-Headers: Content-Type, Authorization, ngrok-skip-browser-warning");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json; charset=utf-8");
 
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

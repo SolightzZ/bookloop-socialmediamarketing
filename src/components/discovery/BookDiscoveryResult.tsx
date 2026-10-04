@@ -427,7 +427,7 @@ export const BookDiscoveryResult: React.FC<BookDiscoveryResultProps> = ({
                       visible: { opacity: 1, y: 0 },
                     }}
                   >
-                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border-l-[3px] border-[#1976D2]">
+                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50/80 p-2.5 rounded-lg border border-slate-200">
                       {book.story ? (book.story.length > 70 ? book.story.slice(0, 70) + '...' : book.story) : 'หนังสือเล่มนี้พร้อมให้คุณเปิดอ่าน'}
                     </p>
                   </motion.div>

@@ -66,18 +66,9 @@ export const useAnimationState = () => {
     return () => obs.disconnect();
   }, []);
 
-  // ── Mouse parallax ──────────────────────────────────────────────
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (state.prefersReducedMotion || state.deviceType === 'mobile') return;
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
-      const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
-      setState((p) => ({ ...p, mousePosition: { x, y } }));
-    },
-    [state.prefersReducedMotion, state.deviceType],
-  );
+  const containerRectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+  const rafMoveId = useRef<number | null>(null);
+  const pendingMousePos = useRef<{ x: number; y: number } | null>(null);
 
   // ── Hover ───────────────────────────────────────────────────────
   const isTouch = useMemo(
@@ -85,13 +76,55 @@ export const useAnimationState = () => {
     [],
   );
 
+  const updateContainerRect = useCallback(() => {
+    if (containerRef.current) {
+      const r = containerRef.current.getBoundingClientRect();
+      containerRectRef.current = { left: r.left, top: r.top, width: r.width || 1, height: r.height || 1 };
+    }
+  }, []);
+
   const handleMouseEnter = useCallback(() => {
-    if (!isTouch) setState((p) => ({ ...p, isHovered: true }));
-  }, [isTouch]);
+    if (!isTouch) {
+      updateContainerRect();
+      setState((p) => ({ ...p, isHovered: true }));
+    }
+  }, [isTouch, updateContainerRect]);
 
   const handleMouseLeave = useCallback(() => {
+    containerRectRef.current = null;
+    if (rafMoveId.current) {
+      cancelAnimationFrame(rafMoveId.current);
+      rafMoveId.current = null;
+    }
+    pendingMousePos.current = null;
     setState((p) => ({ ...p, isHovered: false, mousePosition: { x: 0, y: 0 } }));
   }, []);
+
+  // ── Mouse parallax ──────────────────────────────────────────────
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (state.prefersReducedMotion || state.deviceType === 'mobile') return;
+      let rect = containerRectRef.current;
+      if (!rect) {
+        updateContainerRect();
+        rect = containerRectRef.current;
+      }
+      if (!rect) return;
+      const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
+      const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
+
+      pendingMousePos.current = { x, y };
+      if (!rafMoveId.current) {
+        rafMoveId.current = requestAnimationFrame(() => {
+          rafMoveId.current = null;
+          if (pendingMousePos.current) {
+            setState((p) => ({ ...p, mousePosition: pendingMousePos.current! }));
+          }
+        });
+      }
+    },
+    [state.prefersReducedMotion, state.deviceType, updateContainerRect],
+  );
 
   // ── Blinking ────────────────────────────────────────────────────
   const setupBlinking = useCallback(

@@ -39,13 +39,12 @@ export const BookStorySection: React.FC<BookStorySectionProps> = ({ story, onCha
         width: '100%',
         p: { xs: 2.5, sm: 3 },
         bgcolor: '#F8FAFC',
-        borderRadius: 3.5,
-        border: '1.5px solid #E2E8F0',
-        borderLeft: '4px solid #1976D2',
+        borderRadius: '8px',
+        border: '1px solid #E5E7EB',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AutoStoriesRounded sx={{ color: '#1976D2', fontSize: 20 }} />
+        <AutoStoriesRounded sx={{ color: '#64748B', fontSize: 20 }} />
         <Typography
           variant="subtitle1"
           component="h2"

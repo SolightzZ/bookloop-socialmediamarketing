@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { Book, books } from '../data/books';
+import { listingService } from '../services/listingService';
 import { showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { logWarn } from '../utils/logger';
@@ -90,11 +91,31 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [userId, loadWishlist]);
 
+  const [customBooks, setCustomBooks] = useState<Map<string, Book>>(new Map());
+
+  useEffect(() => {
+    const missingIds = wishlistIds.filter(
+      (id) => !books.some((b) => b.id === id) && !customBooks.has(id) && id.startsWith('LST-')
+    );
+    if (missingIds.length > 0) {
+      Promise.all(missingIds.map((id) => listingService.getListingById(id))).then((fetched) => {
+        const valid = fetched.filter((b): b is Book => Boolean(b));
+        if (valid.length > 0) {
+          setCustomBooks((prev) => {
+            const next = new Map(prev);
+            valid.forEach((b) => next.set(b.id, b));
+            return next;
+          });
+        }
+      });
+    }
+  }, [wishlistIds, customBooks]);
+
   const wishlist = useMemo<Book[]>(() => {
     return wishlistIds
-      .map((id) => books.find((b) => b.id === id))
+      .map((id) => books.find((b) => b.id === id) || customBooks.get(id))
       .filter((b): b is Book => Boolean(b));
-  }, [wishlistIds]);
+  }, [wishlistIds, customBooks]);
 
   const toggleWishlist = useCallback((book: Book) => {
     setWishlistIds((prev) => {

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Paper,
   Typography,
   Divider,
   Box,
@@ -12,12 +11,10 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  ShieldOutlined as ShieldIcon,
   CheckCircle as ConfirmIcon,
-  Recycling as EcoIcon,
-  LockOutlined as LockIcon,
 } from '@mui/icons-material';
 import { CartItem } from '../../hooks/useCart';
+import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { SafeImage } from '../common/SafeImage';
 import { PromoCodeInput } from './PromoCodeInput';
@@ -51,17 +48,20 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
 }) => {
   const [isItemsExpanded, setIsItemsExpanded] = useState<boolean>(true);
   const totalCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const navigate = useNavigate();
 
   return (
-    <Paper
-      elevation={0}
+    <Box
+      component="aside"
+      aria-label="สรุปคำสั่งซื้อ"
       sx={{
-        p: { xs: 2.5, sm: 3.5 },
-        borderRadius: 3,
-        border: '1px solid #E2E8F0',
+        p: { xs: 2.5, sm: 3 },
+        borderRadius: '10px',
+        border: '1px solid #D6E0EA',
         bgcolor: '#FFFFFF',
+        boxShadow: '0 2px 8px rgba(15, 53, 87, 0.04)',
         position: { md: 'sticky' },
-        top: { md: 90 },
+        top: { md: 88 },
       }}
     >
       <Box
@@ -72,17 +72,40 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
           mb: 1.5,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '1.15rem' }}>
+        <Typography variant="h2" sx={{ fontWeight: 700, color: '#102A43', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
           สรุปคำสั่งซื้อ ({totalCount} เล่ม)
         </Typography>
 
-        <IconButton
-          size="small"
-          onClick={() => setIsItemsExpanded(!isItemsExpanded)}
-          sx={{ display: { xs: 'flex', md: 'none' } }}
-        >
-          {isItemsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography
+            component="button"
+            type="button"
+            onClick={() => navigate('/cart')}
+            sx={{
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#1976D2',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+              p: 0.5,
+              '&:hover': { textDecoration: 'underline' },
+              '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px', borderRadius: '6px' },
+            }}
+          >
+            แก้ไขสินค้า →
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setIsItemsExpanded(!isItemsExpanded)}
+            aria-label={isItemsExpanded ? 'ย่อรายการสินค้า' : 'ขยายรายการสินค้า'}
+            sx={{ display: { xs: 'flex', md: 'none' } }}
+          >
+            {isItemsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Collapsible Product List */}
@@ -109,7 +132,7 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
                 gap: 1.5,
               }}
             >
-              <Box sx={{ width: 44, height: 60, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden' }}>
+              <Box sx={{ width: 44, height: 60, flexShrink: 0, borderRadius: '6px', overflow: 'hidden', border: '1px solid #D6E0EA' }}>
                 <SafeImage
                   src={item.cover}
                   alt={item.title}
@@ -144,7 +167,7 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
         </Box>
       </Collapse>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ my: 2, borderColor: '#D6E0EA' }} />
 
       {/* Promo Code Input */}
       <Box sx={{ mb: 2 }}>
@@ -155,7 +178,7 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
         />
       </Box>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ my: 2, borderColor: '#D6E0EA' }} />
 
       {/* Pricing Breakdown */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -206,14 +229,18 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
         )}
       </Box>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ my: 2, borderColor: '#D6E0EA' }} />
 
       {/* Final Total */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#102A43' }}>
           ยอดชำระสุทธิ
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 800, color: '#102A43', fontSize: '2rem', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}
+          aria-label={`ยอดชำระสุทธิ ${formatCurrency(total)}`}
+        >
           {formatCurrency(total)}
         </Typography>
       </Box>
@@ -227,53 +254,28 @@ export const CheckoutSummarySidebar: React.FC<CheckoutSummarySidebarProps> = ({
         onClick={onConfirmOrder}
         startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <ConfirmIcon />}
         sx={{
-          py: 1.8,
-          fontSize: '1.1rem',
+          minHeight: 52,
+          py: 1.5,
+          fontSize: '1.05rem',
           fontWeight: 800,
-          borderRadius: 2.5,
-          mb: 1.5,
+          borderRadius: '8px',
           bgcolor: '#1976D2',
-          boxShadow: '0 4px 14px rgba(25, 118, 210, 0.35)',
+          boxShadow: 'none',
           textTransform: 'none',
+          whiteSpace: 'nowrap',
           '&:hover': {
             bgcolor: '#1565C0',
+            boxShadow: 'none',
           },
           '&:disabled': {
             bgcolor: '#CBD5E1',
             color: '#94A3B8',
           },
+          '&:focus-visible': { outline: '2px solid #0F3557', outlineOffset: '2px' },
         }}
       >
         {isSubmitting ? 'กำลังสร้างคำสั่งซื้อ...' : 'ยืนยันการสั่งซื้อ'}
       </Button>
-
-      <Typography
-        variant="caption"
-        sx={{
-          textAlign: 'center',
-          color: '#64748B',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0.6,
-          mb: 2,
-        }}
-      >
-        <LockIcon sx={{ fontSize: 14, color: '#16A34A' }} />
-        <span>การสั่งซื้อปลอดภัย ข้อมูลของคุณได้รับการปกป้อง 100%</span>
-      </Typography>
-
-      {/* Trust & Eco Badges */}
-      <Box sx={{ pt: 2, borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-          <ShieldIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-          <Typography variant="caption">รับประกันการซื้อขายปลอดภัย 100%</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-          <EcoIcon sx={{ fontSize: 16, color: 'success.main' }} />
-          <Typography variant="caption">ร่วมหมุนเวียนหนังสือ ช่วยลดการตัดต้นไม้</Typography>
-        </Box>
-      </Box>
-    </Paper>
+    </Box>
   );
 };

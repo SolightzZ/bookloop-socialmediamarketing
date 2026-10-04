@@ -6,7 +6,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../utils/analytics';
-import { MagneticButton } from '../common/MagneticButton';
 import { useAuth } from '../../hooks/useAuth';
 
 export interface HeroActionsProps {
@@ -59,76 +58,72 @@ export const HeroActions: React.FC<HeroActionsProps> = ({
       }}
     >
       {/* Primary CTA: ค้นหาหนังสือ */}
-      <MagneticButton strength={0.22}>
+      <Button
+        variant="contained"
+        size="large"
+        disabled={disabled}
+        startIcon={<SearchIcon sx={{ fontSize: 20 }} />}
+        onClick={handleSearch}
+        sx={{
+          bgcolor: '#1976D2',
+          color: '#FFFFFF',
+          px: { xs: 2.75, sm: 3.75 },
+          py: 1.25,
+          borderRadius: 50,
+          fontWeight: 700,
+          fontSize: { xs: '0.9rem', sm: '1rem' },
+          whiteSpace: 'nowrap',
+          boxShadow: '0 4px 14px rgba(25, 118, 210, 0.25)',
+          textTransform: 'none',
+          '&:hover': {
+            bgcolor: '#0F2D4A',
+            boxShadow: '0 6px 18px rgba(15, 45, 74, 0.25)',
+          },
+          '&:focus-visible': {
+            outline: '3px solid #38BDF8',
+            outlineOffset: 2,
+          },
+          transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+        }}
+      >
+        ค้นหาหนังสือ
+      </Button>
+
+      {/* Secondary CTA: ส่งต่อหนังสือ → (Visible only when authenticated) */}
+      {isAuthenticated && (
         <Button
-          variant="contained"
+          id="hero-sell-cta-btn"
+          variant="outlined"
           size="large"
           disabled={disabled}
-          startIcon={<SearchIcon sx={{ fontSize: 20 }} />}
-          onClick={handleSearch}
+          startIcon={<ShareForwardIcon sx={{ fontSize: 19 }} />}
+          onClick={handleSell}
           sx={{
-            bgcolor: '#1976D2',
-            color: '#FFFFFF',
-            px: { xs: 2.75, sm: 3.75 },
+            borderColor: '#CBD5E1',
+            color: '#0F2D4A',
+            px: { xs: 2.5, sm: 3.5 },
             py: 1.25,
             borderRadius: 50,
             fontWeight: 700,
             fontSize: { xs: '0.9rem', sm: '1rem' },
             whiteSpace: 'nowrap',
-            boxShadow: '0 4px 14px rgba(25, 118, 210, 0.25)',
+            bgcolor: '#FFFFFF',
             textTransform: 'none',
+            boxShadow: '0 2px 6px rgba(15, 45, 74, 0.03)',
             '&:hover': {
-              bgcolor: '#0F2D4A',
-              boxShadow: '0 6px 18px rgba(15, 45, 74, 0.25)',
+              borderColor: '#1976D2',
+              color: '#1976D2',
+              bgcolor: 'rgba(25, 118, 210, 0.04)',
             },
             '&:focus-visible': {
-              outline: '3px solid #38BDF8',
+              outline: '2px solid rgba(15, 23, 42, 0.2)',
               outlineOffset: 2,
             },
-            transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+            transition: 'all 0.2s ease',
           }}
         >
-          ค้นหาหนังสือ
+          ส่งต่อหนังสือ
         </Button>
-      </MagneticButton>
-
-      {/* Secondary CTA: ส่งต่อหนังสือ → (Visible only when authenticated) */}
-      {isAuthenticated && (
-        <MagneticButton strength={0.18}>
-          <Button
-            id="hero-sell-cta-btn"
-            variant="outlined"
-            size="large"
-            disabled={disabled}
-            startIcon={<ShareForwardIcon sx={{ fontSize: 19 }} />}
-            onClick={handleSell}
-            sx={{
-              borderColor: '#CBD5E1',
-              color: '#0F2D4A',
-              px: { xs: 2.5, sm: 3.5 },
-              py: 1.25,
-              borderRadius: 50,
-              fontWeight: 700,
-              fontSize: { xs: '0.9rem', sm: '1rem' },
-              whiteSpace: 'nowrap',
-              bgcolor: '#FFFFFF',
-              textTransform: 'none',
-              boxShadow: '0 2px 6px rgba(15, 45, 74, 0.03)',
-              '&:hover': {
-                borderColor: '#1976D2',
-                color: '#1976D2',
-                bgcolor: 'rgba(25, 118, 210, 0.04)',
-              },
-              '&:focus-visible': {
-                outline: '3px solid #1976D2',
-                outlineOffset: 2,
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            ส่งต่อหนังสือ
-          </Button>
-        </MagneticButton>
       )}
     </Box>
   );

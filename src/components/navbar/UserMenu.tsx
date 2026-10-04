@@ -64,7 +64,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onItemClick }) => {
   };
 
   return (
-    <>
+    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <Button
         onClick={handleOpen}
         aria-controls={open ? 'user-account-menu' : undefined}
@@ -109,18 +109,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onItemClick }) => {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        disableScrollLock
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{
           paper: {
             elevation: 0,
             sx: {
-              width: 250,
+              width: 260,
               mt: 1.5,
-              borderRadius: 3,
+              borderRadius: '16px',
               border: '1px solid #E2E8F0',
-              boxShadow: '0 10px 25px -5px rgba(15, 41, 66, 0.1), 0 8px 10px -6px rgba(15, 41, 66, 0.05)',
-              overflow: 'visible',
+              boxShadow: '0 12px 36px rgba(15, 41, 66, 0.12), 0 4px 12px rgba(15, 41, 66, 0.06)',
+              overflow: 'hidden',
               p: 0.5,
             },
           },
@@ -219,6 +220,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onItemClick }) => {
           />
         </MenuItem>
       </Menu>
-    </>
+    </Box>
   );
 };

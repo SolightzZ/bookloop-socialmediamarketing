@@ -17,6 +17,7 @@ export interface SearchBarProps {
   className?: string;
   onClear?: () => void;
   id?: string;
+  name?: string;
 }
 
 /**
@@ -39,6 +40,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   className = '',
   onClear,
   id,
+  name = 'search',
 }) => {
   const navigate = useNavigate();
 
@@ -95,6 +97,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         />
         <InputBase
           id={id || 'hero-search-input'}
+          name={name}
           fullWidth
           autoFocus={autoFocus}
           placeholder={placeholder || 'ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN...'}
@@ -102,6 +105,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onChange={(e) => onChange(e.target.value)}
           inputProps={{
             'aria-label': placeholder || 'ค้นหาชื่อหนังสือ, ผู้เขียน, หรือ ISBN',
+            id: id || 'hero-search-input',
+            name: name,
           }}
           sx={{
             color: '#0F2D4A',
@@ -194,12 +199,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         />
         <InputBase
           id={id || 'header-search-input'}
+          name={name}
           fullWidth
           placeholder={placeholder || 'ค้นหาชื่อหนังสือ...'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           inputProps={{
             'aria-label': placeholder || 'ค้นหาหนังสือหรือผู้เขียน',
+            id: id || 'header-search-input',
+            name: name,
           }}
           sx={{
             color: '#0F2D4A',
@@ -265,6 +273,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <SearchIcon sx={{ color: '#627D98', mr: 1.5, fontSize: 20, flexShrink: 0 }} />
       <InputBase
         id={id || 'page-search-input'}
+        name={name}
         fullWidth
         autoFocus={autoFocus}
         placeholder={placeholder || 'ค้นหาหนังสือ...'}
@@ -272,6 +281,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onChange={(e) => onChange(e.target.value)}
         inputProps={{
           'aria-label': placeholder || 'ค้นหาหนังสือ',
+          id: id || 'page-search-input',
+          name: name,
         }}
         sx={{
           color: '#0F2D4A',

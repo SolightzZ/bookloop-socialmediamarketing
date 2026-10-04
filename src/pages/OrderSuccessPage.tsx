@@ -359,7 +359,7 @@ export default function OrderSuccessPage() {
                     color: BLUE,
                     minWidth: 0,
                     px: 1,
-                    '&:focus-visible': { outline: `2px solid ${BLUE}`, outlineOffset: '2px' },
+                    '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
                   }}
                 >
                   คัดลอก
@@ -644,7 +644,7 @@ export default function OrderSuccessPage() {
               py: 1.5,
               fontWeight: 700,
               '&:hover': { bgcolor: BLUE },
-              '&:focus-visible': { outline: `2px solid ${BLUE}`, outlineOffset: '2px' },
+              '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
               width: { xs: '100%', sm: 'auto' },
             }}
           >
@@ -662,7 +662,7 @@ export default function OrderSuccessPage() {
               borderColor: tokens.colors.borderStrong,
               color: INK,
               '&:hover': { borderColor: INK, bgcolor: '#FFFFFF' },
-              '&:focus-visible': { outline: `2px solid ${BLUE}`, outlineOffset: '2px' },
+              '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
               width: { xs: '100%', sm: 'auto' },
             }}
           >

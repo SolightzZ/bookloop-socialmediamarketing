@@ -1,12 +1,11 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   ShoppingCartOutlined as BuyIcon,
   MenuBookOutlined as ReadIcon,
   LocalAtmOutlined as SellIcon,
   ShareOutlined as PassOnIcon,
   LoopOutlined as RepeatIcon,
-  Sync as LoopBadgeIcon,
 } from '@mui/icons-material';
 import { AppContainer } from './common/Container';
 import { SectionHeader } from './common/SectionHeader';
@@ -127,51 +126,6 @@ export const BookLoopJourney: React.FC = () => {
               />
             ))}
           </Box>
-
-          {/* Visual Continuous Loop Return Curve */}
-          <Box
-            sx={{
-              mt: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1.5,
-              py: 1.5,
-              px: 3,
-              borderRadius: 50,
-              bgcolor: '#FFFFFF',
-              border: '1px solid #D9E2EC',
-              maxWidth: 480,
-              mx: 'auto',
-              boxShadow: '0 4px 12px rgba(15, 45, 74, 0.04)',
-            }}
-          >
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                bgcolor: 'rgba(25, 118, 210, 0.1)',
-                color: '#1976D2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <LoopBadgeIcon sx={{ fontSize: 16 }} />
-            </Box>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 700,
-                color: '#0F2D4A',
-                fontSize: '0.85rem',
-                letterSpacing: '0.01em',
-              }}
-            >
-              วงจรหมุนเวียนต่อเนื่อง: อ่านต่อ → ส่งต่อ → ค้นพบเล่มใหม่
-            </Typography>
-          </Box>
         </Box>
 
         {/* MOBILE & TABLET VERTICAL TIMELINE (Visible on xs & sm) */}
@@ -197,25 +151,6 @@ export const BookLoopJourney: React.FC = () => {
             />
           ))}
 
-          {/* Mobile Loop Return Indicator */}
-          <Box
-            sx={{
-              mt: 2,
-              ml: 6,
-              p: 2,
-              borderRadius: 2.5,
-              bgcolor: '#FFFFFF',
-              border: '1px solid #D9E2EC',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-            }}
-          >
-            <LoopBadgeIcon sx={{ color: '#1976D2', fontSize: 20 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F2D4A', fontSize: '0.8rem' }}>
-              อ่านจบแล้วลงขายต่อได้อีกครั้ง
-            </Typography>
-          </Box>
         </Box>
       </AppContainer>
     </Box>

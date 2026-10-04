@@ -81,7 +81,7 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({
             },
           },
           '&:focus-visible': {
-            outline: '2px solid #1565C0',
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
             outlineOffset: '2px',
           },
         }}

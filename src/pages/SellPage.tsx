@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { Box, Paper, Container } from '@mui/material';
 import { showSuccess, showError } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { logWarn } from '../utils/logger';
@@ -8,24 +8,15 @@ import { apiClient } from '../services/apiClient';
 import { authService, getStoredSession } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 import { SellHero } from '../components/sell/SellHero';
-import { SellSteps } from '../components/sell/SellSteps';
 import { SellBookForm, SellFormData } from '../components/sell/SellBookForm';
 
 export default function SellPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stepState, setStepState] = useState<{ current: number; completed: number[] }>({
-    current: 0,
-    completed: [],
-  });
 
   useEffect(() => {
     trackEvent('sell_book_click', { page: 'sell' });
     window.scrollTo(0, 0);
-  }, []);
-
-  const handleStepProgressChange = useCallback((current: number, completed: number[]) => {
-    setStepState({ current, completed });
   }, []);
 
   const handleFormSubmit = async (data: SellFormData, image: string): Promise<void> => {
@@ -36,7 +27,7 @@ export default function SellPage() {
       price: Number(data.price),
     });
 
-    // บันทึกลง backend (ต้องสำเร็จ — ไม่มีโหมดออฟไลน์)
+    // บันทึกลง backend
     let listingId: string;
     let cover = image;
     try {
@@ -52,21 +43,19 @@ export default function SellPage() {
         price: Number(data.price),
         originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
         defects: data.defects,
-        story: data.story,
+        story: data.story || data.defects,
         image,
       });
       if (!result.listing) {
         throw new Error('เซิร์ฟเวอร์ตอบกลับไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง');
       }
       listingId = result.listing.id;
-      // รูปที่ server เก็บเป็นไฟล์แล้ว — ใช้ path ฝั่ง server ถ้า frontend อยู่ same-origin ไม่ได้
-      // เก็บ dataURL เดิมไว้แสดงผลบนเครื่อง (Account tab) จึงไม่ทับ cover
     } catch (err: any) {
       showError('ลงขายไม่สำเร็จ', err?.message || 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง', true);
       return;
     }
 
-    // mirror ลงโปรไฟล์บนเครื่อง (แท็บ "หนังสือของฉัน" ใน Account)
+    // Mirror ลงโปรไฟล์บนเครื่อง (แท็บ "หนังสือของฉัน" ใน Account)
     try {
       const session = getStoredSession();
       const ownerId = user?.id ?? session?.userId;
@@ -83,15 +72,17 @@ export default function SellPage() {
           dateListed: new Date().toISOString().split('T')[0],
           status: 'active',
           views: 0,
+          defects: data.defects,
+          story: data.story,
+          isbn: data.isbn,
         });
       }
     } catch (e) {
-      // mirror ล้มต้องไม่พัง flow ลงขาย — แต่ต้องเห็นใน console
       logWarn('SellPage: profile mirror (addListedBook) failed', e);
     }
 
     await showSuccess(
-      'ส่งหนังสือสำเร็จ!',
+      'ส่งต่อหนังสือสำเร็จ!',
       `หนังสือ "${data.title}" ได้รับการบันทึกขึ้นระบบเรียบร้อย ขอบคุณที่ร่วมส่งต่อหนังสือในชุมชน BookLoop`
     );
 
@@ -99,42 +90,34 @@ export default function SellPage() {
   };
 
   return (
-    <Box sx={{ bgcolor: '#F7F9FC', minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* 1. Hero Section (Desktop: 150-180px, Mobile: 140-160px) */}
+    <Box sx={{ bgcolor: '#F7FAFD', minHeight: '100vh', pb: { xs: 6, sm: 8, md: 10 } }}>
+      {/* 1. Compact Light Hero */}
       <SellHero />
 
-      {/* 2. Main Content Grid (Max-width 1180px, Desktop: 280px minmax(0, 1fr)) */}
-      <Box
+      {/* 2. Main Centered Form Card (No sidebar, max-width ~1040px) */}
+      <Container
+        maxWidth="lg"
         sx={{
-          maxWidth: '1180px',
-          mx: 'auto',
+          maxWidth: '1040px !important',
           px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 4, sm: 5, md: 6 },
+          my: { xs: 3, sm: 4, md: 5 },
+          position: 'relative',
+          zIndex: 2,
         }}
       >
-        <Box
+        <Paper
+          elevation={0}
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' },
-            gap: { xs: 3, md: 4 },
-            alignItems: 'start',
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E5EEF8',
+            borderRadius: { xs: '16px', sm: '20px' },
+            boxShadow: '0 4px 24px rgba(15, 47, 82, 0.04)',
+            p: { xs: 2.5, sm: 4, md: 5 },
           }}
         >
-          {/* Left Sidebar: Reusable SellSteps with real progression states */}
-          <SellSteps
-            currentStepIndex={stepState.current}
-            completedStepIndices={stepState.completed}
-          />
-
-          {/* Right Main Content: Structured, modular SellBookForm */}
-          <Box sx={{ minWidth: 0 }}>
-            <SellBookForm
-              onSubmit={handleFormSubmit}
-              onStepProgressChange={handleStepProgressChange}
-            />
-          </Box>
-        </Box>
-      </Box>
+          <SellBookForm onSubmit={handleFormSubmit} />
+        </Paper>
+      </Container>
     </Box>
   );
 }

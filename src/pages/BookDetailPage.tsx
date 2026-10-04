@@ -8,21 +8,22 @@ import {
   Button,
   Breadcrumbs,
   Link,
-  Paper,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { books } from '../data/books';
+import { books, Book } from '../data/books';
+import { listingService } from '../services/listingService';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { SellerCard } from '../components/SellerCard';
 import { ReviewList } from '../components/ReviewList';
-import { showConfirm, showSuccess } from '../utils/alerts';
+import { showSuccess } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { logWarn } from '../utils/logger';
 import { BookGallery } from '../components/bookdetail/BookGallery';
 import { BookPurchaseBox } from '../components/bookdetail/BookPurchaseBox';
 import { BookStoryCard } from '../components/bookdetail/BookStoryCard';
 import { BookSpecsTable } from '../components/bookdetail/BookSpecsTable';
+import { ConditionStrip } from '../components/bookdetail/ConditionStrip';
+import { MobilePurchaseBar } from '../components/bookdetail/MobilePurchaseBar';
 import { RelatedBooksSection } from '../components/bookdetail/RelatedBooksSection';
 
 import { useAuth } from '../hooks/useAuth';
@@ -30,7 +31,6 @@ import { LoginRequiredDialog } from '../components/auth/LoginRequiredDialog';
 import { savePendingAction, PendingAction } from '../types/authGate';
 import { ErrorState } from '../components/common/ErrorState';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
-import { PriceAlertButton } from '../components/bookdetail/PriceAlertButton';
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,8 +43,28 @@ export default function BookDetailPage() {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [authGateMode, setAuthGateMode] = useState<'add-to-cart' | 'buy-now'>('add-to-cart');
 
-  const book = books.find((b) => b.id === id);
+  const [book, setBook] = useState<Book | null>(() => books.find((b) => b.id === id) || null);
   const [selectedImg, setSelectedImg] = useState<string>(book?.images?.[0] || book?.cover || '');
+  const [isLoading, setIsLoading] = useState<boolean>(!book && !!id);
+
+  useEffect(() => {
+    const staticBook = books.find((b) => b.id === id);
+    if (staticBook) {
+      setBook(staticBook);
+      setIsLoading(false);
+      return;
+    }
+
+    if (id) {
+      setIsLoading(true);
+      listingService.getListingById(id).then((found) => {
+        setBook(found);
+        setIsLoading(false);
+      }).catch(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [id]);
 
   useEffect(() => {
     if (book) {
@@ -56,7 +76,15 @@ export default function BookDetailPage() {
         price: book.price,
       });
     }
-  }, [book, id]);
+  }, [book]);
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 12, textAlign: 'center' }}>
+        <Typography sx={{ color: '#64748B' }}>กำลังโหลดข้อมูลหนังสือ…</Typography>
+      </Container>
+    );
+  }
 
   if (!book) {
     return (
@@ -83,10 +111,20 @@ export default function BookDetailPage() {
   const isFavorite = isInWishlist(book.id);
 
   const handleAddToCart = () => {
+    if (!user) {
+      setAuthGateMode('add-to-cart');
+      setLoginModalOpen(true);
+      return;
+    }
     addToCart(book);
   };
 
   const handleBuyNow = () => {
+    if (!user) {
+      setAuthGateMode('buy-now');
+      setLoginModalOpen(true);
+      return;
+    }
     trackEvent('begin_checkout', { bookId: book.id, title: book.title, price: book.price });
     addToCart(book);
     navigate('/checkout');
@@ -127,49 +165,43 @@ export default function BookDetailPage() {
     .slice(0, 3);
 
   return (
-    <Box sx={{ py: { xs: 3, sm: 4, md: 6 }, bgcolor: '#F7F9FC', minHeight: '100vh', overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        py: { xs: 2.5, md: 4 },
+        pb: { xs: 4, md: 8 },
+        bgcolor: '#F5F7FA',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+      }}
+    >
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* Breadcrumb: Desktop & Mobile intelligent truncation */}
+        {/* Breadcrumb — plain, quiet, no card */}
         <Breadcrumbs
           aria-label="breadcrumb"
           sx={{
-            mb: { xs: 2, sm: 3, md: 4 },
-            fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-            '& .MuiBreadcrumbs-separator': {
-              color: '#CBD5E1',
-            },
+            py: { xs: 1.5, md: 2 },
+            mb: { xs: 2, md: 3 },
+            fontSize: '0.8125rem',
+            color: '#62748A',
+            '& .MuiBreadcrumbs-separator': { color: '#B9C6D4' },
+            '& a': { color: '#62748A', textDecoration: 'none', '&:hover': { color: '#1976D2' } },
           }}
         >
-          <Link
-            component={RouterLink}
-            to="/"
-            underline="hover"
-            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
-          >
+          <Link component={RouterLink} to="/">
             หน้าหลัก
           </Link>
-          <Link
-            component={RouterLink}
-            to="/books"
-            underline="hover"
-            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
-          >
-            หนังสือทั้งหมด
+          <Link component={RouterLink} to="/books">
+            หนังสือมือสอง
           </Link>
-          <Link
-            component={RouterLink}
-            to={`/books?category=${encodeURIComponent(book.category)}`}
-            underline="hover"
-            sx={{ color: '#627D98', '&:hover': { color: '#1976D2' } }}
-          >
+          <Link component={RouterLink} to={`/books?category=${encodeURIComponent(book.category)}`}>
             {book.category}
           </Link>
           <Typography
             component="span"
             sx={{
-              color: '#0F2D4A',
-              fontWeight: 700,
-              maxWidth: { xs: 130, sm: 240, md: 380, lg: 500 },
+              color: '#102A43',
+              fontWeight: 600,
+              maxWidth: { xs: 140, sm: 280, md: 420 },
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -181,9 +213,12 @@ export default function BookDetailPage() {
           </Typography>
         </Breadcrumbs>
 
-        {/* Main Product Section: Gallery (Left) | Product Info (Right) */}
-        <Grid container spacing={{ xs: 2.5, sm: 3, md: 5 }} sx={{ mb: { xs: 4, md: 8 } }}>
-          {/* Left: Images Gallery */}
+        {/* Product hero — 5/12 gallery, 7/12 info */}
+        <Grid
+          container
+          spacing={{ xs: 4, md: 6 }}
+          sx={{ mb: { xs: 6, md: 10 } }}
+        >
           <Grid size={{ xs: 12, md: 5 }}>
             <BookGallery
               title={book.title}
@@ -192,8 +227,6 @@ export default function BookDetailPage() {
               onSelectImage={setSelectedImg}
             />
           </Grid>
-
-          {/* Right: Book Details & Actions */}
           <Grid size={{ xs: 12, md: 7 }}>
             <BookPurchaseBox
               book={book}
@@ -205,29 +238,59 @@ export default function BookDetailPage() {
                 trackEvent('favorite_book', { bookId: book.id, isFavorite: !isFavorite });
               }}
               onShare={handleShare}
+              conditionSlot={
+                <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+                  <ConditionStrip book={book} />
+                </Box>
+              }
             />
           </Grid>
         </Grid>
 
-        {/* Story of the Book section */}
+        {/* Book story — editorial pull-quote, no card */}
         {book.story && (
-          <BookStoryCard story={book.story} sellerName={book.seller.name} />
+          <Box sx={{ mb: { xs: 6, md: 10 } }}>
+            <BookStoryCard story={book.story} sellerName={book.seller.name} />
+          </Box>
         )}
 
-        {/* Specifications & Seller Section */}
-        <Grid container spacing={{ xs: 2.5, md: 4 }} sx={{ mb: { xs: 4, md: 8 } }}>
-          <Grid size={{ xs: 12, md: 7 }}>
+        {/* Condition — desktop full-width strip (mobile renders inside hero) */}
+        <Box sx={{ display: { xs: 'none', md: 'block' }, mb: { md: 10 } }}>
+          <ConditionStrip book={book} />
+        </Box>
+
+        {/* Book information + seller — 6/12 each, seller first on mobile */}
+        <Grid
+          container
+          spacing={{ xs: 5, md: 6 }}
+          sx={{ mb: { xs: 6, md: 10 } }}
+        >
+          <Grid size={{ xs: 12, md: 6 }} sx={{ order: { xs: 2, md: 1 } }}>
             <BookSpecsTable book={book} />
           </Grid>
-          <Grid size={{ xs: 12, md: 5 }}>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ order: { xs: 1, md: 2 } }}>
             <SellerCard seller={book.seller} />
           </Grid>
         </Grid>
 
-        {/* Reviews Section */}
-        <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 3, mb: 8, border: '1px solid #D9E2EC', bgcolor: '#FFFFFF', boxShadow: '0 2px 10px rgba(15, 45, 74, 0.03)' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F2D4A', mb: 3 }}>
-            รีวิวจากผู้อ่านและผู้ซื้อในชุมชน
+        {/* Reviews — full width editorial */}
+        <Box
+          id="reviews"
+          component="section"
+          aria-label="รีวิวจากผู้ซื้อและชุมชน"
+          sx={{ mb: { xs: 6, md: 10 }, scrollMarginTop: 88 }}
+        >
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 700,
+              color: '#102A43',
+              fontSize: { xs: '1.375rem', md: '1.75rem' },
+              letterSpacing: '-0.01em',
+              mb: 3,
+            }}
+          >
+            รีวิวจากผู้ซื้อและชุมชน
           </Typography>
           <ReviewList
             reviews={book.reviews}
@@ -235,11 +298,19 @@ export default function BookDetailPage() {
             totalReviews={book.reviewCount}
             bookTitle={book.title}
           />
-        </Paper>
+        </Box>
 
-        {/* Related Books */}
-        <RelatedBooksSection relatedBooks={relatedBooks} />
+        {/* Recommendations */}
+        <Box sx={{ mb: { xs: 2, md: 4 } }}>
+          <RelatedBooksSection relatedBooks={relatedBooks} />
+        </Box>
+
+        {/* Spacer so the sticky mobile bar never covers content */}
+        <Box aria-hidden sx={{ display: { xs: 'block', md: 'none' }, height: 96 }} />
       </Container>
+
+      {/* Sticky mobile purchase bar */}
+      <MobilePurchaseBar book={book} onBuyNow={handleBuyNow} />
 
       {/* Mandatory Authentication Gate Modal */}
       <LoginRequiredDialog

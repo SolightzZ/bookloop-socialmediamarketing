@@ -1,12 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  Button,
-} from '@mui/material';
+import { Box, Container, Typography, Grid } from '@mui/material';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { showConfirm, showSuccess } from '../utils/alerts';
@@ -48,64 +42,120 @@ export default function CartPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 3, sm: 4.5, md: 6 }, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Container maxWidth="lg">
-        {/* Header Title */}
+    <Box sx={{ py: { xs: 3, md: 5 }, pb: { xs: 6, md: 10 }, bgcolor: '#F5F7FA', minHeight: '100vh' }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* Swiss header — oversized title, count as index, quiet clear action */}
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: 1.5,
-            mb: { xs: 3, md: 4 },
+            alignItems: 'flex-end',
+            gap: 2,
+            mb: { xs: 3, md: 5 },
           }}
         >
           <Box>
             <Typography
-              variant="h4"
+              sx={{ color: '#1976D2', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em', mb: 1 }}
+            >
+              {String(cartCount).padStart(2, '0')} เล่มในตะกร้า
+            </Typography>
+            <Typography
+              variant="h1"
               sx={{
                 fontWeight: 800,
-                color: 'primary.main',
-                fontSize: { xs: '1.45rem', sm: '1.85rem', md: '2.15rem' },
+                color: '#102A43',
+                fontSize: { xs: '2rem', md: '2.75rem' },
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
               }}
             >
-              ตะกร้าสินค้าของคุณ
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-              คุณมีหนังสือ {cartCount} เล่มในตะกร้า
+              ตะกร้าสินค้า
             </Typography>
           </Box>
-          <Button
-            size="small"
-            color="error"
+          <Typography
+            component="button"
+            type="button"
             onClick={handleClearCart}
             sx={{
-              fontSize: '0.825rem',
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#62748A',
+              fontSize: '0.85rem',
               fontWeight: 600,
-              alignSelf: { xs: 'flex-end', sm: 'auto' },
+              fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+              pb: 0.5,
+              '&:hover': { color: '#D64545' },
+              '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px', borderRadius: '6px' },
             }}
           >
             ล้างตะกร้าทั้งหมด
-          </Button>
+          </Typography>
         </Box>
 
-        <Grid container spacing={4}>
-          {/* Cart Item List */}
+        <Grid container spacing={{ xs: 5, md: 8 }}>
+          {/* Item list — tabular column header + hairline rows */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box
+              aria-hidden
+              sx={{
+                display: { xs: 'none', md: 'grid' },
+                gridTemplateColumns: '72px 1fr 150px 110px 40px',
+                columnGap: 3,
+                pb: 1.5,
+                borderBottom: '2px solid #102A43',
+              }}
+            >
+              {['', 'สินค้า', 'จำนวน', 'รวม', ''].map((label, i) => (
+                <Typography
+                  key={i}
+                  sx={{
+                    color: '#62748A',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textAlign: i === 3 ? 'right' : 'left',
+                  }}
+                >
+                  {label}
+                </Typography>
+              ))}
+            </Box>
+            <Box
+              component="ul"
+              sx={{
+                listStyle: 'none',
+                m: 0,
+                p: 0,
+                px: { xs: 2, md: 3 },
+                bgcolor: '#FFFFFF',
+                border: '1px solid #D6E0EA',
+                borderRadius: '10px',
+                boxShadow: '0 2px 8px rgba(15, 53, 87, 0.06)',
+              }}
+            >
               {cart.map((item) => (
-                <CartItemCard
+                <Box
                   key={item.id}
-                  item={item}
-                  onUpdateQuantity={updateQuantity}
-                  onRemoveItem={handleRemoveItem}
-                />
+                  component="li"
+                  sx={{
+                    borderBottom: '1px solid #D6E0EA',
+                    '&:last-of-type': { borderBottom: 'none' },
+                  }}
+                >
+                  <CartItemCard
+                    item={item}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={handleRemoveItem}
+                  />
+                </Box>
               ))}
             </Box>
           </Grid>
 
-          {/* Order Summary Sidebar */}
+          {/* Summary rail */}
           <Grid size={{ xs: 12, md: 4 }}>
             <CartOrderSummary
               cartCount={cartCount}

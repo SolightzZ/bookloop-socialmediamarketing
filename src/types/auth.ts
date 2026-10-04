@@ -70,6 +70,9 @@ export interface UserListedBook {
   category: string;
   cover: string;
   dateListed: string;
-  status: 'active' | 'sold' | 'reserved' | 'paused';
+  status: 'active' | 'sold' | 'reserved' | 'paused' | 'pending' | 'rejected';
   views: number;
+  defects?: string;
+  story?: string;
+  isbn?: string;
 }

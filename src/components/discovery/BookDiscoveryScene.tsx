@@ -719,6 +719,8 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     // 7. RENDER LOOP & DYNAMIC KINETIC CHOREOGRAPHY
     // =========================================================================
     let animationFrameId: number;
+    let isVisible = false;
+    let isLoopRunning = false;
     let lastTimestamp = performance.now();
     let elapsedTime = 0;
     let currentCoverUrl = '';
@@ -729,6 +731,10 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
     const textureLoader = new THREE.TextureLoader();
 
     const animate = (timestamp: number) => {
+      if (!isVisible) {
+        isLoopRunning = false;
+        return;
+      }
       animationFrameId = requestAnimationFrame(animate);
       const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.1) || 0.016;
       lastTimestamp = timestamp;
@@ -1066,7 +1072,21 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
       renderer.render(scene, camera);
     };
 
-    animationFrameId = requestAnimationFrame(animate);
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible && !isLoopRunning) {
+          isLoopRunning = true;
+          lastTimestamp = performance.now();
+          animationFrameId = requestAnimationFrame(animate);
+        } else if (!isVisible && isLoopRunning) {
+          isLoopRunning = false;
+          cancelAnimationFrame(animationFrameId);
+        }
+      },
+      { threshold: 0.05 }
+    );
+    visibilityObserver.observe(container);
 
     // Responsive resize
     const handleResize = () => {
@@ -1090,6 +1110,7 @@ export const BookDiscoveryScene: React.FC<BookDiscoverySceneProps> = ({
 
     // Cleanup on unmount
     return () => {
+      visibilityObserver.disconnect();
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
 

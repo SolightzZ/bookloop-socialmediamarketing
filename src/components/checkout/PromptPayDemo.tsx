@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Button,
-  Chip,
   LinearProgress,
   IconButton,
   Tooltip,
 } from '@mui/material';
 import {
-  QrCode2 as QrCodeIcon,
   CheckCircle as PaidIcon,
   ErrorOutlined as FailedIcon,
   AccessTime as ExpiredIcon,
@@ -93,48 +90,34 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
   };
 
   return (
-    <Paper
-      elevation={0}
+    <Box
+      component="section"
+      aria-label="ชำระเงินด้วย Thai QR Payment"
       sx={{
-        p: 3,
-        mt: 2,
-        borderRadius: 2.5,
-        border: '1.5px dashed #003D6B',
-        bgcolor: '#F8FAFC',
+        mt: 2.5,
+        p: { xs: 2.5, sm: 3 },
+        borderRadius: '10px',
+        border: '1px solid #D6E0EA',
+        bgcolor: '#FFFFFF',
         textAlign: 'center',
       }}
     >
-      {/* Thai QR Header */}
-      <Box
+      {/* Panel eyebrow */}
+      <Typography
         sx={{
-          bgcolor: '#003D6B',
-          color: '#FFFFFF',
-          py: 1,
-          px: 2,
-          borderRadius: 1.5,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 1.5,
-          mb: 2,
+          fontSize: '0.72rem',
+          fontWeight: 800,
+          letterSpacing: '0.1em',
+          color: '#62748A',
         }}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
-          THAI QR PAYMENT
-        </Typography>
-        <Chip
-          label="พร้อมเพย์ / PromptPay"
-          size="small"
-          sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.2)',
-            color: '#FFFFFF',
-            fontWeight: 700,
-            fontSize: '0.7rem',
-            height: 20,
-          }}
-        />
-      </Box>
+        THAI QR PAYMENT
+      </Typography>
+      <Typography sx={{ fontSize: '0.82rem', color: '#62748A', mt: 0.25, mb: 2 }}>
+        พร้อมเพย์ / PromptPay
+      </Typography>
 
-      {/* QR Code Container */}
+      {/* QR Code */}
       <Box
         sx={{
           position: 'relative',
@@ -143,9 +126,8 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
           mx: 'auto',
           p: 1.5,
           bgcolor: '#FFFFFF',
-          borderRadius: 2,
-          border: '1px solid #CBD5E1',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          borderRadius: '8px',
+          border: '1px solid #D6E0EA',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -244,24 +226,29 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
 
       {/* Amount and Timer */}
       <Box sx={{ mt: 2 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          ยอดชำระเงิน
+        <Typography sx={{ color: '#62748A', fontSize: '0.8rem' }}>
+          ยอดชำระ
         </Typography>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#003D6B' }}>
+        <Typography
+          sx={{ fontWeight: 800, color: '#102A43', fontSize: '1.75rem', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}
+          aria-label={`ยอดชำระ ${formatCurrency(totalAmount)}`}
+        >
           {formatCurrency(totalAmount)}
         </Typography>
 
         {paymentStatus === 'pending' && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: 1 }}>
-            <ExpiredIcon sx={{ fontSize: 16, color: timeLeft < 60 ? 'error.main' : 'text.secondary' }} />
+            <ExpiredIcon sx={{ fontSize: 16, color: timeLeft < 60 ? '#D64545' : '#62748A' }} />
             <Typography
-              variant="caption"
               sx={{
                 fontWeight: 700,
-                color: timeLeft < 60 ? 'error.main' : 'text.secondary',
+                fontSize: '0.82rem',
+                fontVariantNumeric: 'tabular-nums',
+                color: timeLeft < 60 ? '#D64545' : '#62748A',
               }}
+              aria-live="polite"
             >
-              QR Code จะหมดอายุใน: {formatTime(timeLeft)}
+              QR Code หมดอายุใน {formatTime(timeLeft)}
             </Typography>
           </Box>
         )}
@@ -273,50 +260,64 @@ export const PromptPayDemo: React.FC<PromptPayDemoProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 1,
+          gap: 0.5,
           mt: 1.5,
-          color: 'text.secondary',
+          color: '#62748A',
         }}
       >
-        <Typography variant="caption">
+        <Typography sx={{ fontSize: '0.78rem' }}>
           ชื่อบัญชี: <strong>BookLoop Thailand</strong>
         </Typography>
         <Tooltip title="คัดลอก Biller ID">
-          <IconButton size="small" onClick={copyBillerId}>
+          <IconButton
+            size="small"
+            onClick={copyBillerId}
+            aria-label="คัดลอก Biller ID"
+            sx={{ width: 32, height: 32, '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' } }}
+          >
             <CopyIcon sx={{ fontSize: 14 }} />
           </IconButton>
         </Tooltip>
       </Box>
 
       {/* Payment verification actions */}
-      <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid #E2E8F0' }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-          เมื่อสแกนชำระเงินผ่านแอปธนาคารเรียบร้อยแล้ว กดปุ่มด้านล่างเพื่อตรวจสอบ:
+      <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #D6E0EA' }}>
+        <Typography sx={{ color: '#62748A', fontSize: '0.8rem', display: 'block', mb: 1.5 }}>
+          สแกนชำระผ่านแอปธนาคารแล้ว กดปุ่มด้านล่างเพื่อตรวจสอบ
         </Typography>
 
         {isVerifying ? (
           <Box sx={{ py: 1 }}>
-            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, display: 'block', mb: 1 }}>
+            <Typography sx={{ color: '#1976D2', fontSize: '0.82rem', fontWeight: 600, display: 'block', mb: 1 }}>
               กำลังตรวจสอบยอดเงินจากธนาคาร...
             </Typography>
-            <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
+            <LinearProgress sx={{ borderRadius: '6px', height: 6 }} />
           </Box>
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button
               variant="contained"
-              color="success"
               size="medium"
               startIcon={<PaidIcon />}
               onClick={handleSimulatePaid}
               disabled={paymentStatus === 'paid'}
-              sx={{ borderRadius: 2, fontWeight: 700, px: 3, py: 1 }}
+              sx={{
+                borderRadius: '8px',
+                fontWeight: 700,
+                px: 3,
+                minHeight: 44,
+                bgcolor: '#1976D2',
+                boxShadow: 'none',
+                whiteSpace: 'nowrap',
+                '&:hover': { bgcolor: '#1565C0', boxShadow: 'none' },
+                '&:focus-visible': { outline: '2px solid #0F3557', outlineOffset: '2px' },
+              }}
             >
               {paymentStatus === 'paid' ? 'ชำระเงินเรียบร้อยแล้ว' : 'ฉันชำระเงินเรียบร้อยแล้ว'}
             </Button>
           </Box>
         )}
       </Box>
-    </Paper>
+    </Box>
   );
 };

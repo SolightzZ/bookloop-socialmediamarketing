@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Button,
-} from '@mui/material';
-import { Add, Remove, Delete as DeleteIcon } from '@mui/icons-material';
+import { Box, Typography, IconButton, Button } from '@mui/material';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CartItem } from '../../hooks/useCart';
 import { ConditionBadge } from '../ConditionBadge';
@@ -21,6 +13,11 @@ interface CartItemCardProps {
   onRemoveItem: (id: string, title: string) => void;
 }
 
+/**
+ * CartItemCard — Swiss tabular row. No card chrome:
+ * cover / info / stepper / line total, separated by hairlines.
+ * Desktop column grid aligns with the list header in CartPage.
+ */
 export const CartItemCard: React.FC<CartItemCardProps> = ({
   item,
   onUpdateQuantity,
@@ -30,204 +27,197 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({
   const maxQuantity = Math.max(1, item.stock);
   const isAtMinimum = item.quantity <= 1;
   const isAtMaximum = item.quantity >= maxQuantity;
+  const openBook = () => navigate(`/books/${item.id}`);
 
-  return (
-    <Card
+  const stepper = (
+    <Box
+      role="group"
+      aria-label={`จำนวน ${item.title}`}
       sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', sm: 'row' },
-        p: { xs: 2, sm: 2.5 },
-        borderRadius: 2.5,
+        display: 'inline-flex',
+        alignItems: 'center',
         border: '1px solid #D9E2EC',
+        borderRadius: '6px',
         bgcolor: '#FFFFFF',
       }}
     >
-      <Box sx={{ display: 'flex', gap: { xs: 2, sm: 2.5 }, width: '100%' }}>
+      <IconButton
+        size="small"
+        onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+        disabled={isAtMinimum}
+        aria-label="ลดจำนวนสินค้า"
+        title={isAtMinimum ? 'จำนวนขั้นต่ำคือ 1 เล่ม' : 'ลดจำนวนสินค้า'}
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: '6px',
+          color: '#102A43',
+          '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+        }}
+      >
+        <Minus size={15} />
+      </IconButton>
+      <Typography
+        aria-live="polite"
+        sx={{ px: 1.5, fontWeight: 700, fontSize: '0.9rem', minWidth: 28, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}
+      >
+        {item.quantity}
+      </Typography>
+      <IconButton
+        size="small"
+        onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+        disabled={isAtMaximum}
+        aria-label="เพิ่มจำนวนสินค้า"
+        title={isAtMaximum ? `มีสินค้าได้สูงสุด ${maxQuantity} เล่ม` : 'เพิ่มจำนวนสินค้า'}
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: '6px',
+          color: '#102A43',
+          '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+        }}
+      >
+        <Plus size={15} />
+      </IconButton>
+    </Box>
+  );
+
+  return (
+    <Box
+      component="article"
+      aria-label={`${item.title} จำนวน ${item.quantity} เล่ม`}
+      sx={{ py: { xs: 2.5, md: 3 } }}
+    >
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '72px 1fr', md: '72px 1fr 150px 110px 40px' },
+          columnGap: { xs: 2, md: 3 },
+          rowGap: 2,
+          alignItems: { md: 'center' },
+        }}
+      >
+        {/* Cover */}
         <Box
-          sx={{
-            width: { xs: 85, sm: 110 },
-            height: { xs: 118, sm: 150 },
-            borderRadius: 2,
-            overflow: 'hidden',
-            cursor: 'pointer',
-            flexShrink: 0,
+          role="button"
+          tabIndex={0}
+          aria-label={`ดูรายละเอียด ${item.title}`}
+          onClick={openBook}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') openBook();
           }}
-          onClick={() => navigate(`/books/${item.id}`)}
+          sx={{
+            width: 72,
+            height: 96,
+            borderRadius: '6px',
+            overflow: 'hidden',
+            border: '1px solid #D9E2EC',
+            bgcolor: '#FFFFFF',
+            cursor: 'pointer',
+            '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+          }}
         >
           <SafeImage
             src={item.cover}
-            alt={item.title}
+            alt={`ปกหนังสือ ${item.title}`}
             fallbackTitle={item.title}
             objectFit="cover"
-            borderRadius={8}
+            sx={{ width: '100%', height: '100%' }}
           />
         </Box>
 
-        <Box
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            minWidth: 0,
-          }}
-        >
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                  color: 'primary.main',
-                  cursor: 'pointer',
-                  lineHeight: 1.3,
-                  fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                }}
-                onClick={() => navigate(`/books/${item.id}`)}
-              >
-                {item.title}
-              </Typography>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 800,
-                  color: 'primary.main',
-                  whiteSpace: 'nowrap',
-                  fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                }}
-              >
-                {formatCurrency(item.price * item.quantity)}
-              </Typography>
-            </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
-              โดย {item.author} • ส่งต่อโดย {item.seller.name}
-            </Typography>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-              <ConditionBadge condition={item.condition} size="small" />
-              <Chip
-                label={formatCurrency(item.price) + ' / เล่ม'}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.72rem', height: 22 }}
-              />
-            </Box>
-          </Box>
-
-          {/* Desktop Stepper and Delete */}
-          <Box
+        {/* Info */}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            onClick={openBook}
             sx={{
-              display: { xs: 'none', sm: 'flex' },
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mt: 2,
-              pt: 1.5,
-              borderTop: '1px solid #F0F4F8',
+              fontWeight: 700,
+              color: '#102A43',
+              fontSize: { xs: '0.95rem', md: '1rem' },
+              lineHeight: 1.4,
+              cursor: 'pointer',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              '&:hover': { color: '#1976D2' },
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                border: '1px solid #D9E2EC',
-                borderRadius: 1.5,
-                bgcolor: '#FFFFFF',
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                disabled={isAtMinimum}
-                aria-label="ลดจำนวนสินค้า"
-                title={isAtMinimum ? 'จำนวนขั้นต่ำคือ 1 เล่ม' : 'ลดจำนวนสินค้า'}
-              >
-                <Remove fontSize="small" />
-              </IconButton>
-              <Typography aria-live="polite" sx={{ px: 2, fontWeight: 'bold', fontSize: '0.9rem', minWidth: 28, textAlign: 'center' }}>
-                {item.quantity}
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                disabled={isAtMaximum}
-                aria-label="เพิ่มจำนวนสินค้า"
-                title={isAtMaximum ? `มีสินค้าได้สูงสุด ${maxQuantity} เล่ม` : 'เพิ่มจำนวนสินค้า'}
-              >
-                <Add fontSize="small" />
-              </IconButton>
-            </Box>
-
-            <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1, mr: 'auto' }}>
-              มีในสต็อก {maxQuantity} เล่ม
+            {item.title}
+          </Typography>
+          <Typography sx={{ color: '#62748A', fontSize: '0.82rem', mt: 0.5 }} noWrap>
+            โดย {item.author} · ส่งต่อโดย {item.seller.name}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+            <ConditionBadge condition={item.condition} size="small" />
+            <Typography sx={{ color: '#62748A', fontSize: '0.78rem', fontVariantNumeric: 'tabular-nums' }}>
+              {formatCurrency(item.price)} / เล่ม
             </Typography>
-
-            <Button
-              startIcon={<DeleteIcon />}
-              color="error"
-              size="small"
-              onClick={() => onRemoveItem(item.id, item.title)}
-            >
-              ลบ
-            </Button>
+          </Box>
+          {/* Mobile stepper row */}
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 2, mt: 1.5 }}>
+            {stepper}
+            <Typography sx={{ color: '#62748A', fontSize: '0.75rem' }}>
+              สต็อก {maxQuantity} เล่ม
+            </Typography>
           </Box>
         </Box>
-      </Box>
 
-      {/* Mobile Stepper and Delete Bar */}
-      <Box
-        sx={{
-          display: { xs: 'flex', sm: 'none' },
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mt: 2,
-          pt: 1.5,
-          borderTop: '1px solid #F0F4F8',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            border: '1px solid #D9E2EC',
-            borderRadius: 1.5,
-            bgcolor: '#FFFFFF',
-          }}
-        >
-          <IconButton
-            size="small"
-            onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-            disabled={isAtMinimum}
-            aria-label="ลดจำนวนสินค้า"
-          >
-            <Remove fontSize="small" />
-          </IconButton>
-          <Typography aria-live="polite" sx={{ px: 1.5, fontWeight: 'bold', fontSize: '0.85rem', minWidth: 24, textAlign: 'center' }}>
-            {item.quantity}
+        {/* Desktop stepper */}
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          {stepper}
+          <Typography sx={{ color: '#62748A', fontSize: '0.75rem', mt: 1 }}>
+            สต็อก {maxQuantity} เล่ม
           </Typography>
+        </Box>
+
+        {/* Line total */}
+        <Typography
+          sx={{
+            fontWeight: 800,
+            color: '#102A43',
+            fontSize: { xs: '1rem', md: '1.05rem' },
+            fontVariantNumeric: 'tabular-nums',
+            textAlign: { xs: 'left', md: 'right' },
+            gridColumn: { xs: '2', md: 'auto' },
+            alignSelf: { xs: 'center', md: 'auto' },
+          }}
+          aria-label={`รวม ${formatCurrency(item.price * item.quantity)}`}
+        >
+          {formatCurrency(item.price * item.quantity)}
+        </Typography>
+
+        {/* Remove */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'flex-end' }}>
           <IconButton
-            size="small"
-            onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-            disabled={isAtMaximum}
-            aria-label="เพิ่มจำนวนสินค้า"
+            onClick={() => onRemoveItem(item.id, item.title)}
+            aria-label={`ลบ ${item.title} ออกจากตะกร้า`}
+            title="ลบออกจากตะกร้า"
+            sx={{
+              width: 40,
+              height: 40,
+              color: '#62748A',
+              '&:hover': { color: '#D64545', bgcolor: '#FDECEC' },
+              '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+            }}
           >
-            <Add fontSize="small" />
+            <Trash2 size={17} />
           </IconButton>
         </Box>
 
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-          สต็อก {maxQuantity} เล่ม
-        </Typography>
-
-        <Button
-          startIcon={<DeleteIcon />}
-          color="error"
-          size="small"
-          onClick={() => onRemoveItem(item.id, item.title)}
-          sx={{ fontSize: '0.8rem', py: 0.2 }}
-        >
-          ลบ
-        </Button>
+        {/* Mobile remove */}
+        <Box sx={{ display: { xs: 'flex', md: 'none' }, gridColumn: '2', justifyContent: 'flex-start', mt: -1 }}>
+          <Button
+            size="small"
+            startIcon={<Trash2 size={14} />}
+            onClick={() => onRemoveItem(item.id, item.title)}
+            aria-label={`ลบ ${item.title} ออกจากตะกร้า`}
+            sx={{ color: '#62748A', fontSize: '0.8rem', fontWeight: 600, p: 0.5, minWidth: 0, '&:hover': { color: '#D64545', bgcolor: 'transparent' } }}
+          >
+            ลบออก
+          </Button>
+        </Box>
       </Box>
-    </Card>
+    </Box>
   );
 };

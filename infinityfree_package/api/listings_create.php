@@ -114,7 +114,7 @@ $listing = [
     'defects' => mb_substr(trim((string) ($data['defects'] ?? '')), 0, 2000),
     'story' => mb_substr(trim((string) ($data['story'] ?? '')), 0, 2000),
     'image' => $imagePath,
-    'status' => 'active',
+    'status' => 'pending',
     'createdAt' => $now,
     'updatedAt' => $now,
 ];
@@ -124,4 +124,4 @@ if (!saveJson(LISTINGS_FILE, $listings)) {
     jsonResponse(['success' => false, 'message' => 'ไม่สามารถบันทึกการลงขายได้ กรุณาลองใหม่อีกครั้ง'], 500);
 }
 
-jsonResponse(['success' => true, 'message' => 'ลงขายหนังสือสำเร็จ', 'listing' => $listing], 201);
+jsonResponse(['success' => true, 'message' => 'รับเรื่องลงขายแล้ว รอการตรวจสอบอนุมัติ', 'listing' => $listing], 201);

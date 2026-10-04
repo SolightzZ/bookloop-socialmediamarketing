@@ -1,10 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import {
-  AutoStories as BookIcon,
-  LocalOfferOutlined as TagIcon,
-  VerifiedUserOutlined as ShieldIcon,
-  SyncAltOutlined as LoopIcon,
   FavoriteRounded as HeartIcon,
 } from '@mui/icons-material';
 import { HeroSearch } from './HeroSearch';
@@ -31,35 +27,6 @@ export const HeroContent: React.FC<HeroContentProps> = ({
 }) => {
   return (
     <Box sx={{ maxWidth: { md: 540 } }}>
-      {/* 1. Eyebrow Pill Badge (16px bottom margin) */}
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 2,
-          py: 0.65,
-          borderRadius: 50,
-          bgcolor: '#EAF4FF',
-          color: '#1976D2',
-          mb: 2,
-          border: '1px solid rgba(25, 118, 210, 0.15)',
-        }}
-      >
-        <BookIcon sx={{ fontSize: 16, color: '#1976D2' }} />
-        <Typography
-          variant="caption"
-          sx={{
-            fontWeight: 700,
-            letterSpacing: '0.02em',
-            fontSize: { xs: '0.78rem', sm: '0.82rem' },
-            color: '#1976D2',
-          }}
-        >
-          หนังสือมือสองจากชุมชน BookLoop
-        </Typography>
-      </Box>
-
       {/* 2. Large Headline — 36px mobile, 48px tablet, 60px desktop (24px bottom margin) */}
       <Box sx={{ position: 'relative', mb: 3 }}>
         <Typography
@@ -157,47 +124,13 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         <HeroActions />
       </Box>
 
-      {/* 5. Pill-Shaped Hero Search Field (24px bottom margin) */}
-      <Box sx={{ mb: 3 }}>
+      {/* 5. Pill-Shaped Hero Search Field */}
+      <Box>
         <HeroSearch
           searchQuery={searchQuery}
           onSearchQueryChange={onSearchQueryChange}
           onSearchSubmit={onSearchSubmit}
         />
-      </Box>
-
-      {/* 6. Micro Trust Benefits Row */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: { xs: 2, sm: 3 },
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Benefit 1: Tag */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
-          <TagIcon sx={{ fontSize: 17, color: '#10B981' }} />
-          <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            ประหยัดได้ 40-70%
-          </Typography>
-        </Box>
-
-        {/* Benefit 2: Shield */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
-          <ShieldIcon sx={{ fontSize: 17, color: '#1976D2' }} />
-          <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            มีรูปจริงและระบุสภาพ
-          </Typography>
-        </Box>
-
-        {/* Benefit 3: Loop */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
-          <LoopIcon sx={{ fontSize: 17, color: '#10B981' }} />
-          <Typography variant="caption" sx={{ color: '#627D98', fontWeight: 600, fontSize: '0.8rem' }}>
-            อ่านจบแล้วส่งต่อได้
-          </Typography>
-        </Box>
       </Box>
     </Box>
   );

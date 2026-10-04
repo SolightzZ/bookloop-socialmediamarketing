@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { Book, books } from '../data/books';
+import { listingService } from '../services/listingService';
 import { showSuccess, showConfirm, showWarning } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { useAuth } from './useAuth';
@@ -12,6 +13,7 @@ export interface CartItem extends Book {
 interface StoredCartItem {
   productId: string;
   quantity: number;
+  book?: Book;
 }
 
 interface CartContextType {
@@ -41,6 +43,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .map((item: any) => ({
               productId: item.productId || item.id,
               quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+              book: item.book || undefined,
             }))
             .filter((item) => Boolean(item.productId));
         }
@@ -52,6 +55,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((item: any) => ({
             productId: item.productId || item.id,
             quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+            book: item.book || undefined,
           }))
           .filter((item: any) => Boolean(item.productId));
       }
@@ -107,7 +111,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user?.id, loadUserCart]);
 
-  // Lookup full book information from catalog data
+  // Hydrate custom listings that are missing book data
+  useEffect(() => {
+    const missingIds = storedItems
+      .filter((i) => !books.some((b) => b.id === i.productId) && !i.book && i.productId.startsWith('LST-'))
+      .map((i) => i.productId);
+
+    if (missingIds.length > 0) {
+      Promise.all(missingIds.map((id) => listingService.getListingById(id))).then((fetched) => {
+        const validFetched = fetched.filter((b): b is Book => Boolean(b));
+        if (validFetched.length > 0) {
+          const map = new Map(validFetched.map((b) => [b.id, b]));
+          setStoredItems((prev) =>
+            prev.map((item) => (map.has(item.productId) ? { ...item, book: map.get(item.productId) } : item))
+          );
+        }
+      });
+    }
+  }, [storedItems]);
+
+  // Lookup full book information from catalog data or stored book snapshot
   const cart = useMemo<CartItem[]>(() => {
     if (!isAuthenticated || !user) {
       return [];
@@ -115,11 +138,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return storedItems
       .map((item) => {
-        const book = books.find((b) => b.id === item.productId);
+        const book = books.find((b) => b.id === item.productId) || item.book;
         if (!book) return null;
+        const availableStock = Math.max(1, book.stock || 1);
         return {
           ...book,
-          quantity: Math.min(item.quantity, Math.max(1, book.stock)),
+          quantity: Math.min(item.quantity, availableStock),
         };
       })
       .filter((item): item is CartItem => item !== null);
@@ -133,8 +157,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (book.stock <= 0) {
-        showWarning('สินค้าหมด', 'หนังสือเล่มนี้หมดแล้วในระบบ Demo');
+      const availableStock = Math.max(1, book.stock || 1);
+      if (book.stock !== undefined && book.stock <= 0) {
+        showWarning('สินค้าหมด', 'หนังสือเล่มนี้หมดแล้ว');
         return;
       }
 
@@ -142,17 +167,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const existing = prev.find((item) => item.productId === book.id);
         if (existing) {
           const newQty = existing.quantity + quantity;
-          if (newQty > book.stock) {
-            showWarning('จำนวนจำกัด', `มีสินค้าพร้อมส่งเพียง ${book.stock} เล่ม`);
+          if (newQty > availableStock) {
+            showWarning('จำนวนจำกัด', `มีสินค้าพร้อมส่งเพียง ${availableStock} เล่ม`);
             return prev.map((item) =>
-              item.productId === book.id ? { ...item, quantity: book.stock } : item
+              item.productId === book.id ? { ...item, quantity: availableStock, book } : item
             );
           }
           return prev.map((item) =>
-            item.productId === book.id ? { ...item, quantity: newQty } : item
+            item.productId === book.id ? { ...item, quantity: newQty, book } : item
           );
         }
-        return [...prev, { productId: book.id, quantity: Math.min(quantity, book.stock) }];
+        return [...prev, { productId: book.id, quantity: Math.min(quantity, availableStock), book }];
       });
 
       trackEvent('add_to_cart', { bookId: book.id, title: book.title, price: book.price, quantity });

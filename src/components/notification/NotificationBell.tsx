@@ -134,7 +134,7 @@ export const NotificationBell: React.FC = () => {
               color: open ? '#0F2D4A' : '#627D98',
               bgcolor: open ? 'rgba(15, 45, 74, 0.05)' : 'transparent',
               '&:hover': { color: '#0F2D4A', bgcolor: 'rgba(15, 45, 74, 0.05)' },
-              '&:focus-visible': { outline: '2px solid #1976D2' },
+              '&:focus-visible': { outline: '2px solid rgba(15, 23, 42, 0.2)', outlineOffset: '2px' },
             }}
           >
             <Badge badgeContent={unreadCount} color="error" max={99}>

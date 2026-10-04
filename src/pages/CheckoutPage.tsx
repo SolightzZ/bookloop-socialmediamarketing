@@ -21,8 +21,8 @@ import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
 import { ShippingAddressSection } from '../components/checkout/ShippingAddressSection';
 import { ShippingMethodSection, SHIPPING_OPTIONS } from '../components/checkout/ShippingMethodSection';
 import { PaymentMethodSection } from '../components/checkout/PaymentMethodSection';
-import { OrderReviewSection } from '../components/checkout/OrderReviewSection';
 import { CheckoutSummarySidebar } from '../components/checkout/CheckoutSummarySidebar';
+import { MobileCheckoutBar } from '../components/checkout/MobileCheckoutBar';
 import { showSuccess, showError, showWarning } from '../utils/alerts';
 import { trackEvent } from '../utils/analytics';
 import { logError } from '../utils/logger';
@@ -234,8 +234,8 @@ export default function CheckoutPage() {
 
   if (cart.length === 0) {
     return (
-      <Box sx={{ py: 8, bgcolor: 'background.default', minHeight: '80vh' }}>
-        <Container maxWidth="md">
+      <Box sx={{ py: 8, bgcolor: '#F5F7FA', minHeight: '80vh' }}>
+        <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
           <Alert
             severity="warning"
             action={
@@ -248,7 +248,7 @@ export default function CheckoutPage() {
                 ไปเลือกซื้อหนังสือ
               </Link>
             }
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: '10px' }}
           >
             ตะกร้าสินค้าว่างเปล่า ไม่สามารถดำเนินการชำระเงินได้
           </Alert>
@@ -258,42 +258,63 @@ export default function CheckoutPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2.5, sm: 4, md: 5 }, bgcolor: '#F7F9FB', minHeight: '100vh' }}>
+    <Box sx={{ py: { xs: 2.5, sm: 4, md: 5 }, pb: { xs: 5, md: 8 }, bgcolor: '#F5F7FA', minHeight: '100vh', overflowX: 'hidden' }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* Breadcrumbs */}
+        {/* Breadcrumbs — quiet, no card */}
         <Breadcrumbs
-          separator={<NextIcon fontSize="small" sx={{ color: '#94A3B8' }} />}
-          sx={{ mb: { xs: 2, sm: 3 } }}
+          separator={<NextIcon fontSize="small" sx={{ color: '#B9C6D4' }} />}
+          sx={{
+            mb: { xs: 1.5, sm: 2 },
+            fontSize: '0.8125rem',
+            color: '#62748A',
+            '& a': { color: '#62748A', textDecoration: 'none', '&:hover': { color: '#1976D2' } },
+          }}
         >
           <Link
-            underline="hover"
+            underline="none"
             color="inherit"
             onClick={() => navigate('/')}
-            sx={{ cursor: 'pointer', fontSize: '0.85rem' }}
+            sx={{ cursor: 'pointer' }}
           >
             หน้าหลัก
           </Link>
           <Link
-            underline="hover"
+            underline="none"
             color="inherit"
             onClick={() => navigate('/cart')}
-            sx={{ cursor: 'pointer', fontSize: '0.85rem' }}
+            sx={{ cursor: 'pointer' }}
           >
             ตะกร้าสินค้า
           </Link>
-          <Typography color="primary.main" sx={{ fontSize: '0.85rem', fontWeight: 700 }}>
+          <Typography color="#102A43" sx={{ fontWeight: 600 }}>
             ชำระเงิน
           </Typography>
         </Breadcrumbs>
 
-        {/* Stepper Header */}
+        {/* Swiss header */}
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <Typography
+            variant="h1"
+            sx={{
+              fontWeight: 800,
+              color: '#102A43',
+              fontSize: { xs: '2rem', md: '2.75rem' },
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            ชำระเงิน
+          </Typography>
+        </Box>
+
+        {/* Stepper */}
         <CheckoutStepper activeStep={4} />
 
-        {/* 2-Column Responsive Layout */}
-        <Grid container spacing={{ xs: 2.5, md: 4 }}>
+        {/* Asymmetric layout */}
+        <Grid container spacing={{ xs: 4, md: 6 }}>
           {/* Left Column: Form Steps */}
-          <Grid size={{ xs: 12, md: 7.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2.5, sm: 3.5 } }}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 4 } }}>
               {/* Step 1: Shipping Address */}
               <ShippingAddressSection
                 address={address}
@@ -316,28 +337,11 @@ export default function CheckoutPage() {
                 paymentStatus={paymentStatus}
                 onPaymentStatusChange={setPaymentStatus}
               />
-
-              {/* Step 4: Review and Confirm */}
-              <OrderReviewSection
-                customerName={address.name}
-                customerEmail={user?.email || ''}
-                address={address}
-                shippingMethodId={shippingMethodId}
-                paymentMethod={paymentMethod}
-                paymentStatus={paymentStatus}
-                items={cart}
-                subtotal={subtotal}
-                shippingFee={shippingFee}
-                discount={discount}
-                total={finalTotal}
-                isSubmitting={isSubmitting}
-                onConfirmOrder={handleConfirmOrder}
-              />
             </Box>
           </Grid>
 
           {/* Right Column: Order Summary Sidebar */}
-          <Grid size={{ xs: 12, md: 4.5 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <CheckoutSummarySidebar
               items={cart}
               subtotal={subtotal}
@@ -353,7 +357,18 @@ export default function CheckoutPage() {
             />
           </Grid>
         </Grid>
+
+        {/* Spacer so the sticky mobile bar never covers content */}
+        <Box aria-hidden sx={{ display: { xs: 'block', md: 'none' }, height: 96 }} />
       </Container>
+
+      {/* Sticky mobile confirm bar */}
+      <MobileCheckoutBar
+        total={finalTotal}
+        isSubmitting={isSubmitting}
+        disabled={cart.length === 0}
+        onConfirm={handleConfirmOrder}
+      />
     </Box>
   );
 }

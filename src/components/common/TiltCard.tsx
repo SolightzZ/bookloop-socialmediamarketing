@@ -19,6 +19,7 @@ export const TiltCard: React.FC<TiltCardProps> = ({
   scaleHover = 1.02,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const rectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
 
   const x = useMotionValue(0.5);
   const y = useMotionValue(0.5);
@@ -34,9 +35,26 @@ export const TiltCard: React.FC<TiltCardProps> = ({
   const sheenX = useTransform(smoothX, [0, 1], ['0%', '100%']);
   const sheenY = useTransform(smoothY, [0, 1], ['0%', '100%']);
 
+  const handleMouseEnter = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      rectRef.current = {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width || 1,
+        height: rect.height || 1,
+      };
+    }
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
+    let rect = rectRef.current;
+    if (!rect && ref.current) {
+      const r = ref.current.getBoundingClientRect();
+      rect = { left: r.left, top: r.top, width: r.width || 1, height: r.height || 1 };
+      rectRef.current = rect;
+    }
+    if (!rect) return;
     const mouseX = (e.clientX - rect.left) / rect.width;
     const mouseY = (e.clientY - rect.top) / rect.height;
     x.set(mouseX);
@@ -44,6 +62,7 @@ export const TiltCard: React.FC<TiltCardProps> = ({
   };
 
   const handleMouseLeave = () => {
+    rectRef.current = null;
     x.set(0.5);
     y.set(0.5);
   };
@@ -51,6 +70,7 @@ export const TiltCard: React.FC<TiltCardProps> = ({
   return (
     <motion.div
       ref={ref}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{

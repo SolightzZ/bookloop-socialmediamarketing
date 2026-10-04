@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import { AppContainer } from '../common/Container';
 import { useAuth } from '../../hooks/useAuth';
+import { getApiBaseUrl } from '../../services/apiClient';
 import { trackEvent } from '../../utils/analytics';
 import { logWarn, logError } from '../../utils/logger';
 import { showSuccess, showToast, showError } from '../../utils/alerts';
@@ -33,9 +34,7 @@ export const HomeNewsletterSection: React.FC = () => {
     text: string;
   } | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
-  // header กันหน้า interstitial (จำเป็นตอน dev ผ่าน ngrok free — ไม่ส่งจะได้ HTML แทน JSON)
-  const BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
+  const API_BASE_URL = getApiBaseUrl();
 
   // Check if current logged-in user is already subscribed
   useEffect(() => {
@@ -46,7 +45,6 @@ export const HomeNewsletterSection: React.FC = () => {
         try {
           const res = await fetch(
             `${API_BASE_URL}/newsletter_status.php?email=${encodeURIComponent(user.email)}`,
-            { headers: BYPASS_HEADERS },
           );
           if (!res.ok) return;
           const data = await res.json();
@@ -97,7 +95,6 @@ export const HomeNewsletterSection: React.FC = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json;charset=UTF-8',
-          ...BYPASS_HEADERS,
         },
         body: JSON.stringify({
           email: trimmedEmail,
@@ -149,12 +146,12 @@ export const HomeNewsletterSection: React.FC = () => {
     setEmail('');
   };
 
-  const leftBenefits = ['แจ้งเตือนหนังสือใหม่', 'ดีลและส่วนลดพิเศษ', 'ส่งตรงถึงกล่องข้อความ'];
+  const leftBenefits = ['หนังสือเข้าใหม่', 'ดีลและส่วนลด', 'ส่งตรงถึงอีเมล'];
 
   const rightBenefits = [
-    'สรุปหนังสือเข้าใหม่และไฮไลต์',
-    'โค้ดส่วนลดและสิทธิพิเศษเฉพาะคุณ',
-    'ยกเลิกการติดตามได้ง่ายในคลิกเดียว',
+    'หนังสือเข้าใหม่ยอดนิยม',
+    'โค้ดส่วนลดและดีลพิเศษ',
+    'ยกเลิกได้ตลอดเวลาใน 1 คลิก',
   ];
 
   return (
@@ -239,7 +236,7 @@ export const HomeNewsletterSection: React.FC = () => {
                 mb: 3.5,
               }}
             >
-              สมัครรับข่าวสาร BookLoop เพื่อรับอีเมลหนังสือเข้าใหม่ บทความน่าอ่าน และโปรโมชั่นส่งฟรี
+              อัปเดตหนังสือเข้าใหม่และดีลพิเศษ สัปดาห์ละ 1 ครั้ง
             </Typography>
 
             {/* Three compact benefits — numbered Swiss row */}
@@ -392,7 +389,7 @@ export const HomeNewsletterSection: React.FC = () => {
                       bgcolor: isSubscribed ? tokens.colors.success : tokens.colors.actionBlue,
                     },
                     '&:focus-visible': {
-                      outline: `2px solid ${tokens.colors.actionBlue}`,
+                      outline: '2px solid rgba(15, 23, 42, 0.2)',
                       outlineOffset: '2px',
                     },
                     '&.Mui-disabled': {
@@ -402,7 +399,7 @@ export const HomeNewsletterSection: React.FC = () => {
                     },
                   }}
                 >
-                  {loading ? 'กำลังบันทึก...' : isSubscribed ? 'สมัครเรียบร้อยแล้ว' : 'รับข่าวสาร'}
+                  {loading ? 'กำลังสมัคร...' : isSubscribed ? 'สมัครเรียบร้อยแล้ว' : 'รับข่าวสาร'}
                 </Button>
               </Box>
 
@@ -449,12 +446,12 @@ export const HomeNewsletterSection: React.FC = () => {
                     fontSize: '0.82rem',
                     mt: 1.25,
                     '&:focus-visible': {
-                      outline: `2px solid ${tokens.colors.actionBlue}`,
+                      outline: '2px solid rgba(15, 23, 42, 0.2)',
                       outlineOffset: '2px',
                     },
                   }}
                 >
-                  ต้องการสมัครรับข่าวสารด้วยอีเมลอื่น? คลิกที่นี่
+                  สมัครด้วยอีเมลอื่น
                 </Typography>
               )}
 
@@ -470,7 +467,7 @@ export const HomeNewsletterSection: React.FC = () => {
                   mt: 1.5,
                 }}
               >
-                * เราเคารพความเป็นส่วนตัวของคุณ ไม่มีการส่งสแปม และสามารถยกเลิกการรับข่าวสารได้ตลอดเวลา
+                * ไม่ส่งสแปม และยกเลิกได้ตลอดเวลา
               </Typography>
             </Box>
           </Box>
@@ -504,7 +501,7 @@ export const HomeNewsletterSection: React.FC = () => {
                   mb: 1,
                 }}
               >
-                Personal Digest — 02
+                Weekly Digest
               </Typography>
 
               <Typography
@@ -518,7 +515,7 @@ export const HomeNewsletterSection: React.FC = () => {
                   mb: 1,
                 }}
               >
-                รับข่าวสารแบบส่วนตัว
+                ไฮไลต์ประจำสัปดาห์
               </Typography>
 
               <Typography
@@ -529,7 +526,7 @@ export const HomeNewsletterSection: React.FC = () => {
                   mb: 2.5,
                 }}
               >
-                อีเมลสรุปหนังสือน่าอ่าน 1 ฉบับต่อสัปดาห์ พร้อมโปรโมชั่นส่งฟรี
+                สรุปหนังสือน่าอ่านและสิทธิพิเศษ สัปดาห์ละ 1 ฉบับ
               </Typography>
 
               <Box
@@ -576,7 +573,7 @@ export const HomeNewsletterSection: React.FC = () => {
                 ))}
               </Box>
 
-              {/* System status */}
+              {/* Delivery frequency */}
               <Box
                 sx={{
                   display: 'flex',
@@ -590,7 +587,7 @@ export const HomeNewsletterSection: React.FC = () => {
                   borderTop: `1px solid ${tokens.colors.border}`,
                 }}
                 role="status"
-                aria-label="สถานะระบบส่งอีเมล: ระบบส่งอีเมลอัตโนมัติ"
+                aria-label="ความถี่การส่ง: สัปดาห์ละ 1 ฉบับ"
               >
                 <Typography
                   sx={{
@@ -599,7 +596,7 @@ export const HomeNewsletterSection: React.FC = () => {
                     color: tokens.colors.mutedText,
                   }}
                 >
-                  สถานะระบบส่งอีเมล
+                  ความถี่การส่ง
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                   <Box
@@ -619,7 +616,7 @@ export const HomeNewsletterSection: React.FC = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    ระบบส่งอีเมลอัตโนมัติ
+                    สัปดาห์ละ 1 ฉบับ
                   </Typography>
                 </Box>
               </Box>

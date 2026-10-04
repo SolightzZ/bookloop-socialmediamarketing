@@ -1,12 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Paper, Typography, Divider } from '@mui/material';
-import { CameraAltRounded } from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Alert,
+  Divider,
+} from '@mui/material';
+import { ArrowLeft, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { SellStepIndicator, SELL_STEPS } from './SellStepIndicator';
 import { BookImageUpload } from './BookImageUpload';
-import { BasicInfoSection } from './BasicInfoSection';
-import { ConditionSection } from './ConditionSection';
+import { BookInfoForm } from './BookInfoForm';
+import { ConditionSelector } from './ConditionSelector';
 import { PricingSection } from './PricingSection';
-import { BookStorySection } from './BookStorySection';
-import { SubmitSection } from './SubmitSection';
+import { DeliverySelector, DeliveryMethod } from './DeliverySelector';
 import { logError } from '../../utils/logger';
 
 export interface SellFormData {
@@ -19,9 +27,10 @@ export interface SellFormData {
   originalPrice: string;
   defects: string;
   story: string;
+  deliveryMethod?: DeliveryMethod;
 }
 
-interface SellBookFormProps {
+export interface SellBookFormProps {
   onSubmit: (data: SellFormData, image: string) => Promise<void>;
   onStepProgressChange?: (currentStep: number, completedSteps: number[]) => void;
 }
@@ -30,6 +39,14 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
   onSubmit,
   onStepProgressChange,
 }) => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Current active step (0: ข้อมูลหนังสือ, 1: สภาพหนังสือ, 2: การส่งต่อ)
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [maxStepReached, setMaxStepReached] = useState<number>(0);
+
+  // Form Data State
   const [formData, setFormData] = useState<SellFormData>({
     title: '',
     author: '',
@@ -40,9 +57,11 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
     originalPrice: '',
     defects: '',
     story: '',
+    deliveryMethod: 'shipping',
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Images state (up to 5 images)
+  const [images, setImages] = useState<string[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -59,64 +78,45 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validation Logic
+  const handleDeliveryChange = (method: DeliveryMethod) => {
+    setFormData((prev) => ({ ...prev, deliveryMethod: method }));
+  };
+
+  // Comprehensive Validation
   const errors = useMemo(() => {
     const errs: Record<string, string> = {};
 
-    // 1. Title (Required)
-    const title = formData.title.trim();
-    if (!title) {
+    // Step 0 validation: Images
+    if (images.length === 0) {
+      errs.image = 'กรุณาอัปโหลดรูปหนังสืออย่างน้อย 1 รูป';
+    }
+
+    // Step 0 validation: Title
+    const trimmedTitle = formData.title.trim();
+    if (!trimmedTitle) {
       errs.title = 'กรุณากรอกชื่อหนังสือ';
-    } else if (title.length < 2) {
+    } else if (trimmedTitle.length < 2) {
       errs.title = 'ชื่อหนังสือต้องมีอย่างน้อย 2 ตัวอักษร';
-    } else if (title.length > 150) {
+    } else if (trimmedTitle.length > 150) {
       errs.title = 'ชื่อหนังสือต้องไม่เกิน 150 ตัวอักษร';
     }
 
-    // 2. Author (Required)
-    const author = formData.author.trim();
-    if (!author) {
-      errs.author = 'กรุณากรอกชื่อผู้เขียนหรือผู้แปล';
-    } else if (author.length < 2) {
+    // Step 0 validation: Author
+    const trimmedAuthor = formData.author.trim();
+    if (!trimmedAuthor) {
+      errs.author = 'กรุณากรอกชื่อผู้เขียน';
+    } else if (trimmedAuthor.length < 2) {
       errs.author = 'ชื่อผู้เขียนต้องมีอย่างน้อย 2 ตัวอักษร';
-    } else if (author.length > 100) {
+    } else if (trimmedAuthor.length > 100) {
       errs.author = 'ชื่อผู้เขียนต้องไม่เกิน 100 ตัวอักษร';
     }
 
-    // 3. Category (Required)
+    // Step 0 validation: Category
     if (!formData.category) {
       errs.category = 'กรุณาเลือกหมวดหมู่หนังสือ';
     }
 
-    // 4. Condition (Required)
-    if (!formData.condition) {
-      errs.condition = 'กรุณาระบุสภาพหนังสือ';
-    }
-
-    // 5. Price (Required & Numeric validation)
-    if (!formData.price) {
-      errs.price = 'กรุณากรอกราคาขาย';
-    } else {
-      const numPrice = Number(formData.price);
-      if (isNaN(numPrice) || numPrice <= 0) {
-        errs.price = 'ราคาขายต้องมากกว่า 0 บาท';
-      } else if (numPrice > 50000) {
-        errs.price = 'ราคาขายต้องไม่เกิน 50,000 บาท';
-      }
-    }
-
-    // 6. Original Price (Optional, but if filled must be logical)
-    if (formData.originalPrice) {
-      const numOrig = Number(formData.originalPrice);
-      const numPrice = Number(formData.price);
-      if (isNaN(numOrig) || numOrig <= 0) {
-        errs.originalPrice = 'ราคาปกเดิมต้องมากกว่า 0 บาท';
-      } else if (numPrice > 0 && numOrig < numPrice) {
-        errs.originalPrice = 'ราคาปกเดิมควรมากกว่าหรือเท่ากับราคาขาย';
-      }
-    }
-
-    // 7. ISBN (Optional: only validates pattern if user entered something)
+    // Step 0 validation: ISBN (optional)
     if (formData.isbn.trim()) {
       const cleanIsbn = formData.isbn.replace(/[-\s]/g, '');
       if (!/^(97[89])?[0-9]{9}[0-9X]$/i.test(cleanIsbn)) {
@@ -124,45 +124,117 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
       }
     }
 
-    // 8. Image (Required)
-    if (!imagePreview) {
-      errs.image = 'กรุณาอัปโหลดรูปถ่ายหนังสือ';
+    // Step 1 validation: Condition
+    if (!formData.condition) {
+      errs.condition = 'กรุณาเลือกสภาพหนังสือ';
+    }
+
+    // Step 2 validation: Price
+    if (!formData.price) {
+      errs.price = 'กรุณากรอกราคาที่ต้องการ';
+    } else {
+      const numPrice = Number(formData.price);
+      if (isNaN(numPrice) || numPrice <= 0) {
+        errs.price = 'ราคาต้องมากกว่า 0 บาท';
+      } else if (numPrice > 50000) {
+        errs.price = 'ราคาต้องไม่เกิน 50,000 บาท';
+      }
+    }
+
+    // Step 2 validation: Original Price (optional)
+    if (formData.originalPrice) {
+      const numOrig = Number(formData.originalPrice);
+      if (isNaN(numOrig) || numOrig <= 0) {
+        errs.originalPrice = 'ราคาปกเดิมต้องมากกว่า 0 บาท';
+      }
     }
 
     return errs;
-  }, [formData, imagePreview]);
+  }, [formData, images]);
 
-  const isFormValid = Object.keys(errors).length === 0;
+  // Step-specific validity checks
+  const isStep0Valid = Boolean(
+    images.length > 0 &&
+    formData.title.trim().length >= 2 &&
+    formData.author.trim().length >= 2 &&
+    formData.category &&
+    !errors.isbn
+  );
 
-  // Compute live step progress
+  const isStep1Valid = Boolean(formData.condition);
+
+  const isStep2Valid = Boolean(
+    formData.price &&
+    Number(formData.price) > 0 &&
+    Number(formData.price) <= 50000 &&
+    !errors.originalPrice
+  );
+
+  const isFormValid = isStep0Valid && isStep1Valid && isStep2Valid;
+
+  // Track progress externally
   React.useEffect(() => {
     const completed: number[] = [];
-    if (imagePreview) completed.push(0);
-    if (formData.title.trim().length >= 2 && formData.author.trim().length >= 2 && formData.category) {
-      completed.push(1);
+    if (isStep0Valid) completed.push(0);
+    if (isStep1Valid) completed.push(1);
+    if (isStep2Valid) completed.push(2);
+
+    onStepProgressChange?.(currentStep, completed);
+  }, [currentStep, isStep0Valid, isStep1Valid, isStep2Valid, onStepProgressChange]);
+
+  // Step navigation helpers
+  const goToNextStep = () => {
+    if (currentStep === 0) {
+      if (!isStep0Valid) {
+        setTouched((prev) => ({
+          ...prev,
+          image: true,
+          title: true,
+          author: true,
+          category: true,
+          isbn: true,
+        }));
+        return;
+      }
+      const next = 1;
+      setCurrentStep(next);
+      setMaxStepReached((prev) => Math.max(prev, next));
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    } else if (currentStep === 1) {
+      if (!isStep1Valid) {
+        setTouched((prev) => ({ ...prev, condition: true }));
+        return;
+      }
+      const next = 2;
+      setCurrentStep(next);
+      setMaxStepReached((prev) => Math.max(prev, next));
+      window.scrollTo({ top: 120, behavior: 'smooth' });
     }
-    if (formData.condition) completed.push(2);
-    if (Number(formData.price) > 0) completed.push(3);
-    if (isFormValid) completed.push(4);
+  };
 
-    let current = 0;
-    if (completed.includes(0)) current = 1;
-    if (completed.includes(0) && completed.includes(1)) current = 2;
-    if (completed.includes(0) && completed.includes(1) && completed.includes(2)) current = 3;
-    if (completed.includes(0) && completed.includes(1) && completed.includes(2) && completed.includes(3)) current = 4;
+  const goToPrevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
+  };
 
-    onStepProgressChange?.(current, completed);
-  }, [imagePreview, formData, isFormValid, onStepProgressChange]);
+  const handleStepJump = (stepIndex: number) => {
+    if (stepIndex <= maxStepReached) {
+      setCurrentStep(stepIndex);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
+  };
 
+  // Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent duplicate clicks
     if (isSubmitting || submitStatus === 'loading') return;
 
-    if (!isFormValid || !imagePreview) {
-      // Mark all fields touched to reveal errors
+    if (!isFormValid || images.length === 0) {
       setTouched({
+        image: true,
         title: true,
         author: true,
         category: true,
@@ -170,7 +242,6 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
         price: true,
         originalPrice: true,
         isbn: true,
-        image: true,
       });
       return;
     }
@@ -180,144 +251,240 @@ export const SellBookForm: React.FC<SellBookFormProps> = ({
     setSubmitErrorMessage(null);
 
     try {
-      await onSubmit(formData, imagePreview);
+      const primaryCover = images[0];
+      await onSubmit(formData, primaryCover);
       setSubmitStatus('success');
-    } catch (err) {
+    } catch (err: any) {
       logError('SellBookForm: submit failed', err);
       setSubmitStatus('error');
-      setSubmitErrorMessage('ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+      setSubmitErrorMessage(err?.message || 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Paper
-      id="sell-book-form"
-      elevation={0}
+    <Box
       component="form"
       onSubmit={handleSubmit}
       noValidate
       sx={{
-        p: { xs: 3, sm: 4, md: 5 },
-        borderRadius: 3,
-        border: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
-        boxShadow: '0 2px 12px rgba(15, 45, 74, 0.04)',
+        width: '100%',
       }}
     >
-      {/* Form Surface Header */}
-      <Box sx={{ mb: 3.5 }}>
-        <Typography
-          variant="h5"
-          component="h1"
-          sx={{ fontWeight: 800, color: '#0F2D4A', fontSize: { xs: '1.35rem', md: '1.6rem' }, mb: 0.5 }}
-        >
-          ข้อมูลหนังสือที่ต้องการส่งต่อ
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#627D98', fontSize: '0.875rem' }}>
-          กรุณากรอกข้อมูลหนังสือตามความเป็นจริง เพื่อความโปร่งใสและสร้างความมั่นใจให้ผู้ซื้อ
-        </Typography>
-      </Box>
+      {/* 3-Step Progress Indicator */}
+      <SellStepIndicator
+        activeStep={currentStep}
+        maxStepReached={maxStepReached}
+        onStepClick={handleStepJump}
+      />
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-        {/* Section 1: Book Image Upload */}
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 2,
-                bgcolor: '#EAF4FF',
-                color: '#1976D2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+      {/* Main Step Content Container */}
+      <Box sx={{ mb: 4 }}>
+        {/* STEP 0: ข้อมูลหนังสือ (รูปภาพ + ข้อมูลพื้นฐาน) */}
+        {currentStep === 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+            <BookImageUpload
+              images={images}
+              onImagesChange={(newImages) => {
+                setImages(newImages);
+                markTouched('image');
               }}
-            >
-              <CameraAltRounded sx={{ fontSize: 18 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{ fontWeight: 800, color: '#0F2D4A', fontSize: '1.05rem', lineHeight: 1.2 }}
-              >
-                รูปถ่ายหนังสือจริง <Box component="span" sx={{ color: '#E11D48' }}>*</Box>
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.78rem' }}>
-                อัปโหลดรูปถ่ายจริงเพื่อให้นักอ่านเห็นสภาพหนังสือได้ชัดเจน
-              </Typography>
-            </Box>
+              error={errors.image}
+              touched={touched.image}
+            />
+
+            <Divider sx={{ borderColor: '#E2EAF2' }} />
+
+            <BookInfoForm
+              title={formData.title}
+              author={formData.author}
+              category={formData.category}
+              isbn={formData.isbn}
+              onChange={handleChange}
+              onBlur={markTouched}
+              errors={errors}
+              touched={touched}
+            />
           </Box>
-          <BookImageUpload
-            imagePreview={imagePreview}
-            onImageSelected={(url) => {
-              setImagePreview(url);
-              markTouched('image');
-            }}
-            onImageRemoved={() => {
-              setImagePreview(null);
-              markTouched('image');
-            }}
-            error={errors.image}
-            touched={touched.image}
-          />
-        </Box>
+        )}
 
-        <Divider sx={{ borderColor: '#F0F4F8' }} />
+        {/* STEP 1: สภาพหนังสือ (เกณฑ์ 4 การ์ด + รายละเอียดเพิ่มเติม) */}
+        {currentStep === 1 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <ConditionSelector
+              condition={formData.condition}
+              defects={formData.defects}
+              onChange={handleChange}
+              onBlur={markTouched}
+              errors={errors}
+              touched={touched}
+            />
+          </Box>
+        )}
 
-        {/* Section 2: Basic Information */}
-        <BasicInfoSection
-          title={formData.title}
-          author={formData.author}
-          category={formData.category}
-          isbn={formData.isbn}
-          onChange={handleChange}
-          onBlur={markTouched}
-          errors={errors}
-          touched={touched}
-        />
+        {/* STEP 2: การส่งต่อ (ราคาหนังสือ + รูปแบบการส่งมอบ) */}
+        {currentStep === 2 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+            <PricingSection
+              price={formData.price}
+              originalPrice={formData.originalPrice}
+              onChange={handleChange}
+              onBlur={markTouched}
+              errors={errors}
+              touched={touched}
+            />
 
-        <Divider sx={{ borderColor: '#F0F4F8' }} />
+            <Divider sx={{ borderColor: '#E2EAF2' }} />
 
-        {/* Section 3: Condition */}
-        <ConditionSection
-          condition={formData.condition}
-          defects={formData.defects}
-          onChange={handleChange}
-          onBlur={markTouched}
-          errors={errors}
-          touched={touched}
-        />
-
-        <Divider sx={{ borderColor: '#F0F4F8' }} />
-
-        {/* Section 4: Pricing */}
-        <PricingSection
-          price={formData.price}
-          originalPrice={formData.originalPrice}
-          onChange={handleChange}
-          onBlur={markTouched}
-          errors={errors}
-          touched={touched}
-        />
-
-        <Divider sx={{ borderColor: '#F0F4F8' }} />
-
-        {/* Section 5: Book Story */}
-        <BookStorySection story={formData.story} onChange={handleChange} />
-
-        <Divider sx={{ borderColor: '#F0F4F8' }} />
-
-        {/* Section 6: Submit */}
-        <SubmitSection
-          isFormValid={isFormValid}
-          isSubmitting={isSubmitting}
-          submitStatus={submitStatus}
-          errorMessage={submitErrorMessage}
-        />
+            <DeliverySelector
+              value={formData.deliveryMethod || 'shipping'}
+              onChange={handleDeliveryChange}
+            />
+          </Box>
+        )}
       </Box>
-    </Paper>
+
+      {/* Error message if submission failed */}
+      {submitStatus === 'error' && (
+        <Alert
+          severity="error"
+          sx={{
+            mb: 3,
+            borderRadius: '10px',
+            bgcolor: '#FEF2F2',
+            color: '#B91C1C',
+            border: '1px solid #FECACA',
+          }}
+        >
+          {submitErrorMessage || 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง'}
+        </Alert>
+      )}
+
+      {/* Primary / Secondary CTA Buttons */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          alignItems: 'center',
+          justifyContent: currentStep > 0 ? 'space-between' : 'flex-end',
+          gap: 1.5,
+          pt: 1,
+        }}
+      >
+        {/* Back Button for Steps 1 and 2 */}
+        {currentStep > 0 && (
+          <Button
+            type="button"
+            variant="outlined"
+            onClick={goToPrevStep}
+            disabled={isSubmitting}
+            startIcon={<ArrowLeft size={18} />}
+            sx={{
+              height: 50,
+              px: 3,
+              borderRadius: '10px',
+              borderColor: '#E2EAF2',
+              color: '#0F2F52',
+              fontWeight: 600,
+              fontSize: '0.9375rem',
+              textTransform: 'none',
+              width: { xs: '100%', sm: 'auto' },
+              '&:hover': {
+                borderColor: '#CBD5E1',
+                bgcolor: '#F8FAFD',
+              },
+            }}
+          >
+            ย้อนกลับ
+          </Button>
+        )}
+
+        {/* Next / Submit Button */}
+        {currentStep < SELL_STEPS.length - 1 ? (
+          <Button
+            type="button"
+            variant="contained"
+            onClick={goToNextStep}
+            endIcon={<ArrowRight size={18} />}
+            sx={{
+              height: 50,
+              px: 4,
+              borderRadius: '10px',
+              bgcolor: '#1976D2',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textTransform: 'none',
+              boxShadow: 'none',
+              width: { xs: '100%', sm: currentStep === 0 ? '100%' : 'auto' },
+              '&:hover': {
+                bgcolor: '#1259A8',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            ถัดไป
+          </Button>
+        ) : isAuthenticated ? (
+          <Button
+            id="submit-sell-book-btn"
+            type="submit"
+            variant="contained"
+            disabled={isSubmitting || submitStatus === 'loading'}
+            startIcon={
+              isSubmitting ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <CheckCircle2 size={18} />
+              )
+            }
+            sx={{
+              height: 50,
+              px: 4,
+              borderRadius: '10px',
+              bgcolor: '#1976D2',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textTransform: 'none',
+              boxShadow: 'none',
+              width: { xs: '100%', sm: 'auto' },
+              '&:hover': {
+                bgcolor: '#1259A8',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            {isSubmitting ? 'กำลังส่งต่อ...' : 'ส่งต่อหนังสือ'}
+          </Button>
+        ) : (
+          <Button
+            id="login-to-sell-btn"
+            type="button"
+            variant="contained"
+            onClick={() => navigate('/login', { state: { from: { pathname: '/sell' } } })}
+            startIcon={<Lock size={18} />}
+            sx={{
+              height: 50,
+              px: 4,
+              borderRadius: '10px',
+              bgcolor: '#1976D2',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textTransform: 'none',
+              boxShadow: 'none',
+              width: { xs: '100%', sm: 'auto' },
+              '&:hover': {
+                bgcolor: '#1259A8',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            เข้าสู่ระบบเพื่อส่งต่อหนังสือ
+          </Button>
+        )}
+      </Box>
+    </Box>
   );
 };

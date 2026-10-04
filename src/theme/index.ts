@@ -107,6 +107,10 @@ export const theme = createTheme({
           '&:hover': {
             boxShadow: 'none',
           },
+          '&:focus-visible': {
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
+            outlineOffset: '2px',
+          },
         },
         contained: {
           boxShadow: 'none',
@@ -115,7 +119,21 @@ export const theme = createTheme({
           },
         },
         outlined: {
-          borderColor: tokens.colors.border,
+          borderColor: '#E2E8F0',
+          '&:hover': {
+            borderColor: '#CBD5E1',
+            backgroundColor: '#F8FAFC',
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          '&:focus-visible': {
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
+            outlineOffset: '2px',
+          },
         },
       },
     },
@@ -142,6 +160,10 @@ export const theme = createTheme({
           borderRadius: '8px',
           fontWeight: 600,
           whiteSpace: 'nowrap',
+          '&:focus-visible': {
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
+            outlineOffset: '2px',
+          },
         },
       },
     },
@@ -151,6 +173,10 @@ export const theme = createTheme({
           textTransform: 'none',
           whiteSpace: 'nowrap',
           fontWeight: 600,
+          '&:focus-visible': {
+            outline: '2px solid rgba(15, 23, 42, 0.2)',
+            outlineOffset: '2px',
+          },
         },
       },
     },
@@ -158,16 +184,100 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: '8px',
+          backgroundColor: '#FFFFFF',
+          transition: 'border-color 140ms ease, box-shadow 140ms ease',
           '& fieldset': {
-            borderColor: tokens.colors.border,
+            borderColor: '#E2E8F0',
+            transition: 'border-color 140ms ease, box-shadow 140ms ease',
           },
           '&:hover fieldset': {
-            borderColor: tokens.colors.actionBlue,
+            borderColor: '#94A3B8',
           },
           '&.Mui-focused fieldset': {
-            borderColor: tokens.colors.actionBlue,
+            borderColor: '#0F172A',
+            borderWidth: '1px',
+          },
+          '&.Mui-focused': {
+            boxShadow: '0 0 0 2px rgba(15, 23, 42, 0.08)',
           },
         },
+      },
+    },
+    MuiAccordion: {
+      defaultProps: {
+        elevation: 0,
+        disableGutters: true,
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+          border: '1px solid #E5E7EB',
+          boxShadow: 'none',
+          backgroundColor: '#FFFFFF',
+          backgroundImage: 'none',
+          transition: 'border-color 140ms ease, background-color 140ms ease',
+          '&:before': {
+            display: 'none',
+          },
+          '&.Mui-expanded': {
+            margin: 0,
+            boxShadow: 'none',
+            border: '1px solid #E5E7EB',
+          },
+          '&:first-of-type': {
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '8px',
+          },
+          '&:last-of-type': {
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px',
+          },
+        },
+      },
+    },
+    MuiAccordionSummary: {
+      styleOverrides: {
+        root: {
+          minHeight: '48px',
+          padding: '0 16px',
+          borderRadius: '8px',
+          transition: 'background-color 140ms ease',
+          '&:hover': {
+            backgroundColor: '#F8FAFC',
+          },
+          '&.Mui-focusVisible': {
+            outline: '2px solid rgba(15, 23, 42, 0.16)',
+            outlineOffset: '2px',
+          },
+          '&.Mui-expanded': {
+            minHeight: '48px',
+            borderBottom: '1px solid #F1F5F9',
+          },
+        },
+        content: {
+          margin: '12px 0',
+          '&.Mui-expanded': {
+            margin: '12px 0',
+          },
+        },
+      },
+    },
+    MuiAccordionDetails: {
+      styleOverrides: {
+        root: {
+          padding: '16px',
+          backgroundColor: '#FFFFFF',
+        },
+      },
+    },
+    MuiMenu: {
+      defaultProps: {
+        disableScrollLock: true,
+      },
+    },
+    MuiPopover: {
+      defaultProps: {
+        disableScrollLock: true,
       },
     },
   },

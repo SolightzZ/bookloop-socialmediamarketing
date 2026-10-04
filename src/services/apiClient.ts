@@ -1,13 +1,37 @@
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://panitijahem.xo.je/api';
-// header กันหน้า interstitial (ngrok free ตอน dev) — ส่งไว้ไม่เสียหาย ฝั่ง PHP อนุญาตใน Access-Control-Allow-Headers (Services/Http.php)
-// + ต้องมีชื่อนี้ใน Access-Control-Allow-Headers ฝั่ง PHP ด้วย (Services/Http.php)
-export const NGROK_BYPASS_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
-// ตัด trailing slash ท้ายกัน URL ซ้อนเป็น `//auth_me.php` (frontend อยู่ sub-path บน Pages)
-const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
-
-/** Base URL ของ backend ที่ build นี้ยิงไป (ให้ health check / debug UI ใช้อันเดียวกับ request จริง) */
+/**
+ * Base URL ของ backend แบบไดนามิกรองรับทั้ง:
+ * 1. Same-Origin บน Production (เปิดบน xo.je หรือ path /app/) -> ใช้ path /api แบบ same-origin
+ * 2. Local development (เปิดบน localhost / 127.0.0.1):
+ *    - ถ้า VITE_API_BASE_URL ชี้ไปที่ localhost:8000 -> ใช้ direct CORS
+ *    - ถ้าไม่ได้กำหนด หรือกำหนดเป็น /api -> ใช้ Vite proxy /api (same-origin ไปยัง localhost:8000)
+ * 3. Cross-origin จาก GitHub Pages -> ใช้ VITE_API_BASE_URL หรือ fallback xo.je
+ */
 export function getApiBaseUrl(): string {
-  return API_BASE_URL;
+  if (typeof window !== 'undefined') {
+    const { hostname, origin, pathname } = window.location;
+
+    // 1) Same-Origin บนโฮสต์จริง (เช่น https://panitijahem.xo.je/app/ หรือ production xo.je)
+    if (hostname.includes('xo.je') || pathname.startsWith('/app') || import.meta.env.BASE_URL === '/app/') {
+      return `${origin}/api`;
+    }
+
+    // 2) Local development บนเครื่อง (localhost / 127.0.0.1)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      const envUrl = import.meta.env.VITE_API_BASE_URL;
+      if (envUrl && (envUrl.includes('localhost:8000') || envUrl.includes('127.0.0.1:8000'))) {
+        return envUrl.replace(/\/+$/, '');
+      }
+      return '/api';
+    }
+  }
+
+  // 3) กรณีอื่นๆ ดึงจาก VITE_API_BASE_URL
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  return 'https://panitijahem.xo.je/api';
 }
 
 const SESSION_TOKEN_KEY = 'bookloop_auth_session_token';
@@ -52,7 +76,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   // ส่ง token ใน query (GET/DELETE) หรือใน JSON body (POST) แทน
   // Content-Type: application/json — frontend อยู่ GitHub Pages / localhost ยิงข้าม origin
   // มาที่ backend จึงเกิด preflight เป็นปกติ (PHP ตอบ OPTIONS 200 ผ่าน corsHeaders แล้ว)
-  let url = `${API_BASE_URL}/${endpoint}`;
+  const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+  let url = `${baseUrl}/${cleanEndpoint}`;
   if (token && (method === 'GET' || method === 'DELETE')) {
     url += `${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
   }
@@ -77,7 +103,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json;charset=UTF-8',
-    ...NGROK_BYPASS_HEADERS,
     ...(options.headers as Record<string, string>),
   };
   delete headers['Authorization'];

@@ -201,23 +201,39 @@ export const SellSteps: React.FC<SellStepsProps> = ({
       <Accordion
         elevation={0}
         sx={{
-          borderRadius: '14px !important',
-          border: '1.5px solid #E2E8F0',
+          borderRadius: '8px !important',
+          border: '1px solid #E5E7EB',
           bgcolor: '#FFFFFF',
           mb: 2.5,
-          boxShadow: '0 2px 8px rgba(15, 45, 74, 0.03)',
+          boxShadow: 'none',
           '&:before': { display: 'none' },
+          '&.Mui-expanded': {
+            margin: '0 0 20px 0',
+            boxShadow: 'none',
+          },
         }}
       >
-        <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#64748B' }} />}>
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon sx={{ color: '#64748B' }} />}
+          sx={{
+            minHeight: '44px',
+            px: 2,
+            transition: 'background-color 140ms ease',
+            '&:hover': { bgcolor: '#F8FAFC' },
+            '&.Mui-focusVisible': {
+              outline: '2px solid rgba(15, 23, 42, 0.16)',
+              outlineOffset: '2px',
+            },
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <HelpIcon sx={{ fontSize: 18, color: '#1976D2' }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F2D4A', fontSize: '0.85rem' }}>
+            <HelpIcon sx={{ fontSize: 18, color: '#64748B' }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F2D4A', fontSize: '0.85rem' }}>
               เกณฑ์สภาพหนังสือ
             </Typography>
           </Box>
         </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
+        <AccordionDetails sx={{ pt: 1, px: 2, pb: 2, borderTop: '1px solid #F1F5F9' }}>
           {SELL_CONDITIONS.map((c) => (
             <Box
               key={c.value}

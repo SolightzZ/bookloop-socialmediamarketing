@@ -75,7 +75,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           borderColor: category.accentColor || '#1976D2',
         },
         '&:focus-visible': {
-          outline: '2px solid #1976D2',
+          outline: '2px solid rgba(15, 23, 42, 0.2)',
           outlineOffset: '2px',
         },
       }}
