@@ -19,10 +19,13 @@ BookLoop ถูกออกแบบด้วยสถาปัตยกรร�
 1. **Dual-Mode Operation (ทำงานได้ทั้งแบบมีและไม่มี Backend):**
    - **Online API Mode:** เชื่อมต่อกับ PHP REST API Backend (`infinityfree_package`) สำหรับการบันทึกข้อมูลถาวร (บัญชีผู้ใช้, ประกาศขาย, คำสั่งซื้อ, การตรวจสอบสลิป, การส่งอีเมลแจ้งเตือน)
    - **Offline / Standalone Demo Mode:** หากระบบตรวจพบว่าเซิร์ฟเวอร์ยังไม่พร้อมใช้งานหรือทำงานแบบ Client-only เว็บแอปจะสลับการทำงานอัตโนมัติมาใช้ `localStorage` ร่วมกับชุดข้อมูล Mock Data คุณภาพสูง ทำให้สามารถทดสอบและพรีวิวระบบได้ทันที 100% โดยไม่ต้องพึ่งพาเซิร์ฟเวอร์
-2. **Integrated PHP Backend & Monitoring Dashboard (`infinityfree_package/`):**
-   - พัฒนาด้วย PHP ที่น้ำหนักเบาและรองรับ Shared Hosting ทั่วไป รวมถึง InfinityFree
-   - มีหน้า **System Health & Diagnostic Dashboard** สาธารณะแบบ Read-only ที่หน้าแรก (`/`) เพื่อตรวจสอบสถานะเซิร์ฟเวอร์, สิทธิ์ของไดเรกทอรีข้อมูล, ไฟล์ API, การตั้งค่าเมล และบันทึกคำขอ (Request Telemetry)
-   - ระบบจัดเก็บข้อมูลแบบ File-based JSON Database พร้อมการล็อกไฟล์แบบ `flock(LOCK_EX)` ป้องกัน Race Condition และรองรับการเชื่อมต่อฐานข้อมูล MySQL
+2. **Integrated PHP Backend & Telemetry Command Deck (`infinityfree_package/`):**
+   - พัฒนาด้วย PHP 8+ สไตล์ Modern น้ำหนักเบา ปรับแต่งให้รองรับ Shared Hosting ทั่วไปและ InfinityFree ได้อย่างไร้รอยต่อ
+   - หน้าควบคุมระบบ **Two-Tier Telemetry Command Deck** ที่หน้าแรก (`/`):
+     - **Tier 1 (Hero Command Panels):** Live Gateway Pulse แสดงค่า Latency เรียลไทม์และ Throughput (GET/POST), BookLoop C2C Moderation Queue แสดงยอดรอตรวจสอบพร้อมปุ่มลัดตรวจคัดกรอง, และ Sentry Guard ตรวจจับ HTTP 4xx/5xx รวมถึง CORS rejections
+     - **Tier 2 (System Specs Ribbon):** แถบสรุปสเปกระบบแบบกระชับ (API Endpoints, PHP Version, PHPMailer, Flock JSON Database, Runtime Node)
+   - **ระบบ Moderation ปลอดภัย (Safe C2C Queue):** คัดกรองประกาศขายหนังสือพร้อมแสดงภาพหน้าปก บัตรสภาพหนังสือ และเรื่องราวความประทับใจ รองรับการอนุมัติ/ระงับแบบ Soft-delete (`archived`) ไม่ทำลายข้อมูลหรือไฟล์ภาพ โดยมีระบบรักษาความปลอดภัยด้วย `ADMIN_TOKEN` (Fail-closed)
+   - ระบบจัดเก็บข้อมูลแบบ Atomic File-based JSON Store พร้อมการล็อกไฟล์ `flock(LOCK_EX)` ป้องกัน Race Condition และรองรับการเชื่อมต่อฐานข้อมูล MySQL
 3. **Anti-Bot Challenge Development Proxy (`vite-proxy.ts`):**
    - ระบบ Dev Proxy อัจฉริยะที่ช่วยคำนวณและ bypass ระบบตรวจจับบอต (`aes.js` / `__test` cookie) ของโฮสติ้งฟรีอย่าง InfinityFree โดยอัตโนมัติ ช่วยให้นักพัฒนาสามารถรัน Vite Localhost และยิง API ไปยัง Production ได้อย่างราบรื่น
 4. **Client-Side Image Compression (`imageCompressor.ts`):**
@@ -90,7 +93,7 @@ BookLoop ถูกออกแบบด้วยสถาปัตยกรร�
 - **Data Persistence:** File-based Atomic JSON DB (พร้อม concurrency lock `flock`) และรองรับ MySQL
 - **Mailing Service:** [PHPMailer](https://github.com/PHPMailer/PHPMailer) สำหรับระบบส่งอีเมลยืนยันและรีเซ็ตรหัสผ่าน
 - **Web Server Config:** Apache `.htaccess` พร้อมการจัดการ CORS และ Security Headers
-- **Monitoring:** Built-in PHP Read-only System Diagnostics Dashboard
+- **Monitoring & Moderation:** Two-Tier PHP Telemetry Command Deck & Safe C2C Review Queue (ส่วน moderation ต้องใช้ `ADMIN_TOKEN`)
 
 ---
 
@@ -256,7 +259,7 @@ npm run dev
 |---|---|---|---|
 | **Auth** | `/api/auth_register.php` | `POST` | สมัครสมาชิกใหม่พร้อมตรวจสอบความซ้ำซ้อน |
 | **Auth** | `/api/auth_login.php` | `POST` | เข้าสู่ระบบและรับ Session Token (อายุ 7 วัน) |
-| **Auth** | `/api/auth_me.php` | `GET` | ตรวจสอบสถานะ Token และดึงข้อมูลผู้ใช้ปัจจุบัน |
+| **Auth** | `/api/auth_me.php` | `GET/POST` | ตรวจสอบสถานะ Token และดึงข้อมูลผู้ใช้ปัจจุบัน (แนะนำ POST: token ใน body) |
 | **Auth** | `/api/auth_logout.php` | `POST` | ออกจากระบบและยกเลิก Session Token |
 | **Auth** | `/api/auth_update_profile.php` | `POST` | อัปเดตข้อมูลส่วนตัวและที่อยู่ |
 | **Auth** | `/api/auth_change_password.php`| `POST` | เปลี่ยนรหัสผ่านของผู้ใช้ |
@@ -265,12 +268,12 @@ npm run dev
 | **Auth** | `/api/auth_onboarding.php` | `POST` | บันทึกความสนใจหมวดหมู่หนังสือและสไตล์การอ่าน |
 | **Auth** | `/api/auth_delete_account.php` | `POST` | ลบบัญชีผู้ใช้งาน |
 | **Listings** | `/api/listings_create.php` | `POST` | สร้างประกาศขายหนังสือใหม่พร้อมอัปโหลดภาพ |
-| **Listings** | `/api/listings_list.php` | `GET` | ดึงรายการประกาศขายหนังสือพร้อมตัวกรอง |
+| **Listings** | `/api/listings_list.php` | `GET/POST` | ดึงรายการประกาศขายหนังสือพร้อมตัวกรอง (`mine=1` แนะนำ POST) |
 | **Listings** | `/api/listings_update.php` | `POST` | แก้ไขข้อมูลประกาศขาย หรือเปลี่ยนสถานะ |
-| **Listings** | `/api/listings_moderate.php` | `POST` | ตรวจสอบและอนุมัติ/ปฏิเสธประกาศขาย |
+| **Listings** | `/api/listings_moderate.php` | `POST` | ตรวจสอบและอนุมัติ/ปฏิเสธประกาศขาย (เฉพาะผู้ดูแล `ADMIN_TOKEN`) |
 | **Orders** | `/api/orders_create.php` | `POST` | สร้างคำสั่งซื้อใหม่และคำนวณยอดชำระ |
-| **Orders** | `/api/orders_list.php` | `GET` | ดูรายการคำสั่งซื้อของผู้ใช้ |
-| **Orders** | `/api/orders_detail.php` | `GET` | ดูรายละเอียดคำสั่งซื้อและ Timeline การจัดส่ง |
+| **Orders** | `/api/orders_list.php` | `GET/POST` | ดูรายการคำสั่งซื้อของผู้ใช้ (แนะนำ POST) |
+| **Orders** | `/api/orders_detail.php` | `GET/POST` | ดูรายละเอียดคำสั่งซื้อและ Timeline การจัดส่ง (แนะนำ POST) |
 | **Orders** | `/api/orders_update_status.php`| `POST` | อัปเดตสถานะคำสั่งซื้อหรือสลิปชำระเงิน |
 | **Newsletter** | `/api/subscribe.php` | `POST` | สมัครรับจดหมายข่าว |
 | **Telemetry** | `/api/track.php` | `POST` | บันทึกสถิติการเข้าชมและเหตุการณ์สำคัญ |
@@ -287,11 +290,11 @@ npm run dev
   → WishlistProvider → NotificationProvider → RecentlyViewedProvider → PriceAlertProvider
   ```
 - **การส่ง Token บน Shared Hosting:**
-  Shared Hosting มักจะลบ `Authorization: Bearer <token>` ออกจาก HTTP Request Header ก่อนถึง PHP สคริปต์ ตัว `apiClient.ts` จึงถูกออกแบบพิเศษให้ส่ง Token ผ่าน Request Body (สำหรับ `POST`) และ Query Parameters (สำหรับ `GET`/`DELETE`) แทน เพื่อความเสถียร 100%
+  Shared Hosting มักจะลบ `Authorization: Bearer <token>` ออกจาก HTTP Request Header ก่อนถึง PHP สคริปต์ ตัว `apiClient.ts` จึงส่ง Token ผ่าน Request Body (`POST`, วิธีหลัก — Token ไม่ปรากฏใน URL) และมี `getPublic()` สำหรับ endpoint สาธารณะที่ไม่แนบ Token เลย เพื่อความเสถียรและความปลอดภัย
 - **Tailwind CSS v4 Configuration:**
   ใช้ Tailwind CSS เวอร์ชัน 4 แบบ CSS-first ผ่าน `@tailwindcss/vite` plugin โดยไม่ต้องมี `tailwind.config.js` แต่กำหนดค่าผ่าน `src/index.css`
 - **ระบบความปลอดภัยของรหัสผ่าน:**
-  รหัสผ่านถูกแฮชด้วย SHA-256 / Password Hash มาตรฐาน และ Token ถูกจัดเก็บอย่างปลอดภัยพร้อมกลไก Session Deduplication
+  รหัสผ่านถูกแฮชด้วย bcrypt (`password_hash`/`password_verify` มาตรฐาน PHP) นโยบายรหัสผ่านใหม่คือยาวอย่างน้อย 8 ตัวอักษร ไม่เกิน 72 ตัวอักษร (บังคับทั้ง Frontend และ Backend) และ Token ถูกจัดเก็บอย่างปลอดภัยพร้อมกลไก Session Deduplication
 
 ---
 
