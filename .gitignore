@@ -7,6 +7,12 @@ coverage/
 !.env.example
 activities.txt
 .vscode
+.agents
+
+MEMORY.md
+AGENTS.md
+DESIGN.md
+PRODUCT.md
 
 # PHP Backend
 src_backend/vendor/
@@ -24,6 +30,8 @@ infinityfree_package/.env
 .claude
 .opencode
 .gemini
+.codex
+.impeccable
 # Local InfinityFree upload package (contains built zip, never commit)
 vendor
 infinityfree_package/bookloop-htdocs.zip

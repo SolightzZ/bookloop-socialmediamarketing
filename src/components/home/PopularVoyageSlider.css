@@ -1,0 +1,257 @@
+/* ==========================================================================
+   PopularVoyageSlider — 3D Showcase Carousel with Pagination Dots
+   ========================================================================== */
+
+.pv-slider {
+   --pv-slide-width: clamp(180px, 20vw, 240px);
+   --pv-duration: 500ms;
+   --pv-ease: cubic-bezier(0.25, 1, 0.5, 1);
+
+   position: relative;
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   outline: none;
+}
+
+.pv-slider:focus-visible {
+   outline: 2px solid #1976d2;
+   outline-offset: 4px;
+   border-radius: 16px;
+}
+
+/* ------------------------- Viewport ------------------------- */
+
+.pv-viewport {
+   position: relative;
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 16px 0 20px;
+}
+
+/* ------------------------- 3D Slides ------------------------- */
+
+.pv-slides {
+   position: relative;
+   width: 100%;
+   /* Headroom for scaled 3D slides */
+   height: calc(var(--pv-slide-width) * 1.5 * 1.12 + 28px);
+   display: grid;
+   place-items: center;
+}
+
+.pv-slides > * {
+   grid-area: 1 / -1;
+}
+
+.pv-slide {
+   width: var(--pv-slide-width);
+   aspect-ratio: 2 / 3;
+   perspective: 1000px;
+   user-select: none;
+   transform: translate3d(var(--pv-tx, 0px), 0, 0) rotateY(var(--pv-rot, 0deg)) scale(var(--pv-scale, 1));
+   opacity: var(--pv-opacity, 1);
+   transition:
+      transform var(--pv-duration) var(--pv-ease),
+      opacity var(--pv-duration) var(--pv-ease);
+}
+
+.pv-slide[data-role='current'] {
+   --pv-scale: 1.1;
+   --pv-tx: 0px;
+   --pv-rot: 0deg;
+   --pv-opacity: 1;
+   z-index: 20;
+   cursor: pointer;
+}
+
+.pv-slide[data-role='next'] {
+   --pv-tx: calc(var(--pv-slide-width) * 1.08);
+   --pv-rot: -32deg;
+   --pv-scale: 0.92;
+   --pv-opacity: 0.65;
+   z-index: 10;
+   cursor: pointer;
+}
+
+.pv-slide[data-role='previous'] {
+   --pv-tx: calc(var(--pv-slide-width) * -1.08);
+   --pv-rot: 32deg;
+   --pv-scale: 0.92;
+   --pv-opacity: 0.65;
+   z-index: 10;
+   cursor: pointer;
+}
+
+.pv-slide[data-role='next']:hover,
+.pv-slide[data-role='previous']:hover {
+   --pv-opacity: 0.88;
+}
+
+/* Books beyond prev/current/next stay mounted but invisible. */
+.pv-slide:not([data-role]) {
+   --pv-scale: 0.8;
+   --pv-opacity: 0;
+   z-index: 0;
+   pointer-events: none;
+}
+
+.pv-slide:focus-visible {
+   outline: 2px solid #1976d2;
+   outline-offset: 4px;
+   border-radius: 14px;
+}
+
+.pv-slide__inner {
+   position: relative;
+   width: 100%;
+   height: 100%;
+   transform-style: preserve-3d;
+}
+
+.pv-slide__inner .pv-tilt {
+   height: 100%;
+   display: block;
+   border-radius: 14px;
+}
+
+.pv-cover {
+   position: relative;
+   width: 100%;
+   height: 100%;
+   overflow: hidden;
+   border-radius: 14px;
+   border: 1px solid rgba(220, 231, 242, 0.9);
+   background: #f7f9fc;
+   box-shadow: 0 12px 28px rgba(15, 45, 74, 0.12);
+}
+
+.pv-slide[data-role='current'] .pv-cover {
+   box-shadow: 0 22px 52px rgba(15, 45, 74, 0.24);
+}
+
+.pv-category {
+   position: absolute;
+   bottom: 10px;
+   left: 10px;
+   background: rgba(15, 45, 74, 0.92);
+   color: #ffffff;
+   padding: 3px 8px;
+   border-radius: 6px;
+   font-size: 0.7rem;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+   pointer-events: none;
+   max-width: calc(100% - 20px);
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   backdrop-filter: blur(4px);
+}
+
+/* ------------------------- Dots (จุดประบอกสไลด์) ------------------------- */
+
+.pv-dots {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   margin-top: 24px;
+   padding: 8px 16px;
+   background: rgba(255, 255, 255, 0.75);
+   backdrop-filter: blur(12px);
+   -webkit-backdrop-filter: blur(12px);
+   border: 1px solid rgba(220, 231, 242, 0.85);
+   border-radius: 9999px;
+   box-shadow: 0 4px 16px rgba(15, 45, 74, 0.08);
+   z-index: 25;
+}
+
+.pv-dot {
+   width: 8px;
+   height: 8px;
+   border-radius: 4px;
+   background: #cbd5e1;
+   border: none;
+   padding: 0;
+   cursor: pointer;
+   transition:
+      width 240ms cubic-bezier(0.25, 1, 0.5, 1),
+      background-color 240ms ease;
+}
+
+.pv-dot:hover {
+   background: #94a3b8;
+}
+
+.pv-dot--active {
+   width: 26px;
+   background: #1976d2;
+   box-shadow: none;
+}
+
+.pv-dot:focus-visible {
+   outline: 2px solid #1976d2;
+   outline-offset: 2px;
+}
+
+/* ------------------------- Mobile ------------------------- */
+
+@media (max-width: 599px) {
+   .pv-slider {
+      --pv-slide-width: clamp(135px, 42vw, 175px);
+   }
+
+   .pv-viewport {
+      padding: 10px 0 14px;
+      overflow: visible;
+   }
+
+   /* Show 3 books on mobile: center + 3D angled peek of prev & next */
+   .pv-slide[data-role='current'] {
+      --pv-scale: 1.05;
+   }
+
+   .pv-slide[data-role='next'] {
+      --pv-tx: calc(var(--pv-slide-width) * 0.75);
+      --pv-rot: -22deg;
+      --pv-scale: 0.82;
+      --pv-opacity: 0.6;
+      z-index: 10;
+      cursor: pointer;
+   }
+
+   .pv-slide[data-role='previous'] {
+      --pv-tx: calc(var(--pv-slide-width) * -0.75);
+      --pv-rot: 22deg;
+      --pv-scale: 0.82;
+      --pv-opacity: 0.6;
+      z-index: 10;
+      cursor: pointer;
+   }
+
+   .pv-category {
+      bottom: 8px;
+      left: 8px;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+   }
+
+   .pv-dots {
+      margin-top: 18px;
+      padding: 6px 14px;
+   }
+}
+
+/* ------------------------- Reduced motion ------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+   .pv-slide,
+   .pv-dot {
+      transition: none;
+   }
+}

@@ -33,7 +33,7 @@ if (empty($name) || $name === 'สมาชิก BookLoop') {
 }
 
 // บันทึกข้อมูลลงไฟล์
-$subscriberFile = EMAIL_PATH . '/' . SUBSCRIBERS_FILE;
+    $subscriberFile = SUBSCRIBERS_PATH;
 $subscriberData = [
     "email" => $email,
     "name" => $name,

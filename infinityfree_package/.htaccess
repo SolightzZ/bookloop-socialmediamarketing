@@ -22,3 +22,66 @@ Require all denied
 
 # 4) ห้ามเปิดไฟล์ storage / config ผ่านเว็บ (PHP อ่านผ่าน filesystem เท่านั้น)
 RedirectMatch 403 ^/(data|config)(/.*)?$
+
+# ─── Performance Optimization ───────────────────────────────────
+
+# 5) เปิดใช้งาน Gzip/Deflate compression สำหรับ JSON, JS, CSS, HTML, SVG
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/javascript \
+                                  application/json \
+                                  application/rss+xml \
+                                  application/vnd.ms-fontobject \
+                                  application/x-font \
+                                  application/x-font-opentype \
+                                  application/x-font-otf \
+                                  application/x-font-truetype \
+                                  application/x-font-ttf \
+                                  application/x-javascript \
+                                  application/xhtml+xml \
+                                  application/xml \
+                                  font/opentype \
+                                  font/otf \
+                                  font/ttf \
+                                  image/svg+xml \
+                                  image/x-icon \
+                                  text/css \
+                                  text/html \
+                                  text/javascript \
+                                  text/plain \
+                                  text/xml
+</IfModule>
+
+# 6) Browser Caching (Expires & Cache-Control headers)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    
+    # Static Vite build assets (มี content hash ในชื่อไฟล์) แคชได้ยาวนาน 1 ปี
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    
+    # รูปภาพและไอคอน แคช 1 เดือน
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+    
+    # หน้าเว็บ HTML และ dynamic API ให้ revalidate เสมอ
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+    # แคชสำหรับ Vite static bundles
+    <FilesMatch "\.(css|js|woff2?|ttf|eot)$">
+        Header set Cache-Control "max-age=31536000, public, immutable"
+    </FilesMatch>
+    
+    # แคชสำหรับรูปภาพ
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "max-age=2592000, public"
+    </FilesMatch>
+</IfModule>

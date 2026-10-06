@@ -16,10 +16,22 @@ export default defineConfig(() => {
       },
     },
     build: {
+      // Keep every-page assets small: logo is 256px, images live in public/
+      assetsInlineLimit: 4096,
+      chunkSizeWarningLimit: 600,
+      sourcemap: false,
+      cssCodeSplit: true,
       rollupOptions: {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) {
+              return undefined;
+            }
+
+            // sweetalert2 is dynamically imported (alerts.ts) and only needed
+            // after a user action — let Vite split it into its own async chunk
+            // instead of forcing it into the initial vendor bundle.
+            if (id.includes('sweetalert2')) {
               return undefined;
             }
 
@@ -31,12 +43,20 @@ export default defineConfig(() => {
               return 'mui';
             }
 
-            if (id.includes('react-router') || id.includes('motion')) {
-              return 'routing-motion';
+            // three.js (~900kB) is only used by the lazy BookGachaScene —
+            // keep it isolated so it never lands in the initial bundle.
+            if (id.includes('three') || id.includes('@react-three')) {
+              return 'three';
             }
 
-            if (id.includes('three')) {
-              return 'three';
+            // motion (~200kB) is used across many components; isolate it so
+            // it is cached separately and never bloats the router chunk.
+            if (id.includes('motion') || id.includes('framer-motion')) {
+              return 'motion';
+            }
+
+            if (id.includes('react-router')) {
+              return 'router';
             }
 
             return 'vendor';

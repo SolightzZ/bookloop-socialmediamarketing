@@ -29,8 +29,13 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(['success' => false, 'message' => 'รูปแบบอีเมลไม่ถูกต้อง'], 400);
 }
 
-if (strlen($password) < 6) {
-    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร'], 400);
+if (!is_string($password) || strlen($password) < 8) {
+    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร'], 400);
+}
+
+// กัน DoS/ตัดทิ้งเงียบผ่าน bcrypt (72 bytes limit) — ยาวเกินนี้ไม่ปลอดภัยขึ้น
+if (strlen($password) > 72) {
+    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวไม่เกิน 72 ตัวอักษร'], 400);
 }
 
 $existing = findUserByEmail($email);
@@ -44,7 +49,7 @@ $token = generateToken($user['id']);
 // สมัครรับข่าวสารตอนลงทะเบียน (ถ้าผู้ใช้กดเปิดเองในฟอร์ม)
 if ($subscribeNewsletter) {
     require_once __DIR__ . '/../Services/Subscribers.php';
-    $subscriberFile = EMAIL_PATH . '/' . SUBSCRIBERS_FILE;
+    $subscriberFile = SUBSCRIBERS_PATH;
     if (!isEmailSubscribed($email, $subscriberFile)) {
         appendSubscriber($subscriberFile, $email);
     }

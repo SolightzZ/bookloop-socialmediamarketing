@@ -6,7 +6,10 @@ require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+// GET (เดิม, มี ETag cache) หรือ POST — frontend ใช้ POST + token ใน body
+// เฉพาะ ?mine=1 (กัน token รั่วผ่าน query) ส่วน catalog สาธารณะเรียก GET แบบไม่แนบ token
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($method !== 'GET' && $method !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
 }
 
@@ -14,10 +17,32 @@ if (!defined('LISTINGS_FILE')) {
     define('LISTINGS_FILE', DATA_PATH . '/listings.json');
 }
 
-$id = trim((string) ($_GET['id'] ?? ''));
-$q = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
-$category = trim((string) ($_GET['category'] ?? ''));
-$mine = trim((string) ($_GET['mine'] ?? ''));
+$req = $method === 'POST' ? getRequestData() : $_GET;
+$id = trim((string) ($req['id'] ?? ''));
+$q = mb_strtolower(trim((string) ($req['q'] ?? '')));
+$category = trim((string) ($req['category'] ?? ''));
+$mine = trim((string) ($req['mine'] ?? ''));
+$limit = (int) ($req['limit'] ?? 20);
+$limit = max(1, min($limit, 50));
+$offset = max(0, (int) ($req['offset'] ?? 0));
+
+// HTTP Caching & Conditional 304 for public requests
+$isPublic = ($mine !== '1');
+if ($isPublic) {
+    $fileMtime = file_exists(LISTINGS_FILE) ? filemtime(LISTINGS_FILE) : 0;
+    $paramSig = md5($id . '|' . $q . '|' . $category . '|' . $limit . '|' . $offset);
+    $etag = '"' . dechex($fileMtime) . '-' . $paramSig . '"';
+
+    header('ETag: ' . $etag);
+    header('Cache-Control: public, max-age=30, stale-while-revalidate=60');
+
+    if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+        http_response_code(304);
+        exit();
+    }
+} else {
+    header('Cache-Control: private, no-cache, no-store, must-revalidate');
+}
 
 $listings = loadJson(LISTINGS_FILE);
 
@@ -40,10 +65,6 @@ if ($mine === '1') {
         jsonResponse(['success' => false, 'message' => 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง'], 401);
     }
 }
-
-$limit = (int) ($_GET['limit'] ?? 20);
-$limit = max(1, min($limit, 50));
-$offset = max(0, (int) ($_GET['offset'] ?? 0));
 
 $filtered = array_values(array_filter($listings, function ($l) use ($q, $category, $ownerId) {
     if ($ownerId !== null) {

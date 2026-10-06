@@ -25,7 +25,8 @@ if (!rateLimitCheck(clientRateLimitKey('log'), 60, 60)) {
 $input = json_decode(file_get_contents("php://input"), true);
 
 $level = strtoupper($input["level"] ?? 'ERROR');
-$message = mb_substr((string)($input["message"] ?? ''), 0, 2000);
+// ตัด newline กัน log forgery (attacker ฝัง \n ปลอมเป็น log บรรทัดอื่นไม่ได้)
+$message = str_replace(["\r", "\n"], ' ', mb_substr((string)($input["message"] ?? ''), 0, 2000));
 $context = $input["context"] ?? [];
 if (!is_array($context)) {
     $context = ['value' => mb_substr((string) $context, 0, 500)];

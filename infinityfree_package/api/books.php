@@ -3,7 +3,8 @@
 // GET /api/books.php?q=&category=&limit=20&offset=0&sort=rating|price_asc|price_desc — แค็ตตาล็อกหนังสือ (สาธารณะ)
 // อ่าน snapshot จาก data/books.json (generate จาก src/data/books.ts — ดู scripts/export-books.mjs)
 
-require_once __DIR__ . '/../auth/auth.php';
+require_once __DIR__ . '/../Services/Http.php';
+require_once __DIR__ . '/../Services/Storage.php';
 
 corsHeaders();
 
@@ -15,13 +16,26 @@ if (!defined('BOOKS_FILE')) {
     define('BOOKS_FILE', DATA_PATH . '/books.json');
 }
 
+$fileMtime = file_exists(BOOKS_FILE) ? filemtime(BOOKS_FILE) : 0;
 $q = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
 $category = trim((string) ($_GET['category'] ?? ''));
 $sort = trim((string) ($_GET['sort'] ?? 'rating'));
-
 $limit = (int) ($_GET['limit'] ?? 20);
 $limit = max(1, min($limit, 100));
 $offset = max(0, (int) ($_GET['offset'] ?? 0));
+
+// HTTP Caching & Conditional 304 Not Modified
+// ประหยัด CPU และ bandwidth มหาศาลเมื่อเบราว์เซอร์หรือบอทเรียกซ้ำ
+$paramSig = md5($q . '|' . $category . '|' . $sort . '|' . $limit . '|' . $offset);
+$etag = '"' . dechex($fileMtime) . '-' . $paramSig . '"';
+
+header('ETag: ' . $etag);
+header('Cache-Control: public, max-age=60, stale-while-revalidate=120');
+
+if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+    http_response_code(304);
+    exit();
+}
 
 $books = loadJson(BOOKS_FILE);
 if (!is_array($books)) {

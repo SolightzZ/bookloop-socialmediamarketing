@@ -8,19 +8,20 @@ import { Header } from '../components/layout/Header';
 import { AppMobileDrawer } from '../components/layout/AppMobileDrawer';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { Footer } from '../components/layout/Footer';
+import { ScrollToTop } from '../components/common/ScrollToTop';
 
 export const AppLayout: React.FC = () => {
    const { cartCount } = useCart();
-  const { wishlist } = useWishlist();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isHomePage = location.pathname === '/';
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+   const { wishlist } = useWishlist();
+   const navigate = useNavigate();
+   const location = useLocation();
+   const isHomePage = location.pathname === '/';
+   const [mobileOpen, setMobileOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  }, [location.pathname, location.search]);
+   useEffect(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+   }, [location.pathname, location.search]);
 
    const handleDrawerToggle = () => {
       setMobileOpen((prev) => !prev);
@@ -37,14 +38,7 @@ export const AppLayout: React.FC = () => {
 
    return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-         <Header
-            cartCount={cartCount}
-            wishlistCount={wishlist.length}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            onSearchSubmit={handleSearch}
-            onOpenMobileMenu={handleDrawerToggle}
-         />
+         <Header cartCount={cartCount} wishlistCount={wishlist.length} onOpenMobileMenu={handleDrawerToggle} />
 
          <AppMobileDrawer open={mobileOpen} onClose={handleDrawerToggle} searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onSearchSubmit={handleSearch} />
 
@@ -59,13 +53,15 @@ export const AppLayout: React.FC = () => {
             <Outlet />
          </Box>
 
-          <Footer />
+         <Footer />
 
          {/* Mobile Bottom Navigation */}
          <MobileBottomNav />
 
-         {/* Spacer for mobile bottom nav */}
-         <Box sx={{ display: { xs: 'block', md: 'none' }, height: 64, flexShrink: 0 }} />
+         <ScrollToTop />
+
+         {/* Spacer for mobile bottom nav (content 50px + top 4px + bottom safe-area 8px+) */}
+         <Box sx={{ display: { xs: 'block', md: 'none' }, height: 'calc(50px + 4px + max(8px, env(safe-area-inset-bottom, 8px)))', flexShrink: 0 }} />
       </Box>
    );
 };

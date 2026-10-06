@@ -97,6 +97,9 @@ define('FONT_PATH', $env['FONT_PATH'] ?? 'images/fonts/NotoSansThai.ttf');
 define('GENERATED_IMAGES_PATH', $env['GENERATED_IMAGES_PATH'] ?? 'images/generated');
 define('LOG_FILE', $env['LOG_FILE'] ?? 'error.log');
 define('REQUEST_LOG_FILE', $env['REQUEST_LOG_FILE'] ?? 'request.log');
+// รหัส dashboard/admin สำหรับ moderate listings ผ่าน index.php — ว่าง = ปิดการ moderate
+// (fail-closed) ตั้งค่าบน server .env เท่านั้น ห้าม commit ค่าจริง (ดู .env.example)
+define('ADMIN_TOKEN', $env['ADMIN_TOKEN'] ?? '');
 
 // Base paths
 define('BASE_PATH', __DIR__ . '/..');
@@ -106,6 +109,10 @@ define('AUTH_PATH', BASE_PATH . '/auth');
 define('API_PATH', BASE_PATH . '/api');
 define('IMAGES_PATH', BASE_PATH . '/images');
 define('DATA_PATH', BASE_PATH . '/data');
+
+// รายชื่อผู้สมัครอยู่ใต้ data/ (ถูก .htaccess บังทั้งโฟลเดอร์) — ห้ามเก็บใต้ email/
+// ที่เปิดผ่านเว็บได้โดยตรง มิฉะนั้นอีเมลผู้ใช้รั่วผ่าน /email/subscribers.txt
+define('SUBSCRIBERS_PATH', DATA_PATH . '/' . SUBSCRIBERS_FILE);
 
 /**
  * Get config value

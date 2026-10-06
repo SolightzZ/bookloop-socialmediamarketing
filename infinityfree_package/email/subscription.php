@@ -40,7 +40,7 @@ function sendSubscriptionEmail(string $to, string $userName): array
         $mail->send();
 
         file_put_contents(
-            EMAIL_PATH . '/subscribers.txt',
+            SUBSCRIBERS_PATH,
             $to . "\n",
             FILE_APPEND | LOCK_EX
         );

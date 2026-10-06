@@ -13,7 +13,7 @@ if (!function_exists('isEmailSubscribed')) {
      */
     function isEmailSubscribed(string $email, ?string $filePathOrUser = null): bool
     {
-        $defaultFile = defined('EMAIL_PATH') ? EMAIL_PATH . '/subscribers.txt' : (defined('BASE_PATH') ? BASE_PATH . '/email/subscribers.txt' : __DIR__ . '/../email/subscribers.txt');
+        $defaultFile = defined('SUBSCRIBERS_PATH') ? SUBSCRIBERS_PATH : __DIR__ . '/../data/subscribers.txt';
         $filePath = (is_string($filePathOrUser) && (str_contains($filePathOrUser, '/') || str_contains($filePathOrUser, '\\') || str_ends_with($filePathOrUser, '.txt')))
             ? $filePathOrUser
             : $defaultFile;
@@ -71,5 +71,15 @@ if (!function_exists('appendSubscriber')) {
     function appendSubscriber(string $filePath, string $line): bool
     {
         return file_put_contents($filePath, rtrim($line) . "\n", FILE_APPEND | LOCK_EX) !== false;
+    }
+}
+
+// ─── ย้ายไฟล์ legacy ครั้งเดียว ───
+// เซิร์ฟเวอร์ที่เคยเก็บรายชื่อใต้ email/ (เปิดผ่านเว็บได้) จะถูกย้ายเข้า data/
+// (ถูก .htaccess บัง) อัตโนมัติเมื่อโหลดไฟล์นี้ — ไม่ต้องแตะ server เอง
+if (defined('SUBSCRIBERS_PATH') && defined('EMAIL_PATH')) {
+    $legacySubscribers = EMAIL_PATH . '/subscribers.txt';
+    if (!file_exists(SUBSCRIBERS_PATH) && file_exists($legacySubscribers)) {
+        @rename($legacySubscribers, SUBSCRIBERS_PATH);
     }
 }

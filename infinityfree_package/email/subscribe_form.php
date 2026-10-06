@@ -381,7 +381,8 @@ $title = 'สมัครรับข่าวสาร - BookLoop';
                     } else {
                         showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
                     }
-                } catch {
+                } catch (err) {
+                    console.error('[BookLoop][subscribe_form] sendMail.php failed:', err);
                     showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
                 } finally {
                     loading.classList.remove('active');

@@ -7,16 +7,28 @@ corsHeaders();
 
 $method = $_SERVER['REQUEST_METHOD'];
 // รองรับ POST + _method=DELETE (frontend เลี่ยง preflight บน InfinityFree free)
+// POST ธรรมดา (ไม่มี _method) = เช็คสถานะจาก email ใน body (กัน email รั่วผ่าน query)
 if ($method === 'POST') {
     $probe = getRequestData();
     if (($probe['_method'] ?? '') === 'DELETE') {
         $method = 'DELETE';
+    } else {
+        $method = 'STATUS_VIA_POST';
     }
 }
-$subscriberFile = EMAIL_PATH . '/subscribers.txt';
+$subscriberFile = SUBSCRIBERS_PATH;
+
+if ($method === 'STATUS_VIA_POST') {
+    $email = trim((string) ($probe['email'] ?? ''));
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['success' => false, 'message' => 'รูปแบบอีเมลไม่ถูกต้อง'], 400);
+    }
+    $subscribed = isEmailSubscribed($email, $subscriberFile);
+    jsonResponse(['success' => true, 'subscribed' => $subscribed]);
+}
 
 if ($method === 'GET') {
-    // Check subscription status
+    // Check subscription status (legacy query — คงไว้เพื่อ backward compat)
     $email = $_GET['email'] ?? '';
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(['success' => false, 'message' => 'รูปแบบอีเมลไม่ถูกต้อง'], 400);

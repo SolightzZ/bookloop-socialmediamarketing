@@ -4,7 +4,11 @@ require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+// รับทั้ง GET (เดิม) และ POST — frontend เรียกผ่าน POST เป็นหลักเพื่อให้ token
+// อยู่ใน JSON body แทน query (กัน token รั่วผ่าน access log/history/referer)
+// โฮสต์ตัด Authorization header ทิ้ง จึงใช้ field `token` ใน body แทน
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($method !== 'GET' && $method !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
 }
 

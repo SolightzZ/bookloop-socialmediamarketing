@@ -7,7 +7,10 @@ require_once __DIR__ . '/../auth/auth.php';
 
 corsHeaders();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+// GET (เดิม) หรือ POST — frontend เรียกผ่าน POST เป็นหลักเพื่อให้ token/id
+// อยู่ใน JSON body แทน query (response มี PII ที่อยู่/เบอร์โทร)
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($method !== 'GET' && $method !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
 }
 
@@ -21,7 +24,8 @@ if (!defined('ORDERS_FILE')) {
     define('ORDERS_FILE', DATA_PATH . '/orders.json');
 }
 
-$id = ltrim(trim((string) ($_GET['id'] ?? '')), '#');
+$body = $method === 'POST' ? getRequestData() : [];
+$id = ltrim(trim((string) ($body['id'] ?? $_GET['id'] ?? '')), '#');
 if ($id === '') {
     jsonResponse(['success' => false, 'message' => 'ไม่พบคำสั่งซื้อนี้'], 404);
 }

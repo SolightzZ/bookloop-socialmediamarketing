@@ -110,6 +110,15 @@ if ($imageInput !== '') {
         if ($binary === false || strlen($binary) === 0 || strlen($binary) > 3 * 1024 * 1024) {
             jsonResponse(['success' => false, 'message' => 'รูปภาพใหญ่เกินไป (สูงสุด 3MB)'], 400);
         }
+        // กัน polyglot (HTML/JS แปะหัว data:image) — decode แล้วต้องเป็นรูปจริงตรงชนิดที่อ้าง
+        if (function_exists('getimagesizefromstring')) {
+            $imgInfo = @getimagesizefromstring($binary);
+            $imgMime = is_array($imgInfo) ? (string) ($imgInfo['mime'] ?? '') : '';
+            $expectedMime = ['jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+            if ($imgMime === '' || $imgMime !== ($expectedMime[$ext] ?? '')) {
+                jsonResponse(['success' => false, 'message' => 'ไฟล์รูปภาพไม่ถูกต้อง กรุณาอัปโหลดรูป JPG/PNG/WebP อีกครั้ง'], 400);
+            }
+        }
         $dir = IMAGES_PATH . '/listings';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);

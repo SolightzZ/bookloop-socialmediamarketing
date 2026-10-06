@@ -17,23 +17,31 @@ if (!function_exists('rateLimitCheck')) {
         $now = time();
         $buckets = loadJson($file);
 
-        $maxWindow = max($windowSeconds, 3600);
-        foreach ($buckets as $k => $hits) {
-            $kept = array_values(array_filter((array) $hits, fn($t) => ($now - (int) $t) < $maxWindow));
-            if (empty($kept)) {
-                unset($buckets[$k]);
-            } else {
-                $buckets[$k] = $kept;
+        // Probabilistic global cleanup (1 ใน 50 ครั้ง) เพื่อลด overhead O(N) บนดิสก์
+        $didGlobalPrune = (mt_rand(1, 50) === 1);
+        if ($didGlobalPrune) {
+            $maxWindow = max($windowSeconds, 3600);
+            foreach ($buckets as $k => $hits) {
+                $kept = array_values(array_filter((array) $hits, fn($t) => ($now - (int) $t) < $maxWindow));
+                if (empty($kept)) {
+                    unset($buckets[$k]);
+                } else {
+                    $buckets[$k] = $kept;
+                }
             }
         }
 
+        // ตัดเฉพาะประวัติของ key ปัจจุบัน
         $recent = array_values(array_filter(
             (array) ($buckets[$key] ?? []),
             fn($t) => ($now - (int) $t) < $windowSeconds
         ));
 
         if (count($recent) >= $maxAttempts) {
-            saveJson($file, $buckets);
+            // ถ้าถูกบล็อก ไม่ต้องบันทึกซ้ำลงดิสก์หากไม่ได้ทำ global cleanup
+            if ($didGlobalPrune) {
+                saveJson($file, $buckets);
+            }
             return false;
         }
 

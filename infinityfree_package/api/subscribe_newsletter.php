@@ -18,7 +18,7 @@ if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 // ตรวจสอบ email ซ้ำ + บันทึก ผ่าน helper กลาง (Subscribers.php)
-$subscriberFile = EMAIL_PATH . '/subscribers.txt';
+$subscriberFile = SUBSCRIBERS_PATH;
 if (isEmailSubscribed($email, $subscriberFile)) {
     jsonResponse(['success' => false, 'message' => 'อีเมลนี้สมัครรับข่าวสารไว้แล้ว'], 409);
 }

@@ -1,129 +1,146 @@
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { books } from '../../data/books';
 import { featuredCategories, standardCategories } from '../../data/categories';
 import { trackEvent } from '../../utils/analytics';
-import { FeaturedCategoryCard } from './FeaturedCategoryCard';
 import { CategoryCard } from './CategoryCard';
+import categoryBg from '../../assets/images/find-books-by-category.webp';
 
 export const CategoryExplorer: React.FC = () => {
-  const navigate = useNavigate();
+   const navigate = useNavigate();
 
-  const handleSelectCategory = (categoryName: string) => {
-    trackEvent('view_category', { category: categoryName });
-    navigate(`/books?category=${encodeURIComponent(categoryName)}`);
-  };
+   const handleSelectCategory = (categoryName: string) => {
+      trackEvent('view_category', { category: categoryName });
+      navigate(`/books?category=${encodeURIComponent(categoryName)}`);
+   };
 
-  const categoryCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const b of books) {
-      map.set(b.category, (map.get(b.category) || 0) + 1);
-    }
-    return map;
-  }, []);
+   const categoryCountMap = useMemo(() => {
+      const map = new Map<string, number>();
+      for (const b of books) {
+         map.set(b.category, (map.get(b.category) || 0) + 1);
+      }
+      return map;
+   }, []);
 
-  const getBookCount = (categoryName: string) => {
-    return categoryCountMap.get(categoryName) || 0;
-  };
+   const getBookCount = (categoryName: string) => {
+      return categoryCountMap.get(categoryName) || 0;
+   };
 
-  return (
-    <Box
-      component="section"
-      id="categories"
-      aria-labelledby="categories-heading"
-      sx={{
-        py: { xs: 7, sm: 9, md: 12 },
-        bgcolor: '#F7F9FC',
-        borderTop: '1px solid #D9E2EC',
-        borderBottom: '1px solid #D9E2EC',
-      }}
-    >
+   // Combine all 8 categories into a unified list
+   const allCategories = useMemo(() => {
+      return [...featuredCategories, ...standardCategories];
+   }, []);
+
+   return (
       <Box
-        sx={{
-          maxWidth: '1200px',
-          mx: 'auto',
-          px: { xs: 2, sm: 3, md: 4 },
-          width: '100%',
-        }}
-      >
-        {/* Section Header */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 5, md: 6 } }}>
-          <Typography
-            id="categories-heading"
-            variant="h2"
-            component="h2"
+         component="section"
+         id="categories"
+         aria-labelledby="categories-heading"
+         sx={{
+            py: { xs: 4, sm: 5.5, md: 7 },
+            position: 'relative',
+            overflow: 'hidden',
+            bgcolor: '#EAF3FD',
+            backgroundImage: `url(${categoryBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            borderTop: '1px solid #D9E2EC',
+            borderBottom: '1px solid #D9E2EC',
+         }}>
+         {/* Subtle overlay to guarantee text legibility while keeping illustrations vibrant */}
+         <Box
+            aria-hidden="true"
             sx={{
-              fontWeight: 800,
-              color: '#0F2D4A',
-              fontSize: { xs: '1.75rem', sm: '2.15rem', md: '2.5rem', lg: '2.75rem' },
-              lineHeight: 1.2,
-              letterSpacing: '-0.02em',
-              mb: 1.5,
+               position: 'absolute',
+               inset: 0,
+               background: 'linear-gradient(180deg, rgba(240, 246, 255, 0.5) 0%, rgba(240, 246, 255, 0.25) 50%, rgba(240, 246, 255, 0.55) 100%)',
+               pointerEvents: 'none',
             }}
-          >
-            ค้นหาหนังสือในหมวดที่คุณชอบ
-          </Typography>
+         />
 
-          <Typography
-            variant="body1"
+         <Box
             sx={{
-              color: '#627D98',
-              fontSize: { xs: '0.9375rem', sm: '1.05rem' },
-              lineHeight: 1.65,
-              maxWidth: 640,
-              mx: 'auto',
-            }}
-          >
-            เลือกหมวดที่สนใจ แล้วดูหนังสือทั้งหมดในหมวดนั้นจากคลังของชุมชน BookLoop
-          </Typography>
-        </Box>
+               position: 'relative',
+               zIndex: 1,
+               maxWidth: '1200px',
+               mx: 'auto',
+               px: { xs: 1.75, sm: 3, md: 4 },
+               width: '100%',
+            }}>
+            {/* Section Header */}
+            <Box sx={{ textAlign: 'center', mb: { xs: 2.5, sm: 3.5, md: 4 } }}>
+               <Typography
+                  id="categories-heading"
+                  variant="h2"
+                  component="h2"
+                  sx={{
+                     fontWeight: 800,
+                     color: '#0F2D4A',
+                     fontSize: { xs: '1.35rem', sm: '1.75rem', md: '2.15rem' },
+                     lineHeight: 1.25,
+                     letterSpacing: '-0.02em',
+                  }}>
+                  ค้นหาหนังสือในหมวดที่คุณชอบ
+               </Typography>
+            </Box>
 
-        {/* LEVEL 1: Featured Categories Grid (2 Columns on Desktop, 1 on Tablet/Mobile) */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              lg: 'repeat(2, 1fr)',
-            },
-            gap: { xs: 2.5, sm: 3, md: 3.5 },
-            mb: { xs: 3, sm: 3.5, md: 4 },
-          }}
-        >
-          {featuredCategories.map((category) => (
-            <FeaturedCategoryCard
-              key={category.id}
-              category={category}
-              bookCount={getBookCount(category.name)}
-              onClick={() => handleSelectCategory(category.name)}
-            />
-          ))}
-        </Box>
+            {/* Compact Grid (4 cols on Desktop, 2 cols on Mobile/Tablet) */}
+            <Box
+               sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                     xs: 'repeat(2, 1fr)',
+                     sm: 'repeat(2, 1fr)',
+                     md: 'repeat(4, 1fr)',
+                  },
+                  gap: { xs: 1.25, sm: 2, md: 2.25 },
+               }}>
+               {allCategories.map((category) => (
+                  <CategoryCard key={category.id} category={category} bookCount={getBookCount(category.name)} onClick={() => handleSelectCategory(category.name)} />
+               ))}
+            </Box>
 
-        {/* LEVEL 2: Standard Categories Grid (3 Columns Desktop, 2 on Tablet, 1 on Mobile) */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(2, 1fr)',
-              lg: 'repeat(3, 1fr)',
-            },
-            gap: { xs: 2, sm: 2.5, md: 3 },
-          }}
-        >
-          {standardCategories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              bookCount={getBookCount(category.name)}
-              onClick={() => handleSelectCategory(category.name)}
-            />
-          ))}
-        </Box>
+            {/* Bottom CTA: Browse all books */}
+            <Box sx={{ mt: { xs: 2.5, sm: 3.5, md: 4 }, textAlign: 'center' }}>
+               <Button
+                  onClick={() => {
+                     trackEvent('view_category', { category: 'ทั้งหมด' });
+                     navigate('/books');
+                  }}
+                  variant="outlined"
+                  endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                     borderRadius: 9999,
+                     borderColor: 'rgba(25, 118, 210, 0.28)',
+                     color: '#0F2D4A',
+                     bgcolor: 'rgba(255, 255, 255, 0.92)',
+                     backdropFilter: 'blur(8px)',
+                     px: { xs: 2.25, sm: 3 },
+                     py: { xs: 0.75, sm: 0.9 },
+                     fontSize: { xs: '0.825rem', sm: '0.875rem' },
+                     fontWeight: 700,
+                     textTransform: 'none',
+                     boxShadow: 'none',
+                     transition: 'all 200ms ease',
+                     WebkitTapHighlightColor: 'transparent',
+                     '&:hover': {
+                        bgcolor: '#FFFFFF',
+                        borderColor: '#1976D2',
+                        color: '#1976D2',
+                        transform: 'translateY(-1px)',
+                        boxShadow: 'none',
+                     },
+                     '&:active': {
+                        transform: 'scale(0.98)',
+                     },
+                  }}>
+                  ดูหนังสือทั้งหมดในคลัง ({books.length} เล่ม)
+               </Button>
+            </Box>
+         </Box>
       </Box>
-    </Box>
-  );
+   );
 };

@@ -7,31 +7,11 @@
  *   ผ่าน POST /api/log.php แบบ fire-and-forget (ไปโผล่ console ของ `php -S` ฝั่ง server ด้วย)
  *
  * กฎกัน loop / กันพัง:
- * - ห้าม import apiClient/authService ในไฟล์นี้ (กัน circular import) — ใช้ plain fetch
+ * - ห้าม import apiClient/authService ในไฟล์นี้ (กัน circular import) — ใช้ plain fetch + shared getApiBaseUrl
  * - ห้ามเรียก logWarn/logError ซ้ำข้างใน catch ของตัวเอง
  * - logging ต้องไม่ throw — flow หลักต้องไปต่อเสมอ
  */
-
-function getLoggerApiBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    const { hostname, origin, pathname } = window.location;
-    if (hostname.includes('xo.je') || pathname.startsWith('/app') || import.meta.env.BASE_URL === '/app/') {
-      return `${origin}/api`;
-    }
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      const envUrl = import.meta.env.VITE_API_BASE_URL;
-      if (envUrl && (envUrl.includes('localhost:8000') || envUrl.includes('127.0.0.1:8000'))) {
-        return envUrl.replace(/\/+$/, '');
-      }
-      return '/api';
-    }
-  }
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) {
-    return envUrl.replace(/\/+$/, '');
-  }
-  return 'https://panitijahem.xo.je/api';
-}
+import { getApiBaseUrl } from './apiBaseUrl';
 
 function errorDetails(error: unknown): Record<string, string> {
   if (error instanceof Error) {
@@ -79,7 +59,7 @@ export function logError(message: string, error?: unknown, extraContext: Record<
     });
     // กัน context ก้อนยักษ์ (backend ปฏิเสธถ้า context เกิน 2KB)
     if (body.length > 3800) return;
-    fetch(`${getLoggerApiBaseUrl()}/log.php`, {
+    fetch(`${getApiBaseUrl()}/log.php`, {
       method: 'POST',
       credentials: 'include',
       headers: {

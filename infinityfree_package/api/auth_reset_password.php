@@ -30,8 +30,13 @@ if ($token === '') {
     jsonResponse(['success' => false, 'message' => 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้อง'], 400);
 }
 
-if (!is_string($newPassword) || strlen($newPassword) < 6) {
-    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร'], 400);
+if (!is_string($newPassword) || strlen($newPassword) < 8) {
+    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร'], 400);
+}
+
+// กัน DoS/ตัดทิ้งเงียบผ่าน bcrypt (72 bytes limit)
+if (strlen($newPassword) > 72) {
+    jsonResponse(['success' => false, 'message' => 'รหัสผ่านต้องมีความยาวไม่เกิน 72 ตัวอักษร'], 400);
 }
 
 $resets = loadJson(PASSWORD_RESETS_FILE);

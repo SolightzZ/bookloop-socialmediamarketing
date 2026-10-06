@@ -80,7 +80,7 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
                 $subscriberData .= ' | ' . implode(', ', $preferences);
             }
             file_put_contents(
-                EMAIL_PATH . '/subscribers.txt',
+                SUBSCRIBERS_PATH,
                 $subscriberData . "\n",
                 FILE_APPEND | LOCK_EX
             );

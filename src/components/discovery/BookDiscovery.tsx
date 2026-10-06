@@ -1,311 +1,275 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Container, Paper } from '@mui/material';
-import {
-  AutoAwesomeRounded,
-  MenuBookRounded,
-  ArrowForwardRounded,
-} from '@mui/icons-material';
+import { ArrowForwardRounded, RefreshRounded, AutoAwesomeRounded, MenuBookRounded } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { BookDiscoveryProps } from './bookDiscovery.types';
 import { useBookDiscovery } from './useBookDiscovery';
-import { BookDiscoveryScene } from './BookDiscoveryScene';
 import { BookDiscoveryButton } from './BookDiscoveryButton';
-import { BookDiscoveryResult } from './BookDiscoveryResult';
 import { BookMoodSelector } from './BookMoodSelector';
+import { BookDiscoveryResult } from './BookDiscoveryResult';
 import { DiscoveryEffects } from './DiscoveryEffects';
-import { BookOrbit } from './BookOrbit';
 import { trackEvent } from '../../utils/analytics';
 import { books as defaultBooks } from '../../data/books';
 
-export const BookDiscovery: React.FC<BookDiscoveryProps> = ({
-  books,
-  onSelectBook,
-  className = '',
-  testMode = false,
-}) => {
-  const navigate = useNavigate();
+const BookGachaScene = React.lazy(() => import('./BookGachaScene').then((m) => ({ default: m.BookGachaScene })));
 
-  const {
-    state,
-    selectedBook,
-    currentCyclingBook,
-    candidateBooks,
-    selectedMood,
-    setSelectedMood,
-    startDiscovery,
-    isRunning,
-    isReducedMotion,
-    error,
-    setHoverState,
-  } = useBookDiscovery({
-    books,
-    onSelect: onSelectBook,
-    testMode,
-  });
+/**
+ * BookDiscovery — Soft Swiss Editorial Discovery with PopUp Details
+ *
+ * Implements:
+ * - Soft Swiss Editorial aesthetic (BookLoop Blue #1677E8, Deep Navy #102F4F, Soft Blue #EAF4FF, Border #DCEEFF)
+ * - Zero glowing/flashy neon effects
+ * - All book information (Archive, Condition, Title, Author, Price, Story) is shown inside the PopUp Modal
+ * - 100% emoji-free with clean SVG icons
+ */
+export const BookDiscovery: React.FC<BookDiscoveryProps> = ({ books, onSelectBook, className = '', testMode = false }) => {
+   const navigate = useNavigate();
+   const [isPopUpOpen, setIsPopUpOpen] = useState(false);
 
-  const availableBooks = books || defaultBooks;
-  const defaultBook = useMemo(() => {
-    if (!availableBooks || availableBooks.length === 0) return defaultBooks[0];
-    const featuredBook = availableBooks.find((b) => b.featured && (b.stock ?? 1) > 0);
-    return featuredBook || availableBooks[0];
-  }, [availableBooks]);
+   const { state, selectedBook, currentCyclingBook, candidateBooks, selectedMood, setSelectedMood, startDiscovery, isRunning, isReducedMotion, error, hasRandomizedOnce } = useBookDiscovery({
+      books,
+      onSelect: onSelectBook,
+      testMode,
+   });
 
-  const activeDisplayBook = selectedBook || (isRunning ? currentCyclingBook : null) || defaultBook;
-  const isInitialRecommendation = !selectedBook && state === 'idle';
+   // Automatically pop up the book details when a randomized result is ready
+   useEffect(() => {
+      if (state === 'result') {
+         setIsPopUpOpen(true);
+      }
+   }, [state]);
 
-  const handleStart = () => {
-    trackEvent('random_book_click', {
-      previousState: state,
-      mood: selectedMood,
-    });
-    startDiscovery();
-  };
+   const availableBooks = books || defaultBooks;
+   const defaultBook = useMemo(() => {
+      if (!availableBooks || availableBooks.length === 0) return defaultBooks[0];
+      const featuredBook = availableBooks.find((b) => b.featured && (b.stock ?? 1) > 0);
+      return featuredBook || availableBooks[0];
+   }, [availableBooks]);
 
-  return (
-    <section
-      aria-labelledby="book-discovery-heading"
-      className={`relative w-full py-7 sm:py-9 md:py-10 bg-[#F8FAFC] border-y border-slate-200/80 overflow-hidden ${className}`}
-    >
-      {/* Clean subtle dot pattern */}
-      <DiscoveryEffects isReducedMotion={isReducedMotion} />
+   const activeDisplayBook = selectedBook || (isRunning ? currentCyclingBook : null) || defaultBook;
 
-      {/* Screen reader live announcements */}
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {isRunning && 'กำลังสุ่มและลุ้นหนังสือที่ใช่ในวงโคจร กรุณารอสักครู่...'}
-        {state === 'result' && selectedBook && `พบหนังสือที่เลือกให้คุณ: ${selectedBook.title} โดย ${selectedBook.author} ราคา ${selectedBook.price} บาท`}
-        {error && error}
-      </div>
+   const handleStart = useCallback(() => {
+      if (isRunning) return;
+      setIsPopUpOpen(false);
 
-      <Container maxWidth="lg" sx={{ maxWidth: '1120px !important' }} className="relative z-10 px-4 sm:px-6">
-        {/* 1. Header (Compact, Professional) */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 2.5 } }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.8,
-              bgcolor: '#FFFFFF',
-              border: '1px solid #BFDBFE',
-              borderRadius: 9999,
-              py: 0.35,
-              px: 1.5,
-              mb: 0.8,
-            }}
-          >
-            <AutoAwesomeRounded sx={{ fontSize: 13, color: '#1976D2' }} />
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 800,
-                color: '#1976D2',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                fontSize: '0.7rem',
-              }}
-            >
-              สุ่มหนังสือให้คุณ
-            </Typography>
-          </Box>
+      // Smoothly ensure the 3D gacha animation section is clearly visible
+      const section = document.getElementById('book-discovery-section');
+      if (section) {
+         const rect = section.getBoundingClientRect();
+         if (rect.top < -60 || rect.bottom > window.innerHeight + 100) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         }
+      }
 
-          <Typography
-            id="book-discovery-heading"
-            variant="h3"
-            component="h2"
-            sx={{
-              fontWeight: 800,
-              fontSize: { xs: '1.35rem', sm: '1.65rem', md: '1.85rem' },
-              color: '#0F2D4A',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.25,
-            }}
-          >
-            ให้ BookLoop เลือก<Box component="span" sx={{ color: '#1976D2' }}>หนังสือเล่มถัดไปให้คุณ</Box>
-          </Typography>
-        </Box>
+      trackEvent('random_book_click', {
+         previousState: state,
+         mood: selectedMood,
+      });
+      startDiscovery();
+   }, [isRunning, selectedMood, startDiscovery, state]);
 
-        {/* 2. Compact Mood Selector */}
-        <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>
-          <BookMoodSelector
-            selectedMood={selectedMood}
-            onSelectMood={setSelectedMood}
-            disabled={isRunning}
-          />
-        </Box>
+   return (
+      <Box
+         component="section"
+         id="book-discovery-section"
+         aria-labelledby="book-discovery-heading"
+         sx={{
+            py: { xs: 7, sm: 9, md: 11 },
+            background: 'linear-gradient(180deg, #F0F7FF 0%, #E4F1FF 45%, #EDF6FF 80%, #F5FAFF 100%)',
+            borderTop: '1px solid #DCEEFF',
+            borderBottom: '1px solid #DCEEFF',
+            position: 'relative',
+            overflow: 'hidden',
+         }}
+         className={className}>
+         {/* Soft Swiss Background (Faint dot grid, zero glow) */}
+         <DiscoveryEffects isReducedMotion={isReducedMotion} />
 
-        {/* 3. Empty State / Error Handler */}
-        {error && state === 'error' && (
-          <Box
-            sx={{
-              maxWidth: 480,
-              mx: 'auto',
-              textAlign: 'center',
-              bgcolor: '#FFFFFF',
-              p: 3,
-              borderRadius: 4,
-              border: '1px solid #E2E8F0',
-            }}
-          >
-            <MenuBookRounded sx={{ fontSize: 40, color: '#94A3B8', mb: 1.5 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0F2D4A', mb: 0.5 }}>
-              {error}
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#64748B', mb: 2, fontSize: '0.85rem' }}>
-              ลองเปิดดูรายการหนังสือทั้งหมดในคลัง หรือกลับมาสุ่มใหม่อีกครั้ง
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/books')}
-              endIcon={<ArrowForwardRounded sx={{ fontSize: 16 }} />}
-              sx={{
-                bgcolor: '#1976D2',
-                borderRadius: 9999,
-                py: 1,
-                px: 3,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                textTransform: 'none',
-              }}
-            >
-              ดูหนังสือทั้งหมด
-            </Button>
-          </Box>
-        )}
+         {/* Screen reader live announcements (zero emojis) */}
+         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {isRunning && 'กำลังเลือกหนังสือให้คุณ กรุณารอสักครู่...'}
+            {state === 'result' && activeDisplayBook && `พบหนังสือที่เลือกให้คุณ: ${activeDisplayBook.title} โดย ${activeDisplayBook.author} ราคา ${activeDisplayBook.price} บาท`}
+            {error && error}
+         </div>
 
-        {/* 4. Professional Two-Column Layout: Left = Randomizer, Right = Selected Book */}
-        {(!error || state !== 'error') && (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1.15fr', lg: '4.8fr 7.2fr' },
-              gap: { xs: 2, sm: 2.5, md: 3 },
-              alignItems: 'stretch',
-            }}
-          >
-            {/* LEFT COLUMN: Randomizer Scene & Controls (สุ่มวางไว้ที่ทางซ้าย) */}
-            <Paper
-              elevation={0}
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                p: { xs: 2, sm: 2.5 },
-                borderRadius: 3.5,
-                border: '1px solid #E2E8F0',
-                bgcolor: '#FFFFFF',
-                boxShadow: '0 2px 10px rgba(15, 45, 74, 0.04)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Stage Top Bar */}
-              <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: isRunning ? '#F59E0B' : state === 'result' ? '#10B981' : '#1976D2',
-                      animation: isRunning ? 'pulse 1s infinite' : 'none',
-                      '@keyframes pulse': {
-                        '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-                        '50%': { opacity: 0.4, transform: 'scale(1.3)' },
-                      },
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.75rem' }}>
-                    {isRunning
-                      ? 'กำลังค้นหาในวงโคจร...'
-                      : state === 'result'
-                      ? 'สุ่มหนังสือสำเร็จ'
-                      : 'วงโคจรสุ่มหนังสือ'}
-                  </Typography>
-                </Box>
-                <Typography
-                  variant="caption"
+         <Container maxWidth="lg" sx={{ maxWidth: '1080px !important', position: 'relative', zIndex: 1 }}>
+            {/* Section Header */}
+            <Box sx={{ textAlign: 'center', mb: { xs: 3.5, sm: 4.5 } }}>
+               <Typography
+                  id="book-discovery-heading"
+                  variant="h2"
+                  component="h2"
                   sx={{
-                    bgcolor: '#F1F5F9',
-                    color: '#64748B',
-                    px: 1,
-                    py: 0.2,
-                    borderRadius: 9999,
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Interactive 3D
-                </Typography>
-              </Box>
+                     fontWeight: 800,
+                     fontSize: { xs: '1.55rem', sm: '2rem', md: '2.35rem' },
+                     color: '#102F4F',
+                     letterSpacing: '-0.02em',
+                     lineHeight: 1.25,
+                     mb: 3,
+                  }}>
+                  ให้ BookLoop เลือก
+                  <Box component="span" sx={{ color: '#1677E8', ml: 0.75 }}>
+                     หนังสือเล่มถัดไปให้คุณ
+                  </Box>
+               </Typography>
 
-              {/* 3D Orbit Stage */}
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  height: { xs: 190, sm: 210, md: 225 },
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  my: 'auto',
-                  cursor: isRunning ? 'default' : 'pointer',
-                }}
-                onClick={!isRunning ? handleStart : undefined}
-                role="button"
-                tabIndex={0}
-                aria-label="คลิกเพื่อสุ่มหนังสือในวงโคจร"
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && !isRunning) {
-                    e.preventDefault();
-                    handleStart();
-                  }
-                }}
-              >
-                <BookDiscoveryScene
-                  state={state}
-                  selectedBook={selectedBook}
-                  currentCyclingBook={currentCyclingBook}
-                  candidateBooks={candidateBooks}
-                  isReducedMotion={isReducedMotion}
-                  onSceneClick={handleStart}
-                  onPointerEnter={() => setHoverState(true)}
-                  onPointerLeave={() => setHoverState(false)}
-                />
-                <BookOrbit state={state} isReducedMotion={isReducedMotion} />
-              </Box>
+               {/* Mood Selector (Soft Pastel Pills) */}
+               <Box sx={{ mb: { xs: 2, sm: 2.5 } }}>
+                  <BookMoodSelector selectedMood={selectedMood} onSelectMood={setSelectedMood} disabled={isRunning} />
+               </Box>
 
-              {/* Action Button & Hint */}
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 1.5 }}>
-                <BookDiscoveryButton
-                  state={state}
-                  onClick={handleStart}
-                  onMouseEnter={() => setHoverState(true)}
-                  onMouseLeave={() => setHoverState(false)}
-                  className="w-full sm:w-auto"
-                />
-                <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.72rem', textAlign: 'center' }}>
-                  {state === 'result'
-                    ? 'หากยังไม่ใช่เล่มที่ต้องการ กดสุ่มอีกครั้ง'
-                    : 'คลิกที่วงโคจรหรือกดปุ่มเพื่อเริ่มสุ่ม'}
-                </Typography>
-              </Box>
-            </Paper>
+               {/* 3D Gacha Pull Animation Stage (Three.js Desktop, Tablet, Mobile) */}
+               <Box
+                  sx={{
+                     position: 'relative',
+                     maxWidth: { xs: '100%', sm: 580, md: 640 },
+                     mx: 'auto',
+                     mb: { xs: 2.5, sm: 3 },
+                     display: 'flex',
+                     flexDirection: 'column',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                  }}>
+                  <React.Suspense
+                     fallback={
+                        <Box
+                           sx={{
+                              width: '100%',
+                              maxWidth: 620,
+                              height: { xs: 300, sm: 350, md: 390 },
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                           }}>
+                           <Box
+                              sx={{
+                                 width: 140,
+                                 height: 200,
+                                 borderRadius: 3,
+                                 border: '2px dashed #BAE6FD',
+                                 bgcolor: 'rgba(240, 247, 255, 0.6)',
+                                 display: 'flex',
+                                 flexDirection: 'column',
+                                 alignItems: 'center',
+                                 justifyContent: 'center',
+                                 gap: 1.5,
+                              }}>
+                              <MenuBookRounded sx={{ color: '#1677E8', fontSize: 32, opacity: 0.6 }} />
+                              <Typography variant="caption" sx={{ color: '#102F4F', fontWeight: 600, fontSize: '0.75rem' }}>
+                                 กำลังจัดเตรียมหนังสือ...
+                              </Typography>
+                           </Box>
+                        </Box>
+                     }>
+                     <BookGachaScene
+                        state={state}
+                        selectedBook={selectedBook}
+                        currentCyclingBook={currentCyclingBook}
+                        candidateBooks={candidateBooks}
+                        isReducedMotion={isReducedMotion}
+                        onSceneClick={handleStart}
+                     />
+                  </React.Suspense>
+               </Box>
 
-            {/* RIGHT COLUMN: Book Selected by BookLoop (หนังสือที่ได้ BookLoop เลือกให้คุณ อยู่ทางด้านขวา) */}
-            <Box sx={{ height: '100%' }}>
-              <BookDiscoveryResult
-                book={activeDisplayBook}
-                onRollAgain={handleStart}
-                isReducedMotion={isReducedMotion}
-                mood={selectedMood}
-                state={state}
-                isInitial={isInitialRecommendation}
-                isRunning={isRunning}
-              />
+               {/* Action Button */}
+               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <BookDiscoveryButton state={state} onClick={handleStart} hasRandomizedOnce={hasRandomizedOnce} />
+               </Box>
             </Box>
-          </Box>
-        )}
-      </Container>
-    </section>
-  );
+
+            {/* Error State */}
+            {error && state === 'error' && (
+               <Box
+                  sx={{
+                     maxWidth: 480,
+                     mx: 'auto',
+                     textAlign: 'center',
+                     bgcolor: '#FFFFFF',
+                     p: { xs: 3, sm: 4 },
+                     borderRadius: '20px',
+                     border: '1px solid #DCEEFF',
+                     boxShadow: '0 8px 30px rgba(16, 47, 79, 0.05)',
+                     mt: 3,
+                  }}>
+                  <MenuBookRounded sx={{ fontSize: 44, color: '#1677E8', mb: 1.5 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#102F4F', mb: 0.5, fontSize: '1.05rem' }}>
+                     {error}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#64748B', mb: 2.5, fontSize: '0.85rem' }}>
+                     ระบบไม่สามารถเลือกหนังสือได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือเปิดดูรายการหนังสือทั้งหมดในคลัง
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                     <Button
+                        variant="contained"
+                        onClick={handleStart}
+                        startIcon={<RefreshRounded sx={{ fontSize: 16 }} />}
+                        sx={{
+                           bgcolor: '#1677E8',
+                           borderRadius: '12px',
+                           py: 1,
+                           px: 2.5,
+                           fontWeight: 700,
+                           fontSize: '0.85rem',
+                           textTransform: 'none',
+                           boxShadow: 'none',
+                           '&:hover': { bgcolor: '#1264C4' },
+                        }}>
+                        ลองอีกครั้ง
+                     </Button>
+                     <Button
+                        variant="outlined"
+                        onClick={() => navigate('/books')}
+                        endIcon={<ArrowForwardRounded sx={{ fontSize: 16 }} />}
+                        sx={{
+                           borderColor: '#DCEEFF',
+                           color: '#1677E8',
+                           borderRadius: '12px',
+                           py: 1,
+                           px: 2.5,
+                           fontWeight: 700,
+                           fontSize: '0.85rem',
+                           textTransform: 'none',
+                           '&:hover': { bgcolor: '#F8FBFF', borderColor: '#B9D9FF' },
+                        }}>
+                        ดูหนังสือทั้งหมด
+                     </Button>
+                  </Box>
+               </Box>
+            )}
+         </Container>
+
+         {/* Accessible PopUp Modal (Soft Swiss Editorial - Zero Glow, Soft Light Backdrop) */}
+         <AnimatePresence>
+            {isPopUpOpen && activeDisplayBook && (
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/40 backdrop-blur-[3px]"
+                  onClick={() => !isRunning && setIsPopUpOpen(false)}>
+                  <motion.div
+                     initial={{ opacity: 0, scale: 0.94, y: 12 }}
+                     animate={{ opacity: 1, scale: 1, y: 0 }}
+                     exit={{ opacity: 0, scale: 0.94, y: 12 }}
+                     transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                     className="w-full max-w-[620px] relative max-h-[96%]"
+                     onClick={(e) => e.stopPropagation()}>
+                     <BookDiscoveryResult
+                        book={activeDisplayBook}
+                        onRollAgain={handleStart}
+                        onClose={() => setIsPopUpOpen(false)}
+                        isReducedMotion={isReducedMotion}
+                        mood={selectedMood}
+                        state={state}
+                        isRunning={isRunning}
+                     />
+                  </motion.div>
+               </motion.div>
+            )}
+         </AnimatePresence>
+      </Box>
+   );
 };

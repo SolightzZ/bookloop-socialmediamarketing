@@ -90,6 +90,7 @@ export const ShippingAddressSection: React.FC<ShippingAddressSectionProps> = ({
             color: '#62748A',
             bgcolor: '#FFFFFF',
             whiteSpace: 'nowrap',
+            minHeight: { xs: 44, sm: 36 },
             width: { xs: '100%', sm: 'auto' },
             justifyContent: 'center',
             '&:hover': {

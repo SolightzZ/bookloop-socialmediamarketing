@@ -35,12 +35,16 @@ if ($method !== 'POST') {
     jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
 }
 
-// กันยิง sync รัว: 60 ครั้งต่อชั่วโมงต่อ IP
-if (!rateLimitCheck(clientRateLimitKey('user_state'), 60, 3600)) {
+$data = getRequestData();
+
+// อ่านอย่างเดียว (pull, มีแค่ token) กับเขียน (push) ใช้โควตาแยกกัน
+// กัน pull ตอนเปิดแอปแย่งโควตา push — อ่านให้เยอะกว่าเพราะไม่มีผลข้างเคียง
+$isReadOnly = !array_key_exists('cart', $data) && !array_key_exists('wishlist', $data);
+$rateKey = $isReadOnly ? 'user_state_read' : 'user_state';
+$rateMax = $isReadOnly ? 300 : 60;
+if (!rateLimitCheck(clientRateLimitKey($rateKey), $rateMax, 3600)) {
     jsonResponse(['success' => false, 'message' => 'ซิงก์ข้อมูลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่'], 429);
 }
-
-$data = getRequestData();
 $states = loadJson(USER_STATE_FILE);
 $current = $states[$userId] ?? ['cart' => [], 'wishlist' => []];
 

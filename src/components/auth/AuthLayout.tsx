@@ -1,233 +1,138 @@
+import { Box, Container, Paper, Typography } from '@mui/material';
+import { Lock } from 'lucide-react';
 import React from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Box, Container, Paper, Typography, Link } from '@mui/material';
-import { AutoStories as BookIcon } from '@mui/icons-material';
 import { LoginBackground } from './LoginBackground';
 
-const logoImg = `${import.meta.env.BASE_URL}images/logo.png`;
-
-interface AuthLayoutProps {
-  children: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  footerText?: React.ReactNode;
-  hideBrandHeader?: boolean;
+export interface AuthLayoutProps {
+   children: React.ReactNode;
+   title: string;
+   subtitle?: string;
+   footerText?: React.ReactNode;
+   hideBrandHeader?: boolean;
+   editorialContent?: React.ReactNode;
+   layoutVariant?: 'split' | 'centered';
 }
 
-export const AuthLayout: React.FC<AuthLayoutProps> = ({
-  children,
-  title,
-  subtitle,
-  footerText,
-  hideBrandHeader = false,
-}) => {
-  const navigate = useNavigate();
+export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle, footerText, hideBrandHeader = true, editorialContent, layoutVariant = 'centered' }) => {
+   const isSplit = layoutVariant === 'split' && Boolean(editorialContent);
 
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        bgcolor: '#F7F9FC',
-        py: { xs: 4, sm: 6, md: 8 },
-        px: { xs: 2, sm: 3 },
-        overflow: 'hidden',
-      }}
-    >
-      {/* 1. Background Layer (z-index: 0, pointer-events: none) */}
-      <LoginBackground />
-
-      {/* 2. Content Container (z-index: 10) */}
-      <Container
-        maxWidth="xs"
-        sx={{
-          position: 'relative',
-          zIndex: 10,
-          maxWidth: { xs: '100%', sm: 460 },
-          mx: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        {/* Brand Logo Header (z-index: 10) */}
-        {!hideBrandHeader && (
-          <Box
-            onClick={() => navigate('/')}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              userSelect: 'none',
-              mb: 3,
-              gap: 1.25,
-              transition: 'transform 0.15s ease-in-out',
-              '&:hover': {
-                transform: 'scale(1.02)',
-              },
-            }}
-            role="button"
-            aria-label="กลับสู่หน้าหลัก BookLoop"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                navigate('/');
-              }
-            }}
-          >
-            <Box
-              component="img"
-              src={logoImg}
-              alt="BookLoop Logo"
-              referrerPolicy="no-referrer"
-              sx={{
-                width: 42,
-                height: 42,
-                borderRadius: 2,
-                objectFit: 'contain',
-              }}
-            />
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 800,
-                  letterSpacing: '-0.5px',
-                  color: '#0F2D4A',
-                  lineHeight: 1.1,
-                }}
-              >
-                BookLoop
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: '#627D98',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                แพลตฟอร์มส่งต่อหนังสือมือสอง
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {/* Main Login Card (z-index: 20, stable, no animation) */}
-        <Paper
-          elevation={0}
-          sx={{
+   return (
+      <Box
+         sx={{
             position: 'relative',
-            zIndex: 20,
-            width: '100%',
-            p: { xs: 3, sm: 4 },
-            borderRadius: { xs: 3, sm: '24px' },
-            border: '1px solid #E2E8F0',
-            bgcolor: '#FFFFFF',
-            boxShadow: '0 8px 30px rgba(15, 45, 74, 0.05)',
-          }}
-        >
-          {/* Card Title & Subtitle */}
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{
-                fontWeight: 800,
-                color: '#0F2D4A',
-                mb: 0.75,
-                fontSize: { xs: '1.35rem', sm: '1.5rem' },
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {title}
-            </Typography>
-            {subtitle && (
-              <Typography
-                variant="body2"
-                sx={{
-                  color: '#627D98',
-                  fontSize: '0.875rem',
-                  lineHeight: 1.5,
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Form Content (Interactive controls: z-index: 30) */}
-          <Box sx={{ position: 'relative', zIndex: 30 }}>
-            {children}
-          </Box>
-
-          {/* Footer Text / Alternate Auth Link */}
-          {footerText && (
-            <Box
-              sx={{
-                mt: 3,
-                pt: 2.5,
-                borderTop: '1px solid #F1F5F9',
-                textAlign: 'center',
-                fontSize: '0.875rem',
-                color: '#627D98',
-              }}
-            >
-              {footerText}
-            </Box>
-          )}
-        </Paper>
-
-        {/* Community Trust Badge */}
-        <Box
-          sx={{
-            mt: 3.5,
+            minHeight: 'calc(100vh - 140px)',
             display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: 1,
-            color: '#627D98',
-          }}
-        >
-          <BookIcon sx={{ fontSize: 16, color: '#1976D2' }} />
-          <Typography variant="caption" sx={{ fontSize: '0.78rem', fontWeight: 500 }}>
-            หนังสือทุกเล่ม มีเรื่องราวให้คนถัดไป
-          </Typography>
-        </Box>
+            bgcolor: '#F8FBFF',
+            py: { xs: 4, sm: 6, md: 8 },
+            px: { xs: 2, sm: 3 },
+            overflow: 'hidden',
+         }}>
+         {/* 1. Atmospheric Ambient Layer (z-index: 0, non-blocking) */}
+         <LoginBackground />
 
-        {/* Legal links */}
-        <Box sx={{ mt: 1.5, display: 'flex', gap: 2 }}>
-          <Link
-            component={RouterLink}
-            to="/about"
-            variant="caption"
+         {/* 2. Responsive Content Container */}
+         <Container
+            maxWidth={isSplit ? 'lg' : 'xs'}
             sx={{
-              color: '#94A3B8',
-              textDecoration: 'none',
-              '&:hover': { color: '#1976D2', textDecoration: 'underline' },
-            }}
-          >
-            เกี่ยวกับเรา
-          </Link>
-          <Typography variant="caption" sx={{ color: '#CBD5E1' }}>
-            •
-          </Typography>
-          <Link
-            component={RouterLink}
-            to="/campaign/read-share-repeat"
-            variant="caption"
-            sx={{
-              color: '#94A3B8',
-              textDecoration: 'none',
-              '&:hover': { color: '#1976D2', textDecoration: 'underline' },
-            }}
-          >
-            แคมเปญ Read-Share-Repeat
-          </Link>
-        </Box>
-      </Container>
-    </Box>
-  );
+               position: 'relative',
+               zIndex: 10,
+               maxWidth: isSplit ? { xs: '100%', sm: 520, md: 1000 } : { xs: '100%', sm: 440, md: 460 },
+               mx: 'auto',
+               width: '100%',
+            }}>
+            <Box
+               sx={{
+                  display: isSplit ? 'grid' : 'flex',
+                  gridTemplateColumns: isSplit ? { xs: '1fr', md: '1.1fr 0.9fr' } : undefined,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: { xs: 3, md: 5 },
+                  width: '100%',
+               }}>
+               {/* Editorial Column (Only if explicitly passed in split mode) */}
+               {isSplit && editorialContent && <Box sx={{ display: { xs: 'none', md: 'block' } }}>{editorialContent}</Box>}
+
+               {/* Clean Focused Auth Card */}
+               <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: 440, md: 460 }, mx: 'auto' }}>
+                  <Paper
+                     elevation={0}
+                     sx={{
+                        position: 'relative',
+                        zIndex: 20,
+                        width: '100%',
+                        p: { xs: 3, sm: 4, md: 4.5 },
+                        borderRadius: { xs: '16px', sm: '20px' },
+                        border: '1px solid #E5EAF0',
+                        bgcolor: '#FFFFFF',
+                        boxShadow: '0 8px 30px rgba(15, 47, 82, 0.06)',
+                        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                     }}>
+                     {/* Card Title & Subtitle */}
+                     <Box sx={{ mb: 3 }}>
+                        <Typography
+                           variant="h2"
+                           component="h1"
+                           sx={{
+                              fontWeight: 800,
+                              color: '#0F2D4A',
+                              mb: 0.75,
+                              fontSize: { xs: '1.4rem', sm: '1.6rem' },
+                              letterSpacing: '-0.02em',
+                           }}>
+                           {title}
+                        </Typography>
+                        {subtitle && (
+                           <Typography
+                              variant="body2"
+                              sx={{
+                                 color: '#64748B',
+                                 fontSize: '0.875rem',
+                                 lineHeight: 1.5,
+                              }}>
+                              {subtitle}
+                           </Typography>
+                        )}
+                     </Box>
+
+                     {/* Form Content */}
+                     <Box sx={{ position: 'relative', zIndex: 30 }}>{children}</Box>
+
+                     {/* Footer Text / Alternate Action */}
+                     {footerText && (
+                        <Box
+                           sx={{
+                              mt: 3,
+                              pt: 2.5,
+                              borderTop: '1px solid #F1F5F9',
+                              textAlign: 'center',
+                              fontSize: '0.875rem',
+                              color: '#64748B',
+                           }}>
+                           {footerText}
+                        </Box>
+                     )}
+                  </Paper>
+
+                  {/* Subtle Security Guarantee */}
+                  <Box
+                     sx={{
+                        mt: 2.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.75,
+                        color: '#94A3B8',
+                        fontSize: '0.78rem',
+                     }}>
+                     <Lock size={13} strokeWidth={2.2} />
+                     <span>ข้อมูลส่วนบุคคลของคุณได้รับการปกป้องอย่างปลอดภัย</span>
+                  </Box>
+               </Box>
+            </Box>
+         </Container>
+      </Box>
+   );
 };

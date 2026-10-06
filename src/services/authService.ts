@@ -1,5 +1,5 @@
 import { User, UserOrder, UserListedBook } from '../types/auth';
-import { apiClient, ApiError, getApiBaseUrl } from './apiClient';
+import { apiClient, ApiError } from './apiClient';
 import { logWarn } from '../utils/logger';
 
 export interface UserAccountData {
@@ -20,11 +20,11 @@ export function scheduleUserStatePush(userId: string): void {
    if (prev) clearTimeout(prev);
    userStatePushTimers.set(
       userId,
-       setTimeout(() => {
-          userStatePushTimers.delete(userId);
-          authService.pushUserState(userId).catch((e) => {
-             logWarn('pushUserState (debounced background sync) failed', e);
-          });
+      setTimeout(() => {
+         userStatePushTimers.delete(userId);
+         authService.pushUserState(userId).catch((e) => {
+            logWarn('pushUserState (debounced background sync) failed', e);
+         });
       }, 2500),
    );
 }
@@ -52,7 +52,7 @@ class AuthService {
             return JSON.parse(data);
          }
       } catch (e) {
-         console.warn('Error reading user data', e);
+         logWarn('authService.getUserData: corrupt data, returning empty', e);
       }
 
       return {
@@ -69,7 +69,7 @@ class AuthService {
          const updated = { ...current, ...data };
          localStorage.setItem(`${USER_DATA_PREFIX}${userId}`, JSON.stringify(updated));
       } catch (e) {
-         console.warn('Could not save user data', e);
+         logWarn('authService.saveUserData failed', e);
       }
    }
 
@@ -89,35 +89,25 @@ class AuthService {
       return { user: result.user, token: result.token };
    }
 
+   /** sync session userId โดยไม่แตะ network (ใช้เช็ค owner ใน service นอก React) */
+   public getCurrentUserId(): string | null {
+      const session = getStoredSession();
+      if (!session) return null;
+      if (Date.now() > session.expiresAt) return null;
+      return session.userId;
+   }
+
+   /**
+    * @deprecated ใช้ใน service นอก React ที่ต้องการแค่ userId เท่านั้น
+    * (คืน stub { id } — ห้ามใช้แทน full User)
+    * ใน React ให้ใช้ useAuth().user, นอก React ที่ต้องการ full User ให้ await getCurrentSessionUser()
+    * หมายเหตุ: เคยใช้ sync XHR ยิง auth_me.php แบบ blocking — ถูกถอดออกเพราะบล็อก main thread
+    */
    public getCurrentUser(): User | null {
-      try {
-         const rawSession = localStorage.getItem(SESSION_TOKEN_KEY);
-         if (!rawSession) return null;
-
-         const session = JSON.parse(rawSession);
-         if (!session || !session.userId || Date.now() > session.expiresAt) {
-            return null;
-         }
-
-           const xhr = new XMLHttpRequest();
-           // ส่ง token ใน query แทน Authorization header เพื่อเลี่ยง preflight (InfinityFree free ดัก OPTIONS)
-            const baseUrl = getApiBaseUrl().replace(/\/+$/, "");
-            xhr.open("GET", `${baseUrl}/auth_me.php?token=${encodeURIComponent(session.token)}`, false);
-           xhr.send();
-
-          if (xhr.status === 200) {
-             const result = JSON.parse(xhr.responseText);
-             if (result.success && result.user) {
-                return result.user;
-             }
-          }
-       } catch (e) {
-          // ต่อ backend ไม่ได้ — คืน null ให้ caller จัดการต่อ (ไม่มีโหมดออฟไลน์)
-          logWarn('getCurrentUser: backend unreachable, returning null', e);
-       }
-
-       return null;
-    }
+      const userId = this.getCurrentUserId();
+      if (!userId) return null;
+      return { id: userId } as User;
+   }
 
    private sessionRestorePromise: Promise<User | null> | null = null;
 
@@ -143,30 +133,31 @@ class AuthService {
             return null;
          }
 
-         const result = await apiClient.get<{ success: boolean; user: User }>('auth_me.php');
+         // POST แทน GET — token อยู่ใน body ไม่รั่วผ่าน query (backend รับทั้งสองแบบ)
+         const result = await apiClient.post<{ success: boolean; user: User }>('auth_me.php');
 
          if (result.success && result.user) {
             return result.user;
          }
-       } catch (e) {
-          // 401/403 = token ฝั่ง server ใช้ไม่ได้แล้ว → ลบทิ้ง จะได้ไม่ยิง auth_me.php ซ้ำทุกครั้งที่ mount
-          // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
-          if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-             this.clearStoredSession();
-          } else {
-             logWarn('restoreSessionInternal failed (keeping stored session)', e);
-          }
-       }
+      } catch (e) {
+         // 401/403 = token ฝั่ง server ใช้ไม่ได้แล้ว → ลบทิ้ง จะได้ไม่ยิง auth_me.php ซ้ำทุกครั้งที่ mount
+         // (5xx/เครือข่ายล่ม = backend มีปัญหาชั่วคราว เก็บ token ไว้ก่อน รอบหน้าอาจได้ข้อมูล)
+         if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+            this.clearStoredSession();
+         } else {
+            logWarn('restoreSessionInternal failed (keeping stored session)', e);
+         }
+      }
 
-       return null;
-    }
+      return null;
+   }
 
    // ล้าง session ใน localStorage เท่านั้น (ไม่เรียก auth_logout.php เพราะ token ใช้ไม่ได้แล้ว)
    private clearStoredSession(): void {
       try {
          localStorage.removeItem(SESSION_TOKEN_KEY);
       } catch (e) {
-         console.warn('Could not clear stored session', e);
+         logWarn('clearStoredSession failed', e);
       }
    }
 
@@ -220,7 +211,8 @@ class AuthService {
    // ─── user_state sync (ตะกร้า + รายการโปรดข้ามเครื่อง) ───
    public async pullUserState(): Promise<{ cart: { productId: string; quantity: number }[]; wishlist: string[] } | null> {
       try {
-         const result = await apiClient.get<{ success: boolean; cart: { productId: string; quantity: number }[]; wishlist: string[] }>('user_state.php');
+         // POST body เปล่า (มีแค่ token) — backend คืน state ปัจจุบันโดยไม่แก้ไขอะไร
+         const result = await apiClient.post<{ success: boolean; cart: { productId: string; quantity: number }[]; wishlist: string[] }>('user_state.php', {});
          if (result.success) return { cart: result.cart ?? [], wishlist: result.wishlist ?? [] };
       } catch (e) {
          // backend ไม่พร้อม — ใช้ข้อมูลบนเครื่องต่อ

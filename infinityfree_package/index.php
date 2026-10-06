@@ -15,6 +15,7 @@ try {
 } catch (Throwable $e) {
     $appOk = false;
     $envError = $e->getMessage();
+    error_log("[BookLoop][ERROR] dashboard config load failed: " . $e->getMessage());
     $checks['env'] = [
         'ok' => false,
         'label' => 'config + .env (.env หาย?)',
@@ -102,7 +103,7 @@ $ENDPOINT_META = [
     'auth_login.php' => ['POST', 'เปิด', 'เข้าสู่ระบบ'],
     'auth_register.php' => ['POST', 'เปิด', 'สมัครสมาชิก'],
     'auth_logout.php' => ['POST', 'token', 'ออกจากระบบ'],
-    'auth_me.php' => ['GET', 'token', 'ข้อมูล session ปัจจุบัน'],
+    'auth_me.php' => ['GET/POST', 'token', 'ข้อมูล session ปัจจุบัน (POST: token ใน body)'],
     'auth_update_profile.php' => ['POST', 'token', 'แก้โปรไฟล์'],
     'auth_delete_account.php' => ['POST', 'token', 'ลบบัญชี'],
     'auth_onboarding.php' => ['POST', 'token', 'onboarding'],
@@ -110,17 +111,17 @@ $ENDPOINT_META = [
     'auth_forgot_password.php' => ['POST', 'เปิด', 'ขอรีเซ็ตรหัสผ่าน'],
     'auth_reset_password.php' => ['POST', 'เปิด', 'ตั้งรหัสผ่านใหม่'],
     'books.php' => ['GET', 'เปิด', 'แค็ตตาล็อกหนังสือ (ค้นหา/หมวด/เรียง)'],
-    'listings_list.php' => ['GET', 'เปิด', 'ดูรายการลงขาย'],
+    'listings_list.php' => ['GET/POST', 'เปิด/mine=token', 'ดูรายการลงขาย (mine=1 ควรใช้ POST)'],
     'listings_create.php' => ['POST', 'token', 'ลงขายหนังสือ'],
     'listings_update.php' => ['POST', 'token', 'แก้ไขข้อมูลและรูปภาพรายการลงขาย'],
-    'listings_moderate.php' => ['POST', 'token', 'อนุมัติ / ปฏิเสธรายการลงขาย'],
+    'listings_moderate.php' => ['POST', 'admin-token', 'อนุมัติ / ปฏิเสธรายการลงขาย (เฉพาะผู้ดูแล)'],
     'orders_create.php' => ['POST', 'token', 'สร้างคำสั่งซื้อ'],
-    'orders_list.php' => ['GET', 'token', 'ดูคำสั่งซื้อของตัวเอง'],
+    'orders_list.php' => ['GET/POST', 'token', 'ดูคำสั่งซื้อของตัวเอง (POST: token ใน body)'],
     'orders_detail.php' => ['GET', 'token', 'รายละเอียดคำสั่งซื้อ'],
     'orders_update_status.php' => ['POST', 'token', 'ยกเลิก / ยืนยันชำระ'],
     'subscribe.php' => ['POST', 'เปิด', 'สมัครรับข่าวสาร'],
     'subscribe_newsletter.php' => ['POST', 'เปิด', 'สมัคร newsletter'],
-    'newsletter_status.php' => ['GET/DELETE', 'เปิด', 'เช็กสถานะ / ยกเลิก subscribe'],
+    'newsletter_status.php' => ['POST/DELETE', 'เปิด', 'เช็กสถานะ (POST) / ยกเลิก subscribe'],
     'track.php' => ['POST', 'เปิด', 'ส่ง event (page_view/cart/purchase/…)'],
     'log.php' => ['POST', 'เปิด*', 'รับ log จาก frontend (rate-limit)'],
     'logs.php' => ['GET/DELETE', 'token', 'ดู/ล้าง app log'],
@@ -199,7 +200,13 @@ if (is_file($moderateFile) && is_readable($moderateFile)) {
                 'id' => (string) ($ml['id'] ?? ''),
                 'title' => (string) ($ml['title'] ?? '—'),
                 'author' => (string) ($ml['author'] ?? ''),
+                'category' => (string) ($ml['category'] ?? ''),
+                'condition' => (string) ($ml['condition'] ?? ''),
+                'image' => (string) ($ml['image'] ?? ''),
+                'story' => (string) ($ml['story'] ?? ''),
+                'defects' => (string) ($ml['defects'] ?? ''),
                 'price' => isset($ml['price']) ? (float) $ml['price'] : 0,
+                'originalPrice' => isset($ml['originalPrice']) ? (float) $ml['originalPrice'] : null,
                 'status' => (string) ($ml['status'] ?? 'active'),
                 'createdAt' => (string) ($ml['createdAt'] ?? ''),
             ];
@@ -208,6 +215,8 @@ if (is_file($moderateFile) && is_readable($moderateFile)) {
 }
 usort($moderateListings, fn($a, $b) => strcmp((string)($b['createdAt'] ?? ''), (string)($a['createdAt'] ?? '')));
 $pendingCount = count(array_values(array_filter($moderateListings, fn($ml) => $ml['status'] === 'pending')));
+$totalListingCount = count($moderateListings);
+$activeListingCount = count(array_values(array_filter($moderateListings, fn($ml) => $ml['status'] === 'active')));
 
 if (!function_exists('bl_icon')) {
     /**
@@ -243,6 +252,8 @@ if (!function_exists('bl_icon')) {
             'wrench' => '<svg class="' . $class . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
             'info' => '<svg class="' . $class . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
             'clock' => '<svg class="' . $class . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+            'eye' => '<svg class="' . $class . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+            'eye-off' => '<svg class="' . $class . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>',
         ];
         return $icons[$name] ?? '';
     }
@@ -256,24 +267,67 @@ if (!function_exists('bl_render_listing_status')) {
         if ($status === 'paused') return '<span class="st-warn" style="color:#f59e0b">' . bl_icon('pause') . 'พักการขาย</span>';
         if ($status === 'rejected') return '<span class="fail">' . bl_icon('x') . 'ปฏิเสธ</span>';
         if ($status === 'sold') return '<span class="soft">' . bl_icon('box') . 'ขายแล้ว</span>';
+        if ($status === 'archived') return '<span class="soft" style="color:#94a3b8">' . bl_icon('trash') . 'เก็บถาวร</span>';
         return '<span class="soft">' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 }
 
+if (!function_exists('bl_render_condition_badge')) {
+    function bl_render_condition_badge(string $cond): string
+    {
+        $cond = trim($cond);
+        if ($cond === '') return '';
+        $map = [
+            'mint' => ['เหมือนใหม่', '#052e16', '#86efac'],
+            'like_new' => ['เหมือนใหม่', '#052e16', '#86efac'],
+            'เหมือนใหม่' => ['เหมือนใหม่', '#052e16', '#86efac'],
+            'very_good' => ['ดีมาก', '#082f49', '#7dd3fc'],
+            'ดีมาก' => ['ดีมาก', '#082f49', '#7dd3fc'],
+            'good' => ['ดี', '#451a03', '#fde68a'],
+            'ดี' => ['ดี', '#451a03', '#fde68a'],
+            'fair' => ['พอใช้', '#431407', '#fdba74'],
+            'พอใช้' => ['พอใช้', '#431407', '#fdba74'],
+            'acceptable' => ['พอใช้', '#431407', '#fdba74'],
+        ];
+        $target = $map[mb_strtolower($cond)] ?? [$cond, '#1e293b', '#cbd5e1'];
+        return '<span class="cond-badge" style="background:' . $target[1] . ';color:' . $target[2] . '">' . htmlspecialchars($target[0], ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+}
+
+if (!function_exists('bl_render_listing_cover')) {
+    function bl_render_listing_cover(string $img, string $title): string
+    {
+        $titleEsc = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        if ($img !== '') {
+            $srcEsc = htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
+            return '<div class="book-cover-cell"><img src="' . $srcEsc . '" alt="' . $titleEsc . '" class="book-thumb" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="book-thumb-fallback" style="display:none">' . bl_icon('book') . '</div></div>';
+        }
+        return '<div class="book-cover-cell"><div class="book-thumb-fallback">' . bl_icon('book') . '</div></div>';
+    }
+}
+
 if (!function_exists('bl_render_listing_actions')) {
-    function bl_render_listing_actions(string $id, string $status): string
+    function bl_render_listing_actions(string $id, string $status, string $title = ''): string
     {
         $idEsc = htmlspecialchars($id, ENT_QUOTES, 'UTF-8');
-        $out = '';
+        $titleEsc = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $out = '<div class="mod-btn-group" role="group" aria-label="จัดการ ' . $titleEsc . '">';
         if ($status === 'pending') {
-            $out .= '<button type="button" class="btn" data-mod="approve" data-id="' . $idEsc . '" style="font-size:11px;padding:4px 10px">' . bl_icon('check') . 'อนุมัติ</button> ';
-            $out .= '<button type="button" class="btn ghost" data-mod="reject" data-id="' . $idEsc . '" style="font-size:11px;padding:4px 10px">' . bl_icon('x') . 'ปฏิเสธ</button> ';
+            $out .= '<button type="button" class="btn btn-sm" data-mod="approve" data-id="' . $idEsc . '" aria-label="อนุมัติ ' . $titleEsc . '">' . bl_icon('check') . 'อนุมัติ</button>';
+            $out .= '<button type="button" class="btn btn-sm ghost" data-mod="reject" data-id="' . $idEsc . '" aria-label="ปฏิเสธ ' . $titleEsc . '">' . bl_icon('x') . 'ปฏิเสธ</button>';
         } elseif ($status === 'active') {
-            $out .= '<button type="button" class="btn ghost" data-mod="pause" data-id="' . $idEsc . '" style="font-size:11px;padding:4px 10px;color:#f59e0b;border-color:rgba(245,158,11,0.5)">' . bl_icon('pause') . 'หยุดขาย</button> ';
-        } else {
-            $out .= '<button type="button" class="btn" data-mod="resume" data-id="' . $idEsc . '" style="font-size:11px;padding:4px 10px">' . bl_icon('play') . 'เริ่มขายใหม่</button> ';
+            $out .= '<button type="button" class="btn btn-sm ghost btn-warn" data-mod="pause" data-id="' . $idEsc . '" aria-label="หยุดขาย ' . $titleEsc . '">' . bl_icon('pause') . 'หยุดขาย</button>';
+        } elseif ($status === 'paused') {
+            $out .= '<button type="button" class="btn btn-sm" data-mod="resume" data-id="' . $idEsc . '" aria-label="เริ่มขายใหม่ ' . $titleEsc . '">' . bl_icon('play') . 'เริ่มขายใหม่</button>';
+        } elseif ($status === 'archived' || $status === 'rejected') {
+            $out .= '<button type="button" class="btn btn-sm ghost" data-mod="resume" data-id="' . $idEsc . '" aria-label="กู้คืนรายการ ' . $titleEsc . '">' . bl_icon('refresh') . 'กู้คืน</button>';
         }
-        $out .= '<button type="button" class="btn ghost" data-mod="delete" data-id="' . $idEsc . '" style="font-size:11px;padding:4px 10px;color:#ef4444;border-color:rgba(239,68,68,0.5)">' . bl_icon('trash') . 'ลบ</button>';
+        if ($status !== 'archived') {
+            $out .= '<button type="button" class="btn btn-sm ghost btn-danger" data-mod="archive" data-id="' . $idEsc . '" aria-label="เก็บถาวร ' . $titleEsc . '">' . bl_icon('trash') . 'เก็บถาวร</button>';
+        } else {
+            $out .= '<button type="button" class="btn btn-sm ghost btn-danger" data-mod="delete_permanent" data-id="' . $idEsc . '" aria-label="ลบถาวร ' . $titleEsc . '">' . bl_icon('trash') . 'ลบถาวร</button>';
+        }
+        $out .= '</div>';
         return $out;
     }
 }
@@ -624,13 +678,42 @@ if (($_GET['selftest'] ?? '') === '1') {
     exit();
 }
 
-// ?all_listings=1 — คืน listings ทุก status สำหรับ dashboard moderation (ไม่ต้องใช้ token เพราะเป็นของ backend)
+// ─── Dashboard admin gate ───
+// ?all_listings / ?moderate_listing เดิมไม่ตรวจ auth เลย (ใครก็ approve/delete ได้)
+// จึงต้องใช้ ADMIN_TOKEN จาก server .env — ว่าง = ปิดทั้งหมด (fail-closed)
+// dashboard ส่งมาทาง header X-Admin-Token (หรือ field admin_token ใน body)
+if (!function_exists('bl_require_admin_token')) {
+    function bl_require_admin_token(?array $body = null): void
+    {
+        while (ob_get_level() > 0 && ob_get_length() > 0) { ob_end_clean(); }
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        $expected = (defined('ADMIN_TOKEN') ? (string) ADMIN_TOKEN : '');
+        $provided = (string) ($_SERVER['HTTP_X_ADMIN_TOKEN'] ?? '');
+        if ($provided === '' && $body !== null && isset($body['admin_token'])) {
+            $provided = (string) $body['admin_token'];
+        }
+        if ($expected === '') {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'ยังไม่ได้ตั้ง ADMIN_TOKEN บนเซิร์ฟเวอร์ (.env) — ปิดการจัดการผ่าน dashboard ไว้ก่อน'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+        if ($provided === '' || !hash_equals($expected, $provided)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'รหัสผู้ดูแลไม่ถูกต้อง'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+    }
+}
+
+// ?all_listings=1 — คืน listings ทุก status สำหรับ dashboard moderation (ต้องมี ADMIN_TOKEN)
 if (($_GET['all_listings'] ?? '') === '1' && !empty($checks['env']['ok'])) {
+    bl_require_admin_token();
     while (ob_get_level() > 0 && ob_get_length() > 0) { ob_end_clean(); }
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Access-Control-Allow-Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? '*'));
-    header('Access-Control-Allow-Credentials: true');
+    // หมายเหตุ: ไม่สะท้อน Access-Control-Allow-Origin ตาม Origin ที่ส่งมา
+    // (dashboard เรียกแบบ same-origin จึงไม่ต้องมี CORS header)
 
     // อ่าน listings ทั้งหมดจากไฟล์โดยตรง
     $alFile = $dataDir . '/listings.json';
@@ -653,19 +736,18 @@ if (($_GET['all_listings'] ?? '') === '1' && !empty($checks['env']['ok'])) {
     exit();
 }
 
-// ?moderate_listing=1 — จัดการรายการลงขาย (อนุมัติ, หยุดขาย, เริ่มใหม่, ปฏิเสธ, ลบ) ได้โดยตรงจาก Dashboard ไม่ต้องผ่าน token
+// ?moderate_listing=1 — จัดการรายการลงขายจาก dashboard (ต้องมี ADMIN_TOKEN)
 if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($checks['env']['ok'])) {
-    while (ob_get_level() > 0 && ob_get_length() > 0) { ob_end_clean(); }
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Access-Control-Allow-Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? '*'));
-    header('Access-Control-Allow-Credentials: true');
-
     $raw = (string) file_get_contents('php://input');
     $data = json_decode($raw, true);
     if (!is_array($data)) {
         $data = $_POST;
     }
+    bl_require_admin_token($data);
+    while (ob_get_level() > 0 && ob_get_length() > 0) { ob_end_clean(); }
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
     $id = trim((string) ($data['id'] ?? ''));
     $action = trim((string) ($data['action'] ?? ''));
 
@@ -674,7 +756,7 @@ if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 
         echo json_encode(['success' => false, 'message' => 'กรุณาระบุ id รายการลงขาย'], JSON_UNESCAPED_UNICODE);
         exit();
     }
-    $allowed = ['approve', 'reject', 'pause', 'resume', 'activate', 'delete'];
+    $allowed = ['approve', 'reject', 'pause', 'resume', 'activate', 'archive', 'delete', 'delete_permanent'];
     if (!in_array($action, $allowed, true)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'action ไม่ถูกต้อง'], JSON_UNESCAPED_UNICODE);
@@ -704,7 +786,7 @@ if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 
     }
 
     $now = date('c');
-    if ($action === 'delete') {
+    if ($action === 'delete_permanent') {
         $delItem = $listings[$found];
         if (!empty($delItem['image']) && str_starts_with($delItem['image'], 'images/listings/')) {
             $imgPath = __DIR__ . '/' . $delItem['image'];
@@ -715,7 +797,7 @@ if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 
         array_splice($listings, $found, 1);
         @file_put_contents($alFile, json_encode($listings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
         http_response_code(200);
-        echo json_encode(['success' => true, 'message' => 'ลบรายการลงขายเรียบร้อยแล้ว', 'id' => $id, 'action' => 'delete'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => true, 'message' => 'ลบรายการและไฟล์รูปภาพถาวรเรียบร้อยแล้ว', 'id' => $id, 'action' => 'delete_permanent'], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
@@ -732,7 +814,10 @@ if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 
         $msg = 'หยุดขายรายการนี้ชั่วคราวแล้ว';
     } elseif ($action === 'resume' || $action === 'activate') {
         $newStatus = 'active';
-        $msg = 'เริ่มวางขายรายการนี้ใหม่แล้ว';
+        $msg = 'เปิดวางขาย/กู้คืนรายการนี้แล้ว';
+    } elseif ($action === 'archive' || $action === 'delete') {
+        $newStatus = 'archived';
+        $msg = 'ย้ายรายการไปเก็บถาวรแล้ว (ข้อมูลและรูปภาพยังคงอยู่ สามารถกู้คืนได้)';
     }
 
     $listings[$found]['status'] = $newStatus;
@@ -803,26 +888,59 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   :root {
     --bg-canvas: #090d16;
     --bg-surface: #0f172a;
-    --bg-surface-subtle: #141f36;
+    --bg-surface-elevated: #1e293b;
+    --bg-surface-subtle: #0b1324;
     --border-hairline: #1e293b;
     --border-strong: #334155;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --swiss-blue: #0f6cf0;
+    --text-muted: #8096ae;
+    --swiss-blue: #1976d2;
     --swiss-blue-hover: #0284c7;
+    --swiss-blue-bg: rgba(25, 118, 210, 0.18);
     --signal-ok: #10b981;
-    --signal-ok-bg: #064e3b;
-    --signal-ok-text: #a7f3d0;
+    --signal-ok-bg: #06402e;
+    --signal-ok-text: #6ee7b7;
     --signal-err: #ef4444;
-    --signal-err-bg: #450a0a;
-    --signal-err-text: #fecaca;
+    --signal-err-bg: #451010;
+    --signal-err-text: #fca5a5;
     --signal-warn: #f59e0b;
-    --signal-warn-bg: #451a03;
+    --signal-warn-bg: #452405;
     --signal-warn-text: #fde68a;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ::selection {
+    background: rgba(25, 118, 210, 0.4);
+    color: #ffffff;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) var(--bg-surface);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+  input, textarea, select {
+    caret-color: var(--swiss-blue);
+  }
+  :focus-visible {
+    outline: 2px solid var(--swiss-blue);
+    outline-offset: 2px;
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", sans-serif;
     background: var(--bg-canvas);
@@ -845,25 +963,55 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     border-bottom: 1px solid var(--border-hairline);
   }
   .masthead-left { flex: 1; min-width: 0; }
-  .masthead-tag {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 700;
-    margin-bottom: 8px;
+  .masthead-brand-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
   }
-  .masthead-tag .tag-accent { color: var(--swiss-blue); }
+  .masthead-logo-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--swiss-blue);
+    box-shadow: 0 4px 12px rgba(4, 15, 28, 0.35);
+  }
+  .masthead-logo-badge .bl-icon-lg {
+    margin: 0;
+    vertical-align: 0;
+  }
+  .masthead-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
   h1.masthead-title {
-    font-size: 34px;
+    font-size: 26px;
     font-weight: 800;
     letter-spacing: -0.03em;
     color: var(--text-primary);
-    line-height: 1.15;
-    margin-bottom: 6px;
+    line-height: 1.2;
+    margin-bottom: 0;
+  }
+  .env-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: var(--swiss-blue-bg);
+    color: #90caf9;
+    border: 1px solid rgba(25, 118, 210, 0.35);
   }
   .masthead-sub {
     color: var(--text-secondary);
@@ -973,14 +1121,15 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
     border-radius: 0;
   }
   .tab:hover {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.02);
   }
-  .tab.active {
+  .tab.active,
+  .tab[aria-selected="true"] {
     color: var(--text-primary);
     border-bottom-color: var(--swiss-blue);
     background: rgba(15, 108, 240, 0.06);
@@ -1000,7 +1149,7 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   .pane { display: none; }
   .pane.active { display: block; }
 
-  /* ═══ Modular Metric Grid (Strict Hairline Borders) ═══ */
+  /* ═══ Modular Metric Grid (Backwards Compatibility) ═══ */
   .grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -1032,6 +1181,274 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     color: var(--text-muted);
     font-weight: 700;
   }
+
+  /* ═══ High-Hierarchy Command Deck (Differentiated Hero Panels) ═══ */
+  .command-deck {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .deck-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-hairline);
+    border-radius: 4px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(4, 15, 28, 0.25);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .deck-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 6px 20px rgba(4, 15, 28, 0.35);
+  }
+  .deck-card-pulse {
+    border-top: 3px solid var(--swiss-blue);
+  }
+  .deck-card-queue {
+    border-top: 3px solid var(--signal-warn);
+  }
+  .deck-card-queue.is-empty {
+    border-top: 3px solid var(--signal-ok);
+  }
+  .deck-card-sentry {
+    border-top: 3px solid var(--signal-ok);
+  }
+  .deck-card-sentry.has-alerts {
+    border-top: 3px solid var(--signal-err);
+    background: linear-gradient(180deg, rgba(69, 16, 16, 0.22) 0%, var(--bg-surface) 100%);
+  }
+
+  .deck-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .deck-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .deck-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .deck-tag-blue {
+    background: var(--swiss-blue-bg);
+    color: #90caf9;
+    border: 1px solid rgba(25, 118, 210, 0.35);
+  }
+  .deck-tag-warn {
+    background: var(--signal-warn-bg);
+    color: var(--signal-warn-text);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .deck-tag-ok {
+    background: var(--signal-ok-bg);
+    color: var(--signal-ok-text);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .deck-tag-err {
+    background: var(--signal-err-bg);
+    color: var(--signal-err-text);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+
+  .deck-hero {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .deck-hero-num {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+  .deck-hero-unit {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .deck-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+
+  .deck-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-hairline);
+    margin-top: auto;
+  }
+  .deck-sub-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .deck-sub-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .deck-sub-val {
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .deck-action-row {
+    padding-top: 12px;
+    border-top: 1px solid var(--border-hairline);
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .deck-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-radius: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    min-height: 38px;
+    width: 100%;
+  }
+  .deck-btn-warn {
+    background: var(--signal-warn-bg);
+    color: var(--signal-warn-text);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  .deck-btn-warn:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.7);
+  }
+  .deck-btn-secondary {
+    background: var(--bg-surface-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-hairline);
+  }
+  .deck-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-strong);
+  }
+
+  .sentry-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding-top: 6px;
+    margin-top: auto;
+  }
+  .sentry-box {
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-hairline);
+    padding: 10px 12px;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .sentry-box.has-err {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(69, 16, 16, 0.25);
+  }
+  .sentry-box.has-warn {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(69, 36, 5, 0.25);
+  }
+  .sentry-box-num {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sentry-box-lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* ═══ Specifications Ribbon (Tier 2 Metadata) ═══ */
+  .spec-ribbon {
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-hairline);
+    border-radius: 2px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+    font-size: 12px;
+  }
+  .spec-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+  }
+  .spec-item .spec-title {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .spec-item .spec-val {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+  .spec-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--border-hairline);
+  }
+
+  .text-err { color: var(--signal-err); }
+  .text-warn { color: var(--signal-warn); }
+  .text-ok { color: var(--signal-ok); }
+  .text-muted { color: var(--text-muted); }
 
   /* ═══ Asymmetric 2-Column Split ═══ */
   .swiss-split {
@@ -1161,8 +1578,15 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     border-top: 1px solid var(--border-hairline);
     font-variant-numeric: tabular-nums;
   }
-  a { color: #38bdf8; text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  a {
+    color: #38bdf8;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  }
+  a:hover {
+    color: #7dd3fc;
+  }
 
   /* ═══ Buttons & Inputs (Clean Rectangular Precision) ═══ */
   .btn {
@@ -1182,10 +1606,11 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     border: 1px solid var(--swiss-blue);
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
     white-space: nowrap;
   }
   .btn:hover { background: var(--swiss-blue-hover); border-color: var(--swiss-blue-hover); text-decoration: none; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { opacity: .5; cursor: wait; }
   .btn.ghost {
     background: transparent;
@@ -1195,6 +1620,192 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   .btn.ghost:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: var(--text-secondary);
+  }
+  .btn-sm {
+    font-size: 11px;
+    padding: 5px 10px;
+    min-height: 28px;
+  }
+  .btn-warn {
+    color: #f59e0b !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+  }
+  .btn-warn:hover {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: #f59e0b !important;
+  }
+  .btn-danger {
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: #ef4444 !important;
+  }
+  .mod-btn-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .mod-btn-group .btn {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .book-cover-cell {
+    width: 44px;
+    height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .book-thumb {
+    width: 44px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--border-hairline);
+    background: var(--bg-surface-subtle);
+    display: block;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .book-thumb:hover {
+    transform: scale(1.08);
+    border-color: var(--swiss-blue);
+    z-index: 2;
+  }
+  .book-thumb-fallback {
+    width: 44px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-hairline);
+    border-radius: 3px;
+    color: var(--text-muted);
+  }
+  .book-thumb-fallback .bl-icon {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+  .cond-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .category-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-hairline);
+    border-radius: 2px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+  .story-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #38bdf8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 2px 0;
+    margin-top: 4px;
+    font-family: inherit;
+  }
+  .story-toggle:hover {
+    color: #7dd3fc;
+  }
+  .story-box {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid var(--swiss-blue);
+    border-radius: 2px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    max-width: 440px;
+  }
+  .story-box b {
+    color: var(--text-primary);
+  }
+  .pwd-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-hairline);
+    color: var(--text-secondary);
+    border-radius: 2px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+    min-height: 36px;
+  }
+  .pwd-toggle-btn:hover {
+    background: var(--border-hairline);
+    color: var(--text-primary);
+  }
+  .mod-toast {
+    display: none;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border-hairline);
+  }
+  .mod-toast.ok {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--signal-ok-bg);
+    color: var(--signal-ok-text);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+  .mod-toast.err {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--signal-err-bg);
+    color: var(--signal-err-text);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+
+  .control-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .control-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--swiss-blue);
+    cursor: pointer;
   }
 
   .fix {
@@ -1318,6 +1929,7 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   /* 1. Tablet Landscape & Medium Desktops (max-width: 1024px) */
   @media (max-width: 1024px) {
     body { padding: 32px 20px 70px; }
+    .command-deck { grid-template-columns: 1fr; gap: 14px; }
     .grid { grid-template-columns: repeat(3, 1fr); gap: 1px; }
     .swiss-split { grid-template-columns: 1fr; gap: 20px; }
     .stat { padding: 16px 18px; }
@@ -1335,6 +1947,8 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       padding-bottom: 20px;
       margin-bottom: 22px;
     }
+    .masthead-brand-row { gap: 12px; }
+    .masthead-logo-badge { width: 42px; height: 42px; }
     .masthead-right {
       text-align: left;
       display: flex;
@@ -1343,10 +1957,11 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       gap: 6px;
     }
     h1.masthead-title {
-      font-size: clamp(22px, 5.5vw, 28px);
+      font-size: clamp(20px, 5vw, 24px);
       line-height: 1.2;
     }
     .masthead-sub { font-size: 12px; }
+    .command-deck { grid-template-columns: 1fr; gap: 14px; }
     .grid {
       grid-template-columns: repeat(2, 1fr);
       gap: 1px;
@@ -1367,10 +1982,11 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       padding: 10px 14px;
       font-size: 12px;
       flex-shrink: 0;
-      min-height: 42px;
+      min-height: 44px;
       scroll-snap-align: start;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
     }
     .check {
       font-size: 12px;
@@ -1381,15 +1997,39 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       padding: 8px 10px;
       font-size: 12px;
     }
-    .btn { min-height: 36px; }
+    .btn { min-height: 44px; }
+    .btn-sm {
+      min-height: 44px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+    .control-label {
+      min-height: 44px;
+    }
+    .control-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
   }
 
   /* 3. Mobile Phones (max-width: 540px) */
   @media (max-width: 540px) {
     body { padding: 14px 10px 50px; }
-    .masthead-tag { font-size: 10px; }
-    h1.masthead-title { font-size: 21px; }
+    .masthead-brand-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+    h1.masthead-title { font-size: 20px; }
     .badge { padding: 5px 12px; font-size: 11px; }
+    .command-deck { grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+    .deck-card { padding: 16px 14px; }
+    .deck-hero-num { font-size: 32px; }
+    .deck-btn { min-height: 44px; }
+    .spec-ribbon {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+    }
+    .spec-divider { display: none; }
     .card { padding: 14px 12px; margin-bottom: 14px; }
     .card h2 {
       font-size: 12px;
@@ -1409,13 +2049,18 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     .row-flex select,
     .row-flex input,
     .row-flex button {
-      min-height: 42px;
+      min-height: 44px;
       font-size: 13px;
     }
     .btn {
-      min-height: 38px;
-      font-size: 11px;
-      padding: 8px 14px;
+      min-height: 44px;
+      font-size: 12px;
+      padding: 10px 16px;
+    }
+    .btn-sm {
+      min-height: 44px;
+      font-size: 12px;
+      padding: 10px 14px;
     }
     .grid { grid-template-columns: repeat(2, 1fr); }
     .stat { padding: 12px 10px; }
@@ -1434,6 +2079,9 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
 
   /* 4. Ultra-compact / Small Mobile (max-width: 360px) */
   @media (max-width: 360px) {
+    .command-deck { grid-template-columns: 1fr; }
+    .deck-hero-num { font-size: 28px; }
+    .deck-sub-grid, .sentry-grid { grid-template-columns: 1fr; }
     .grid { grid-template-columns: 1fr; }
     body { padding: 10px 8px 40px; }
     .stat .n { font-size: 18px; }
@@ -1444,11 +2092,18 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
 <div class="wrap">
   <header class="masthead">
     <div class="masthead-left">
-      <div class="masthead-tag">
-        <span class="tag-accent">01 //</span> SYSTEM CONSOLE &bull; SWISS SPEC
+      <div class="masthead-brand-row">
+        <div class="masthead-logo-badge" aria-hidden="true">
+          <?= bl_icon('book', 'bl-icon-lg') ?>
+        </div>
+        <div>
+          <div class="masthead-title-wrap">
+            <h1 class="masthead-title">BookLoop API & Telemetry</h1>
+            <span class="env-pill"><?= (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) ? 'Dev Node (Local)' : 'Production (xo.je)' ?></span>
+          </div>
+          <p class="masthead-sub">ศูนย์ควบคุมระบบหลังบ้าน & สุขภาพ API แบบเรียลไทม์</p>
+        </div>
       </div>
-      <h1 class="masthead-title"><?= bl_icon('book', 'bl-icon-lg') ?>BookLoop API</h1>
-      <p class="masthead-sub">สุขภาพระบบ · request · log · endpoints · เครื่องมือ — สาธารณะ · อ่านอย่างเดียว (ไม่แตะข้อมูลผู้ใช้)</p>
     </div>
     <div class="masthead-right">
       <div class="badge <?= $appOk ? 'ok' : 'bad' ?>" id="liveBadge"><?= $appOk ? (bl_icon('check', 'bl-icon-sm') . 'ออนไลน์') : (bl_icon('alert', 'bl-icon-sm') . 'มีปัญหา — เช็กด้านล่าง') ?></div>
@@ -1495,24 +2150,108 @@ GENERATED_IMAGES_PATH=images/generated</div>
   </div>
   <?php endif; ?>
 
-  <div class="tabs" role="tablist">
-    <button class="tab active" data-pane="p-overview" type="button"><?= bl_icon('chart') ?>01 ภาพรวม</button>
-    <button class="tab" data-pane="p-req" type="button"><?= bl_icon('inbox') ?>02 Requests</button>
-    <button class="tab" data-pane="p-logs" type="button"><?= bl_icon('log') ?>03 Logs</button>
-    <button class="tab" data-pane="p-ep" type="button"><?= bl_icon('plug') ?>04 Endpoints (<span id="epCount"><?= count($endpoints) ?></span>)</button>
-    <button class="tab" data-pane="p-listings" type="button"><?= bl_icon('box') ?>05 รายการลงขาย<?= $pendingCount > 0 ? ' <span class="tab-badge">' . $pendingCount . ' รอ</span>' : '' ?></button>
-    <button class="tab" data-pane="p-tools" type="button"><?= bl_icon('tools') ?>06 เครื่องมือ</button>
+  <div class="tabs" role="tablist" aria-label="หมวดหมู่ระบบ">
+    <button class="tab active" data-pane="p-overview" id="tab-overview" role="tab" aria-selected="true" aria-controls="p-overview" type="button"><?= bl_icon('chart') ?>ภาพรวม</button>
+    <button class="tab" data-pane="p-req" id="tab-req" role="tab" aria-selected="false" aria-controls="p-req" type="button"><?= bl_icon('inbox') ?>Requests</button>
+    <button class="tab" data-pane="p-logs" id="tab-logs" role="tab" aria-selected="false" aria-controls="p-logs" type="button"><?= bl_icon('log') ?>Logs</button>
+    <button class="tab" data-pane="p-ep" id="tab-ep" role="tab" aria-selected="false" aria-controls="p-ep" type="button"><?= bl_icon('plug') ?>Endpoints (<span id="epCount"><?= count($endpoints) ?></span>)</button>
+    <button class="tab" data-pane="p-listings" id="tab-listings" role="tab" aria-selected="false" aria-controls="p-listings" type="button"><?= bl_icon('box') ?>รายการลงขาย<?= $pendingCount > 0 ? ' <span class="tab-badge">' . $pendingCount . ' รอ</span>' : '' ?></button>
+    <button class="tab" data-pane="p-tools" id="tab-tools" role="tab" aria-selected="false" aria-controls="p-tools" type="button"><?= bl_icon('tools') ?>เครื่องมือ</button>
   </div>
 
   <!-- ═══ ภาพรวม ═══ -->
-  <div class="pane active" id="p-overview">
-    <div class="grid">
-      <div class="stat"><div class="n" id="stGet"><?= $totGet ?></div><div class="l">GET (request.log)</div></div>
-      <div class="stat"><div class="n" id="stPost"><?= $totPost ?></div><div class="l">POST (request.log)</div></div>
-      <div class="stat"><div class="n st-err" id="stErr"><?= $totErr ?></div><div class="l">ติด 4xx/5xx</div></div>
-      <div class="stat"><div class="n st-warn" id="stRej"><?= $rejCount ?></div><div class="l">origin ถูกปฏิเสธ</div></div>
-      <div class="stat"><div class="n" id="stEp"><?= count($endpoints) ?></div><div class="l">endpoints ใน api/</div></div>
-      <div class="stat"><div class="n mono" style="font-size:18px" id="stPhp"><?= htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8') ?></div><div class="l">PHP + <span id="stMail"><?= $mailReady ? 'SMTP พร้อม' : 'SMTP ยังไม่พร้อม' ?></span></div></div>
+  <div class="pane active" id="p-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <!-- ═══ Command Deck (High-Hierarchy Operational Panels) ═══ -->
+    <div class="command-deck">
+      <!-- 1. Live Pulse & Latency -->
+      <div class="deck-card deck-card-pulse">
+        <div class="deck-header">
+          <span class="deck-label"><?= bl_icon('bolt') ?> สัญญาณ API & ทราฟฟิก</span>
+          <span class="deck-tag <?= $appOk ? 'deck-tag-ok' : 'deck-tag-err' ?>" id="heroPulseTag"><?= $appOk ? 'ออนไลน์ (สด)' : 'มีปัญหา' ?></span>
+        </div>
+        <div class="deck-hero">
+          <span class="deck-hero-num mono" id="heroLatency">—</span>
+          <span class="deck-hero-unit">ms</span>
+        </div>
+        <div class="deck-desc">ความเร็วการตอบสนองเฉลี่ย (Live Ping)</div>
+        <div class="deck-sub-grid">
+          <div class="deck-sub-stat">
+            <span class="deck-sub-label">GET Requests</span>
+            <span class="deck-sub-val mono" id="stGet"><?= $totGet ?></span>
+          </div>
+          <div class="deck-sub-stat">
+            <span class="deck-sub-label">POST Requests</span>
+            <span class="deck-sub-val mono" id="stPost"><?= $totPost ?></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. BookLoop C2C Review Queue -->
+      <div class="deck-card deck-card-queue <?= $pendingCount === 0 ? 'is-empty' : '' ?>">
+        <div class="deck-header">
+          <span class="deck-label"><?= bl_icon('box') ?> คิวอนุมัติหนังสือ C2C</span>
+          <span class="deck-tag <?= $pendingCount > 0 ? 'deck-tag-warn' : 'deck-tag-ok' ?>" id="heroQueueTag"><?= $pendingCount > 0 ? ($pendingCount . ' รายการใหม่') : 'คิวว่าง' ?></span>
+        </div>
+        <div class="deck-hero">
+          <span class="deck-hero-num <?= $pendingCount > 0 ? 'text-warn' : 'text-ok' ?>" id="heroPendingCount"><?= $pendingCount ?></span>
+          <span class="deck-hero-unit">เล่ม</span>
+        </div>
+        <div class="deck-desc">ทั้งหมด <?= $totalListingCount ?> เล่ม · เผยแพร่อยู่ <?= $activeListingCount ?> เล่ม</div>
+        <div class="deck-action-row">
+          <button type="button" class="deck-btn <?= $pendingCount > 0 ? 'deck-btn-warn' : 'deck-btn-secondary' ?>" id="heroListingsBtn" onclick="document.getElementById('tab-listings').click();">
+            <?= bl_icon('box') ?><?= $pendingCount > 0 ? 'เปิดตรวจคิว (' . $pendingCount . ' เล่ม) →' : 'จัดการคลังหนังสือ →' ?>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Friction & Sentry Guard -->
+      <div class="deck-card deck-card-sentry <?= ($totErr > 0 || $rejCount > 0) ? 'has-alerts' : '' ?>" id="heroSentryCard">
+        <div class="deck-header">
+          <span class="deck-label"><?= bl_icon('alert') ?> ตัวเฝ้าระวังข้อผิดพลาด</span>
+          <span class="deck-tag <?= ($totErr > 0 || $rejCount > 0) ? 'deck-tag-err' : 'deck-tag-ok' ?>" id="sentryStatusTag">
+            <?= ($totErr > 0 || $rejCount > 0) ? (bl_icon('alert') . ' พบ ' . ($totErr + $rejCount) . ' ปัญหา') : (bl_icon('check') . ' ปลอดภัย 100%') ?>
+          </span>
+        </div>
+        <div class="deck-desc" style="margin-bottom:8px">ตรวจจับคำขอล้มเหลว & ปฏิเสธ CORS</div>
+        <div class="sentry-grid">
+          <div class="sentry-box <?= $totErr > 0 ? 'has-err' : '' ?>" id="sentryBoxErr">
+            <div class="sentry-box-num <?= $totErr > 0 ? 'text-err' : 'text-muted' ?>" id="stErr"><?= $totErr ?></div>
+            <div class="sentry-box-lbl">ติด 4xx / 5xx</div>
+          </div>
+          <div class="sentry-box <?= $rejCount > 0 ? 'has-warn' : '' ?>" id="sentryBoxRej">
+            <div class="sentry-box-num <?= $rejCount > 0 ? 'text-warn' : 'text-muted' ?>" id="stRej"><?= $rejCount ?></div>
+            <div class="sentry-box-lbl">Origin ถูกปฏิเสธ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Specifications Ribbon (Tier 2 Metadata) ═══ -->
+    <div class="spec-ribbon">
+      <div class="spec-item">
+        <span class="spec-title">API Endpoints:</span>
+        <span class="spec-val mono"><span id="stEp"><?= count($endpoints) ?></span> เส้นทาง</span>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-title">PHP Engine:</span>
+        <span class="spec-val mono" id="stPhp"><?= htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8') ?></span>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-title">Mail Gateway:</span>
+        <span class="spec-val" id="stMail"><?= $mailReady ? 'SMTP พร้อมส่ง' : 'SMTP ยังไม่พร้อม' ?></span>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-title">Data Store:</span>
+        <span class="spec-val">JSON (Atomic flock)</span>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-title">Node Environment:</span>
+        <span class="spec-val"><?= (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) ? 'Local Development' : 'Production (xo.je)' ?></span>
+      </div>
     </div>
 
     <div class="swiss-split">
@@ -1525,19 +2264,19 @@ GENERATED_IMAGES_PATH=images/generated</div>
           </div>
           <p class="detail" id="apiDetail" style="color:#94a3b8"></p>
           <div class="row-flex" style="margin-top:12px">
-            <label><input type="checkbox" id="autoRefresh" checked> อัปเดตอัตโนมัติ</label>
-            <label>ทุก <select id="refreshSec">
+            <label class="control-label"><input type="checkbox" id="autoRefresh" checked> อัปเดตอัตโนมัติ</label>
+            <label class="control-label">ทุก <select id="refreshSec" aria-label="ความถี่รีเฟรช">
               <option value="3">3 วินาที</option>
               <option value="5" selected>5 วินาที</option>
               <option value="10">10 วินาที</option>
               <option value="30">30 วินาที</option>
             </select></label>
-            <button type="button" id="refreshNow"><?= bl_icon('refresh') ?>ทดสอบตอนนี้</button>
+            <button type="button" id="refreshNow" class="btn"><?= bl_icon('refresh') ?>ทดสอบตอนนี้</button>
           </div>
         </div>
 
         <div class="card">
-          <h2><?= bl_icon('server') ?>สถานะระบบ <span class="soft">(อัปเดตสด · เมลไม่พร้อมไม่ถือว่าล่ม)</span></h2>
+          <h2><?= bl_icon('server') ?>สถานะระบบ <span class="soft">(System Health)</span></h2>
           <div id="liveChecks">
           <?php foreach ($checks as $key => $c): ?>
             <div class="check" data-check="<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>">
@@ -1554,11 +2293,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
 
       <div class="swiss-col">
         <div class="card">
-          <h2><?= bl_icon('folder') ?>ไฟล์ log ของระบบ <span class="soft">(ขนาด + จำนวนบรรทัด — ไม่เปิดเนื้อหาไฟล์)</span></h2>
+          <h2><?= bl_icon('folder') ?>ไฟล์ log ของระบบ <span class="soft">(System Logs)</span></h2>
           <div class="req-wrap">
           <table>
             <thead>
-              <tr><th>ไฟล์</th><th>คำอธิบาย</th><th>ขนาด</th><th>บรรทัด</th></tr>
+              <tr><th scope="col">ไฟล์</th><th scope="col">คำอธิบาย</th><th scope="col">ขนาด</th><th scope="col">บรรทัด</th></tr>
             </thead>
             <tbody>
             <?php foreach ($dataFiles as $f): ?>
@@ -1572,7 +2311,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
             </tbody>
           </table>
           </div>
-          <div class="note"><?= bl_icon('info') ?>ไฟล์โตเร็วผิดปกติ (โดยเฉพาะ request.log) มักแปลว่ามี client ยิงรัว / bot สแกน — ดูแท็บ Requests ประกอบ</div>
+          <div class="note"><?= bl_icon('info') ?>หาก request.log โตเร็วผิดปกติ ให้ตรวจสอบที่แท็บ Requests</div>
         </div>
 
         <div class="card">
@@ -1580,7 +2319,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
           <div class="req-wrap">
           <table>
             <thead>
-              <tr><th>หัวข้อ</th><th>ค่า</th></tr>
+              <tr><th scope="col">หัวข้อ</th><th scope="col">ค่า</th></tr>
             </thead>
             <tbody>
               <tr><td>PHP version</td><td class="mono"><?= htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8') ?></td></tr>
@@ -1598,15 +2337,15 @@ GENERATED_IMAGES_PATH=images/generated</div>
   </div>
 
   <!-- ═══ Requests ═══ -->
-  <div class="pane" id="p-req">
+  <div class="pane" id="p-req" role="tabpanel" aria-labelledby="tab-req">
     <div class="card">
-      <h2><?= bl_icon('inbox') ?>Request เข้าล่าสุด <span class="soft">POST/GET ที่เซิร์ฟเวอร์รับจริง (อัปเดตสด)</span></h2>
+      <h2><?= bl_icon('inbox') ?>Request ล่าสุด <span class="soft">(request.log)</span></h2>
       <p class="hint" id="reqHint">กำลังโหลดจาก data/request.log…</p>
       <div id="reqStats" style="margin-bottom:8px"></div>
       <div class="req-wrap">
         <table>
           <thead>
-            <tr><th>เวลา</th><th>Method</th><th>Path</th><th>ที่มา (IP · client)</th><th>สถานะ</th><th>ms</th></tr>
+            <tr><th scope="col">เวลา</th><th scope="col">Method</th><th scope="col">Path</th><th scope="col">ที่มา (IP · client)</th><th scope="col">สถานะ</th><th scope="col">ms</th></tr>
           </thead>
           <tbody id="reqBody">
             <tr><td colspan="6" class="soft">กำลังโหลด…</td></tr>
@@ -1617,36 +2356,36 @@ GENERATED_IMAGES_PATH=images/generated</div>
     </div>
 
     <div class="card">
-      <h2><?= bl_icon('shield-ban') ?>เว็บที่ยิงเข้ามาแล้วถูกปฏิเสธ <span class="soft">CORS — origin ไม่อยู่ใน ALLOWED_ORIGIN (จาก error.log)</span></h2>
+      <h2><?= bl_icon('shield-ban') ?>Origin ที่ถูกปฏิเสธ <span class="soft">(CORS / ALLOWED_ORIGIN)</span></h2>
       <div id="originBox" class="hint">กำลังโหลด…</div>
       <div class="row-flex" style="margin-top:12px">
-        <input type="text" id="originInput" class="text-input" style="flex:1;min-width:220px" placeholder="https://เว็บที่อยากรู้ว่ายิง POST/GET เข้ามาได้ไหม">
-        <button type="button" id="originCheck"><?= bl_icon('search') ?>เช็ก origin นี้</button>
+        <input type="text" id="originInput" class="text-input" style="flex:1;min-width:220px" placeholder="https://domain.com ที่ต้องการทดสอบ" aria-label="ที่อยู่ Origin ที่ต้องการทดสอบ">
+        <button type="button" id="originCheck" class="btn"><?= bl_icon('search') ?>เช็ก Origin นี้</button>
       </div>
       <p class="detail" id="originResult"></p>
     </div>
   </div>
 
   <!-- ═══ Logs ═══ -->
-  <div class="pane" id="p-logs">
+  <div class="pane" id="p-logs" role="tabpanel" aria-labelledby="tab-logs">
     <div class="card">
-      <h2><?= bl_icon('log') ?>สรุป error.log <span class="soft">(400 บรรทัดท้าย · อัปเดตสด)</span></h2>
+      <h2><?= bl_icon('log') ?>สรุป error.log <span class="soft">(400 บรรทัดล่าสุด)</span></h2>
       <div id="logLevels"><p class="hint">กำลังโหลด…</p></div>
     </div>
     <div class="card">
-      <h2><?= bl_icon('alert') ?>เหตุการณ์ล่าสุด <span class="soft">(WARNING ขึ้นไป — ช่วยตอบว่า "ทำไมส่งมาไม่ได้")</span></h2>
+      <h2><?= bl_icon('alert') ?>เหตุการณ์ล่าสุด <span class="soft">(WARNING ขึ้นไป)</span></h2>
       <div id="logEvents"><p class="hint">กำลังโหลด…</p></div>
-      <div class="note"><?= bl_icon('lock') ?>dashboard นี้อ่านอย่างเดียว — ถ้าต้องดู log เต็มหรือล้าง log ให้ login แล้วเรียก <span class="mono">GET/DELETE /api/logs.php</span> หรือ <span class="mono">/api/request_log.php</span> ด้วย token</div>
+      <div class="note"><?= bl_icon('lock') ?>อ่านอย่างเดียว — จัดการ log เต็มรูปแบบได้ที่ <span class="mono">GET/DELETE /api/logs.php</span> (ต้องใช้ Token)</div>
     </div>
   </div>
 
   <!-- ═══ Endpoints ═══ -->
-  <div class="pane" id="p-ep">
+  <div class="pane" id="p-ep" role="tabpanel" aria-labelledby="tab-ep">
     <div class="card">
-      <h2><?= bl_icon('plug') ?>Endpoints <span class="soft">(ค้นจากไฟล์จริงใน api/ — เพิ่มไฟล์ใหม่แล้วโผล่เอง)</span></h2>
+      <h2><?= bl_icon('plug') ?>Endpoints <span class="soft">(api/*.php)</span></h2>
       <div class="row-flex" style="margin-bottom:10px">
-        <input type="text" id="epSearch" class="text-input" style="flex:1;min-width:220px" placeholder="ค้น เช่น auth / order / log …">
-        <select id="epFilter">
+        <input type="text" id="epSearch" class="text-input" style="flex:1;min-width:220px" placeholder="ค้น เช่น auth / order / log …" aria-label="ค้นหา Endpoint">
+        <select id="epFilter" class="sel" aria-label="กรองประเภท Auth">
           <option value="">ทุกแบบ</option>
           <option value="open">เปิด (ไม่ต้อง login)</option>
           <option value="lock">ต้องใช้ token</option>
@@ -1654,7 +2393,10 @@ GENERATED_IMAGES_PATH=images/generated</div>
       </div>
       <div class="req-wrap">
       <table>
-        <tr><th>Method</th><th>Path</th><th>คำอธิบาย</th><th>Auth</th></tr>
+        <thead>
+          <tr><th scope="col">Method</th><th scope="col">Path</th><th scope="col">คำอธิบาย</th><th scope="col">Auth</th></tr>
+        </thead>
+        <tbody>
         <?php foreach ($endpoints as [$m, $p, $d, $auth]): ?>
           <tr data-ep="<?= htmlspecialchars(strtolower($p . ' ' . $d . ' ' . $auth), ENT_QUOTES, 'UTF-8') ?>" data-auth="<?= htmlspecialchars($auth, ENT_QUOTES, 'UTF-8') ?>">
             <td class="method"><?= htmlspecialchars($m, ENT_QUOTES, 'UTF-8') ?></td>
@@ -1663,40 +2405,58 @@ GENERATED_IMAGES_PATH=images/generated</div>
             <td><?= ($auth === 'token' || strpos($auth, 'token') !== false) ? ('<span class="st-warn">' . bl_icon('lock') . 'token</span>') : ('<span class="pass">' . bl_icon('check') . 'เปิด</span>') ?><?= $auth === 'เปิด*' ? '<span class="soft"> (rate-limit)</span>' : '' ?></td>
           </tr>
         <?php endforeach; ?>
+        </tbody>
       </table>
       </div>
-      <p class="hint" style="margin-top:10px;margin-bottom:0" id="epCountLine"><?= count($endpoints) ?> endpoints · <?= bl_icon('lock') ?> = ต้องส่ง token (query ?token= หรือ JSON field token — shared host ตัด Authorization header ทิ้ง)</p>
+      <p class="hint" style="margin-top:10px;margin-bottom:0" id="epCountLine"><?= count($endpoints) ?> endpoints · <?= bl_icon('lock') ?> = ต้องส่ง token ผ่าน ?token= หรือ JSON field</p>
     </div>
 
     <div class="card">
-      <h2><?= bl_icon('beaker') ?>ลองยิง endpoint แบบอ่านอย่างเดียว <span class="soft">(GET/OPTIONS เท่านั้น — ไม่แตะข้อมูล)</span></h2>
-      <p class="hint">เลือก endpoint สาธารณะ (เช่น /api/ , /api/books.php) แล้วกดยิง — โชว์ HTTP status + body จริงที่เซิร์ฟเวอร์ตอบ</p>
+      <h2><?= bl_icon('beaker') ?>ทดสอบ Endpoint <span class="soft">(GET/OPTIONS)</span></h2>
+      <p class="hint">เลือก endpoint เพื่อตรวจสอบ HTTP Status และการตอบกลับของเซิร์ฟเวอร์</p>
       <div class="row-flex" style="margin-bottom:10px">
-        <select id="tryEp" class="sel" style="flex:1;min-width:220px">
+        <select id="tryEp" class="sel" style="flex:1;min-width:220px" aria-label="เลือก Endpoint สำหรับทดสอบ">
           <option value="/api/">/api/ (รายชื่อ endpoint)</option>
           <option value="/api/books.php?limit=1">/api/books.php?limit=1 (หนังสือ 1 เล่ม)</option>
           <option value="/api/listings_list.php?limit=1">/api/listings_list.php?limit=1 (รายการลงขาย)</option>
           <option value="/api/auth_me.php">/api/auth_me.php (ต้องได้ 401 ถ้าไม่ส่ง token — ปกติ)</option>
           <option value="/api/newsletter_status.php?email=test@example.com">/api/newsletter_status.php (เช็ก subscribe)</option>
         </select>
-        <button type="button" id="tryBtn"><?= bl_icon('play') ?>ยิง GET</button>
+        <button type="button" id="tryBtn" class="btn"><?= bl_icon('play') ?>ยิง GET</button>
       </div>
       <pre class="out" id="tryOut">ยังไม่ได้ยิง — เลือก endpoint แล้วกดปุ่ม</pre>
     </div>
   </div>
 
   <!-- ═══ รายการลงขาย ═══ -->
-  <div class="pane" id="p-listings">
+  <div class="pane" id="p-listings" role="tabpanel" aria-labelledby="tab-listings">
     <div class="card">
       <h2><?= bl_icon('box') ?>จัดการและอนุมัติรายการลงขาย <span class="soft" id="listingsPendingBadge">(<?= $pendingCount ?> รอตรวจสอบ)</span></h2>
-      <p class="hint">จัดการรายการหนังสือในระบบ: <b>อนุมัติ</b> ให้วางขาย, <b>หยุดขาย</b>, <b>เริ่มขายใหม่</b> หรือ <b>ลบ</b> รายการได้โดยตรง (ไม่ต้องใช้ token เพราะจัดการผ่าน Backend)</p>
+      <p class="hint">จัดการสถานะหนังสือ: อนุมัติ, หยุดขาย หรือลบรายการ (ต้องเข้าสู่ระบบด้วย ADMIN_TOKEN)</p>
+      <div class="row-flex" id="adminLoginBar" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;display:inline-flex;align-items:center;flex:1;min-width:240px">
+          <input type="password" id="adminPass" class="text-input" style="width:100%;padding-right:42px" placeholder="รหัสผู้ดูแล (ADMIN_TOKEN)" aria-label="รหัสผู้ดูแล" autocomplete="current-password">
+          <button type="button" id="adminPassToggle" class="pwd-toggle-btn" style="position:absolute;right:3px;top:3px;bottom:3px;border:none;min-height:auto;padding:4px 8px" aria-label="แสดง/ซ่อนรหัสผ่าน"><?= bl_icon('eye') ?></button>
+        </div>
+        <button type="button" id="adminLoginBtn" class="btn"><?= bl_icon('lock') ?>เข้าสู่ระบบผู้ดูแล</button>
+        <button type="button" id="adminLogoutBtn" class="btn ghost" style="display:none"><?= bl_icon('x') ?>ออกจากระบบ</button>
+        <span class="soft" id="adminLoginState">ยังไม่ได้เข้าสู่ระบบ</span>
+      </div>
+      <div id="modToast" class="mod-toast" role="status" aria-live="polite"></div>
       <div class="row-flex" style="margin-bottom:12px;gap:8px">
         <button type="button" id="listingsReload" class="btn"><?= bl_icon('refresh') ?>โหลดรายการใหม่ (รีเฟรช)</button>
       </div>
       <div class="req-wrap">
       <table id="listingsTable">
         <thead>
-          <tr><th>ID</th><th>หนังสือ</th><th>ราคา</th><th>สถานะ</th><th>ลงเมื่อ</th><th>จัดการ</th></tr>
+          <tr>
+            <th scope="col" style="width:48px;text-align:center">ปก</th>
+            <th scope="col">หนังสือ & ข้อมูล</th>
+            <th scope="col">ราคา</th>
+            <th scope="col">สถานะ</th>
+            <th scope="col">ลงเมื่อ</th>
+            <th scope="col">จัดการ</th>
+          </tr>
         </thead>
         <tbody id="listingsBody">
           <?php if (count($moderateListings) === 0): ?>
@@ -1704,15 +2464,35 @@ GENERATED_IMAGES_PATH=images/generated</div>
           <?php else: ?>
             <?php foreach ($moderateListings as $ml): ?>
             <tr data-lid="<?= htmlspecialchars($ml['id'], ENT_QUOTES, 'UTF-8') ?>">
-              <td class="mono" style="font-size:11px"><?= htmlspecialchars(substr($ml['id'], 0, 12) . '…', ENT_QUOTES, 'UTF-8') ?></td>
-              <td><?= htmlspecialchars($ml['title'], ENT_QUOTES, 'UTF-8') ?><?php if ($ml['author'] !== ''): ?><br><span class="soft"><?= htmlspecialchars($ml['author'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?></td>
-              <td class="mono">฿<?= htmlspecialchars(number_format($ml['price'], 0), ENT_QUOTES, 'UTF-8') ?></td>
+              <td style="text-align:center"><?= bl_render_listing_cover($ml['image'], $ml['title']) ?></td>
+              <td>
+                <div style="font-weight:600"><?= htmlspecialchars($ml['title'], ENT_QUOTES, 'UTF-8') ?></div>
+                <div style="margin-top:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                  <?php if ($ml['author'] !== ''): ?><span class="soft"><?= htmlspecialchars($ml['author'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
+                  <?= bl_render_condition_badge($ml['condition']) ?>
+                  <?php if ($ml['category'] !== ''): ?><span class="category-pill"><?= htmlspecialchars($ml['category'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
+                </div>
+                <?php if ($ml['story'] !== '' || $ml['defects'] !== ''): ?>
+                  <button type="button" class="story-toggle" data-toggle-story="<?= htmlspecialchars($ml['id'], ENT_QUOTES, 'UTF-8') ?>"><?= bl_icon('info') ?>ดูเรื่องราว/ตำหนิ</button>
+                  <div class="story-box" id="story-<?= htmlspecialchars($ml['id'], ENT_QUOTES, 'UTF-8') ?>" style="display:none">
+                    <?php if ($ml['story'] !== ''): ?><div><b>เรื่องราว:</b> <?= htmlspecialchars($ml['story'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                    <?php if ($ml['defects'] !== ''): ?><div style="margin-top:4px"><b>ตำหนิ:</b> <?= htmlspecialchars($ml['defects'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                  </div>
+                <?php endif; ?>
+                <div class="mono soft" style="font-size:10px;margin-top:4px">ID: <?= htmlspecialchars($ml['id'], ENT_QUOTES, 'UTF-8') ?></div>
+              </td>
+              <td class="mono">
+                <b>฿<?= htmlspecialchars(number_format($ml['price'], 0), ENT_QUOTES, 'UTF-8') ?></b>
+                <?php if ($ml['originalPrice'] !== null && $ml['originalPrice'] > $ml['price']): ?>
+                  <div class="soft" style="text-decoration:line-through;font-size:11px">฿<?= htmlspecialchars(number_format($ml['originalPrice'], 0), ENT_QUOTES, 'UTF-8') ?></div>
+                <?php endif; ?>
+              </td>
               <td class="listing-status">
                 <?= bl_render_listing_status($ml['status']) ?>
               </td>
-              <td class="mono" style="white-space:nowrap"><?= htmlspecialchars(substr($ml['createdAt'], 0, 16), ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="mono" style="white-space:nowrap;font-size:11px"><?= htmlspecialchars(substr($ml['createdAt'], 0, 16), ENT_QUOTES, 'UTF-8') ?></td>
               <td style="white-space:nowrap" class="listing-actions">
-                <?= bl_render_listing_actions($ml['id'], $ml['status']) ?>
+                <?= bl_render_listing_actions($ml['id'], $ml['status'], $ml['title']) ?>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -1725,22 +2505,22 @@ GENERATED_IMAGES_PATH=images/generated</div>
   </div>
 
   <!-- ═══ เครื่องมือ ═══ -->
-  <div class="pane" id="p-tools">
+  <div class="pane" id="p-tools" role="tabpanel" aria-labelledby="tab-tools">
     <div class="card">
-      <h2><?= bl_icon('box') ?>จัดการรายการลงขาย <span class="soft">(<?= $pendingCount ?> รายการรอตรวจสอบ)</span></h2>
-      <p class="hint">ดู อนุมัติ พักการขาย หรือลบรายการลงขายได้ที่แท็บ <b>รายการลงขาย</b> ด้านบนโดยตรง (ไม่ต้องใช้ token)</p>
+      <h2><?= bl_icon('box') ?>คิวตรวจหนังสือ <span class="soft">(<?= $pendingCount ?> รอตรวจสอบ)</span></h2>
+      <p class="hint">เปิดตรวจสอบและอนุมัติรายการที่แท็บรายการลงขาย</p>
       <p><button type="button" class="btn" onclick="document.querySelector('[data-pane=p-listings]').click()"><?= bl_icon('box') ?>ไปที่แท็บรายการลงขาย</button></p>
     </div>
 
     <div class="card">
-      <h2><?= bl_icon('beaker') ?>พิสูจน์ว่า POST/GET ถึง PHP จริงไหม</h2>
-      <p class="hint">เซิร์ฟเวอร์จะยิง GET + POST เข้าหาตัวเอง แล้วเช็กว่าแต่ละ request ลง log จริง — ถ้าผ่านทั้งคู่ แปลว่าตัว API รับได้แน่นอน ปัญหาที่เหลือ (ถ้ามี) เป็นที่ CORS/เครือข่าย ไม่ใช่ตัว backend</p>
+      <h2><?= bl_icon('beaker') ?>ทดสอบ Loopback Request (GET/POST)</h2>
+      <p class="hint">ส่ง request ทดสอบเข้าเซิร์ฟเวอร์เพื่อยืนยันการรับส่งข้อมูลและการบันทึก log</p>
       <button type="button" id="selfTestBtn" class="btn"><?= bl_icon('play') ?>เริ่มเทส GET + POST</button>
       <div id="selfTestOut" style="margin-top:12px"></div>
     </div>
 
     <div class="card">
-      <h2><?= bl_icon('globe') ?>เว็บแอป same-origin <span class="soft">(app/ — เปิดโดเมนเดียวกับ API ไม่ติด CORS)</span></h2>
+      <h2><?= bl_icon('globe') ?>เว็บแอป Same-Origin <span class="soft">(/app/)</span></h2>
       <div class="check">
         <span>app/index.html <?= $appInfo['htaccess'] ? '+ .htaccess (SPA fallback)' : '(ไม่มี .htaccess)' ?></span>
         <?php if ($appInfo['exists']): ?>
@@ -1750,7 +2530,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
         <?php endif; ?>
       </div>
       <?php if (!$appInfo['exists']): ?>
-        <p class="detail">รัน <span class="mono">npm run build:app</span> ในเครื่อง แล้ว copy output มาวางใน <span class="mono">infinityfree_package/app/</span> ก่อนอัปโหลดขึ้น htdocs/</p>
+        <p class="detail">รัน <span class="mono">npm run build:app</span> แล้วคัดลอกไฟล์ลงโฟลเดอร์ <span class="mono">app/</span></p>
       <?php endif; ?>
       <p style="margin-top:10px">
         <a class="btn" href="<?= $BACKEND_BASE ?>/app/"><?= bl_icon('globe') ?>เปิดเว็บแอป (/app/)</a>
@@ -1760,18 +2540,20 @@ GENERATED_IMAGES_PATH=images/generated</div>
     </div>
 
     <div class="card">
-      <h2><?= bl_icon('tools') ?>ทดสอบเร็ว</h2>
-      <p>
+      <h2><?= bl_icon('tools') ?>ลิงก์ทดสอบ API</h2>
+      <p style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <a class="btn" href="<?= $BACKEND_BASE ?>/email/subscribe_form.php"><?= bl_icon('mail') ?>ฟอร์มทดสอบอีเมล</a>
         <a class="btn ghost" href="<?= $BACKEND_BASE ?>/api/auth_me.php"><?= bl_icon('plug') ?>เทส API</a>
       </p>
-      <p><a href="<?= $BASE_URL ?>/?format=json">ดูสถานะแบบ JSON</a> · <a href="<?= $BACKEND_BASE ?>/api/">api/ รายชื่อ endpoint (JSON)</a></p>
-      <p><a href="<?= $BACKEND_BASE ?>/api/auth_me.php">api/auth_me.php</a> (ต้องได้ JSON)</p>
-      <p><a href="<?= $BACKEND_BASE ?>/email/subscribe_form.php">ฟอร์ม subscribe ทดสอบ</a></p>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        <div><a href="<?= $BASE_URL ?>/?format=json">ดูสถานะแบบ JSON</a> · <a href="<?= $BACKEND_BASE ?>/api/">api/ รายชื่อ endpoint (JSON)</a></div>
+        <div><a href="<?= $BACKEND_BASE ?>/api/auth_me.php">api/auth_me.php</a> <span class="soft">(ต้องได้ JSON)</span></div>
+        <div><a href="<?= $BACKEND_BASE ?>/email/subscribe_form.php">ฟอร์ม subscribe ทดสอบ</a></div>
+      </div>
     </div>
   </div>
 
-  <p class="meta">PHP <?= PHP_VERSION ?> · <span id="metaTime"><?= date('Y-m-d H:i:s') ?></span> · <a href="<?= $BASE_URL ?>/?format=json">?format=json</a> สำหรับ health check · dashboard อ่านอย่างเดียว — ไม่แสดง .env / ข้อมูลผู้ใช้</p>
+  <p class="meta">PHP <?= PHP_VERSION ?> · <span id="metaTime"><?= date('Y-m-d H:i:s') ?></span> · <a href="<?= $BASE_URL ?>/?format=json">?format=json</a> · dashboard อ่านอย่างเดียว (Read-Only Telemetry)</p>
 </div>
 <script>
 // Tabs (pure JS — ไม่มี dependency)
@@ -1779,9 +2561,15 @@ GENERATED_IMAGES_PATH=images/generated</div>
   var tabs = document.querySelectorAll('.tab');
   tabs.forEach(function (t) {
     t.addEventListener('click', function () {
-      tabs.forEach(function (x) { x.classList.remove('active'); });
-      document.querySelectorAll('.pane').forEach(function (p) { p.classList.remove('active'); });
+      tabs.forEach(function (x) {
+        x.classList.remove('active');
+        x.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.pane').forEach(function (p) {
+        p.classList.remove('active');
+      });
       t.classList.add('active');
+      t.setAttribute('aria-selected', 'true');
       var pane = document.getElementById(t.getAttribute('data-pane'));
       if (pane) pane.classList.add('active');
     });
@@ -1852,10 +2640,15 @@ GENERATED_IMAGES_PATH=images/generated</div>
 
   function setBadge(ok, realtime) {
     badge.className = 'badge ' + (ok ? 'ok' : 'bad');
-    badge.textContent = ok
-      ? (realtime ? '● ออนไลน์ (เรียลไทม์)' : '● ออนไลน์')
-      : '● มีปัญหา — เช็กด้านล่าง';
+    badge.innerHTML = ok
+      ? (SVG_CHECK + (realtime ? 'ออนไลน์ (เรียลไทม์)' : 'ออนไลน์'))
+      : (SVG_ALERT + 'มีปัญหา — เช็กด้านล่าง');
     document.title = 'BookLoop API — ' + (ok ? 'ออนไลน์' : 'มีปัญหา');
+    var heroPulseTag = document.getElementById('heroPulseTag');
+    if (heroPulseTag) {
+      heroPulseTag.className = 'deck-tag ' + (ok ? 'deck-tag-ok' : 'deck-tag-err');
+      heroPulseTag.textContent = ok ? (realtime ? 'ออนไลน์ (สด)' : 'ออนไลน์') : 'มีปัญหา';
+    }
   }
 
   function renderChecks(checks) {
@@ -1886,6 +2679,14 @@ GENERATED_IMAGES_PATH=images/generated</div>
     apiLabel.textContent = label;
     apiLatency.textContent = latency;
     apiDetail.textContent = detail || '';
+    var heroLat = document.getElementById('heroLatency');
+    if (heroLat) {
+      if (latency && latency.indexOf('ms') !== -1) {
+        heroLat.textContent = latency.replace(' ms', '').trim();
+      } else {
+        heroLat.textContent = latency || '—';
+      }
+    }
   }
 
   var METHOD_COLORS = { GET: '#7dd3fc', POST: '#86efac', DELETE: '#fca5a5', PUT: '#fbbf24', OPTIONS: '#94a3b8', HEAD: '#94a3b8' };
@@ -1916,13 +2717,39 @@ GENERATED_IMAGES_PATH=images/generated</div>
   function renderRequests(req) {
     if (!req || !reqHint) return;
     reqHint.textContent = req.available
-      ? 'ข้อมูลจาก data/request.log ที่ RequestLogger บันทึกทุก request เข้า backend · เรียงใหม่ → เก่า · ซ่อนท้าย IP เพื่อความเป็นส่วนตัว'
-      : 'ยังอ่าน request.log ไม่ได้ — ต้องสร้าง .env และโฟลเดอร์ data/ ให้ PHP เขียนได้ก่อน';
+      ? 'บันทึกคำขอล่าสุด เรียงใหม่ → เก่า (ซ่อนท้าย IP เพื่อความเป็นส่วนตัว)'
+      : 'ยังอ่าน request.log ไม่ได้ (ต้องมี .env และโฟลเดอร์ data/)';
     var t = req.totals || {};
+    var errCount = req.errorCount || 0;
+    var rejList = req.rejectedOrigins || [];
+    var rejCount = rejList.length;
+
     if (stGet) stGet.textContent = t.GET || 0;
     if (stPost) stPost.textContent = t.POST || 0;
-    if (stErr) stErr.textContent = req.errorCount || 0;
-    if (stRej) stRej.textContent = (req.rejectedOrigins || []).length;
+    if (stErr) {
+      stErr.textContent = errCount;
+      stErr.className = 'sentry-box-num ' + (errCount > 0 ? 'text-err' : 'text-muted');
+      var bErr = document.getElementById('sentryBoxErr');
+      if (bErr) bErr.className = 'sentry-box ' + (errCount > 0 ? 'has-err' : '');
+    }
+    if (stRej) {
+      stRej.textContent = rejCount;
+      stRej.className = 'sentry-box-num ' + (rejCount > 0 ? 'text-warn' : 'text-muted');
+      var bRej = document.getElementById('sentryBoxRej');
+      if (bRej) bRej.className = 'sentry-box ' + (rejCount > 0 ? 'has-warn' : '');
+    }
+
+    var sentryCard = document.getElementById('heroSentryCard');
+    var sentryTag = document.getElementById('sentryStatusTag');
+    if (sentryCard && sentryTag) {
+      var hasFaults = (errCount > 0 || rejCount > 0);
+      sentryCard.className = 'deck-card deck-card-sentry' + (hasFaults ? ' has-alerts' : '');
+      sentryTag.className = 'deck-tag ' + (hasFaults ? 'deck-tag-err' : 'deck-tag-ok');
+      sentryTag.innerHTML = hasFaults
+        ? (SVG_ALERT + ' พบ ' + (errCount + rejCount) + ' ปัญหา')
+        : (SVG_CHECK + ' ปลอดภัย 100%');
+    }
+
     var chips = [];
     ['GET', 'POST', 'DELETE', 'OPTIONS', 'OTHER'].forEach(function (m) {
       if (t[m]) chips.push('<span class="chip"><b style="color:' + (METHOD_COLORS[m] || '#e2e8f0') + '">' + m + '</b> × ' + t[m] + '</span>');
@@ -1948,11 +2775,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
     });
     reqBody.innerHTML = rows.length
       ? rows.join('')
-      : '<tr><td colspan="6" class="soft">ยังไม่มี request — เปิดเว็บ frontend หรือกดปุ่มเทสด้านล่าง แล้วรอรอบอัปเดตถัดไป</td></tr>';
+      : '<tr><td colspan="6" class="soft">ยังไม่มี Request ล่าสุด</td></tr>';
 
     var warns = req.warnings || [];
     reqDetail.innerHTML = warns.length
-      ? '<b>' + SVG_ALERT + warns.length + ' เหตุการณ์ล่าสุดจาก error.log</b>' + warns.slice(0, 3).map(function (w) {
+      ? '<b>' + SVG_ALERT + ' ' + warns.length + ' เหตุการณ์ล่าสุด (error.log)</b>' + warns.slice(0, 3).map(function (w) {
           return '<br>· <span class="mono">[' + esc(w.time) + ']</span> ' + esc(w.message);
         }).join('')
       : '';
@@ -1966,14 +2793,14 @@ GENERATED_IMAGES_PATH=images/generated</div>
       return;
     }
     if (!list.length) {
-      originBox.innerHTML = '<span class="pass">' + SVG_CHECK + 'ไม่มีเว็บไหนถูกปฏิเสธช่วงนี้</span> <span class="soft">— origin ที่ยิงเข้ามาผ่าน allow-list (ALLOWED_ORIGIN ใน .env) ทั้งหมด</span>';
+      originBox.innerHTML = '<span class="pass">' + SVG_CHECK + 'ไม่มี Origin ถูกปฏิเสธ</span> <span class="soft">— ผ่าน allow-list ทั้งหมด</span>';
       return;
     }
     originBox.innerHTML = list.map(function (o) {
       return '<div class="check"><span class="mono">' + esc(o.origin) + '</span>' +
         '<span class="fail">' + o.count + ' ครั้ง · ล่าสุด ' + esc(o.last) + '</span></div>';
     }).join('') +
-      '<p class="detail">origin เหล่านี้เคยยิงเข้ามาจริง แต่ backend ปฏิเสธเพราะไม่อยู่ใน ALLOWED_ORIGIN ใน .env — เพิ่ม origin เข้าไปแล้ว request จะผ่าน</p>';
+      '<p class="detail">Origin เหล่านี้ถูกปฏิเสธเพราะไม่อยู่ใน ALLOWED_ORIGIN ใน .env</p>';
   }
 
   var LV_COLORS = { DEBUG: '#94a3b8', INFO: '#7dd3fc', WARNING: '#fbbf24', ERROR: '#fca5a5', CRITICAL: '#f87171' };
@@ -2022,7 +2849,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       }
       var text = await res.text();
       var data = null;
-      try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+      try { data = text ? JSON.parse(text) : null; } catch (e) { console.warn('[BookLoop][dashboard] refresh: non-JSON response', e); data = null; }
       var ms = Math.round(performance.now() - t0);
 
       if (!data || typeof data.success === 'undefined') {
@@ -2046,14 +2873,14 @@ GENERATED_IMAGES_PATH=images/generated</div>
         }
         if (data.time && metaTime) {
           try { metaTime.textContent = new Date(data.time).toLocaleString('th-TH'); }
-          catch (e) { metaTime.textContent = data.time; }
+          catch (e) { console.warn('[BookLoop][dashboard] metaTime date parse failed', e); metaTime.textContent = data.time; }
         }
         try {
           var t1 = performance.now();
           var r2 = await fetch(APIBASE + '/', FETCH_OPTS);
           var b2 = await r2.text();
           var j2 = null;
-          try { j2 = b2 ? JSON.parse(b2) : null; } catch (e) { j2 = null; }
+          try { j2 = b2 ? JSON.parse(b2) : null; } catch (e) { console.warn('[BookLoop][dashboard] /api/ non-JSON response', e); j2 = null; }
           var ms2 = Math.round(performance.now() - t1);
           if (r2.url && r2.url.indexOf('errors.infinityfree.net') !== -1) {
             setApi('bad', 'ไฟล์ api/ ยังไม่อยู่บนเซิร์ฟเวอร์ (โฮสต์ส่งไปหน้า 404)', 'HTTP ' + r2.status,
@@ -2106,7 +2933,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       var r = await fetch(APIBASE + '/index.php?check-origin=' + encodeURIComponent(o), FETCH_OPTS);
       var text = await r.text();
       var j = null;
-      try { j = JSON.parse(text); } catch (e) { j = null; }
+      try { j = JSON.parse(text); } catch (e) { console.warn('[BookLoop][dashboard] origin-check non-JSON response', e); j = null; }
       if (!j) {
         originResult.innerHTML = '<span class="fail">เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ') — อาจติด challenge ของโฮสต์</span>' + cutNote;
         return;
@@ -2115,6 +2942,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
         ? '<span class="pass">' + SVG_CHECK + esc(j.origin) + ' อยู่ใน allow-list — เว็บนี้ยิง POST/GET เข้ามาได้ (ส่วน endpoint ที่ต้องใช้ token ก็ต้องส่ง token ตามปกติ)</span>'
         : '<span class="fail">' + SVG_X + esc(j.origin) + ' โดนบล็อก</span>' + (j.reason ? '<br><span class="detail">' + esc(j.reason) + '</span>' : '')) + cutNote;
     } catch (e) {
+      console.warn('[BookLoop][dashboard] origin-check request failed:', (e && e.message) || e);
       originResult.innerHTML = '<span class="fail">เรียกไม่สำเร็จ: ' + esc(String((e && e.message) || e)) + '</span>';
     }
   });
@@ -2126,7 +2954,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       var r = await fetch(BASE + '/?selftest=1', FETCH_OPTS);
       var text = await r.text();
       var j = null;
-      try { j = JSON.parse(text); } catch (e) { j = null; }
+      try { j = JSON.parse(text); } catch (e) { console.warn('[BookLoop][dashboard] selftest non-JSON response', e); j = null; }
       if (!j || !j.results) {
         selfTestOut.innerHTML = '<span class="fail">อ่านผลเทสไม่ได้ — เซิร์ฟเวอร์ตอบไม่ใช่ JSON (HTTP ' + r.status + ')</span>';
         return;
@@ -2141,6 +2969,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
         '<p class="hint" style="margin-top:8px;margin-bottom:0">' + esc(j.note || '') + '</p>' +
         '<p class="soft" style="margin-top:6px">ดู request ที่เพิ่งยิงได้ในแท็บ Requests (path จะมี selftest_ping=…)</p>';
     } catch (e) {
+      console.warn('[BookLoop][dashboard] selftest request failed:', (e && e.message) || e);
       selfTestOut.innerHTML = '<span class="fail">เรียก selftest ไม่สำเร็จ: ' + esc(String((e && e.message) || e)) + '</span>';
     } finally {
       selfTestBtn.disabled = false;
@@ -2156,10 +2985,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
       var body = await r.text();
       var ms = Math.round(performance.now() - t0);
       var pretty = body;
-      try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch (e) { /* HTML/error — โชว์ดิบ */ }
+      try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch (e) { console.debug('[BookLoop][dashboard] try-endpoint non-JSON, showing raw', e); /* HTML/error — โชว์ดิบ */ }
       if (pretty.length > 4000) pretty = pretty.slice(0, 4000) + '\n… (ตัดเหลือ 4000 ตัวอักษร)';
       tryOut.textContent = 'HTTP ' + r.status + ' · ' + ms + ' ms\n' + pretty;
     } catch (e) {
+      console.warn('[BookLoop][dashboard] try-endpoint request failed:', (e && e.message) || e);
       tryOut.textContent = 'ยิงไม่สำเร็จ: ' + String((e && e.message) || e);
     } finally {
       tryBtn.disabled = false;
@@ -2193,6 +3023,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       }
       appCheckOut.textContent = lines.join('\n');
     } catch (e) {
+      console.warn('[BookLoop][dashboard] /app/ check request failed:', (e && e.message) || e);
       appCheckOut.textContent = 'เรียกไม่สำเร็จ: ' + String((e && e.message) || e);
     } finally {
       appCheckBtn.disabled = false;
@@ -2230,6 +3061,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
   var SVG_TRASH = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   var SVG_CLOCK = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   var SVG_BOX = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>';
+  var SVG_BOOK = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>';
+  var SVG_INFO = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  var SVG_REFRESH = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
+  var SVG_EYE = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var SVG_EYE_OFF = '<svg class="bl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 
   function statusBadge(status) {
     if (status === 'pending') return '<span class="st-warn">' + SVG_CLOCK + 'รอตรวจสอบ</span>';
@@ -2237,48 +3073,110 @@ GENERATED_IMAGES_PATH=images/generated</div>
     if (status === 'paused') return '<span class="st-warn" style="color:#f59e0b">' + SVG_PAUSE + 'พักการขาย</span>';
     if (status === 'rejected') return '<span class="fail">' + SVG_X + 'ปฏิเสธ</span>';
     if (status === 'sold') return '<span class="soft">' + SVG_BOX + 'ขายแล้ว</span>';
+    if (status === 'archived') return '<span class="soft" style="color:#94a3b8">' + SVG_TRASH + 'เก็บถาวร</span>';
     return '<span class="soft">' + esc(status) + '</span>';
   }
 
-  function actionBtns(id, status) {
-    var out = '';
-    var escId = esc(id);
-    if (status === 'pending') {
-      out += '<button type="button" class="btn" data-mod="approve" data-id="' + escId + '" style="font-size:11px;padding:4px 10px">' + SVG_CHECK + 'อนุมัติ</button> ';
-      out += '<button type="button" class="btn ghost" data-mod="reject" data-id="' + escId + '" style="font-size:11px;padding:4px 10px">' + SVG_X + 'ปฏิเสธ</button> ';
-    } else if (status === 'active') {
-      out += '<button type="button" class="btn ghost" data-mod="pause" data-id="' + escId + '" style="font-size:11px;padding:4px 10px;color:#f59e0b;border-color:rgba(245,158,11,0.5)">' + SVG_PAUSE + 'หยุดขาย</button> ';
-    } else {
-      out += '<button type="button" class="btn" data-mod="resume" data-id="' + escId + '" style="font-size:11px;padding:4px 10px">' + SVG_PLAY + 'เริ่มขายใหม่</button> ';
+  function conditionBadge(cond) {
+    if (!cond) return '';
+    var c = String(cond).trim().toLowerCase();
+    var map = {
+      'mint': ['เหมือนใหม่', '#052e16', '#86efac'],
+      'like_new': ['เหมือนใหม่', '#052e16', '#86efac'],
+      'เหมือนใหม่': ['เหมือนใหม่', '#052e16', '#86efac'],
+      'very_good': ['ดีมาก', '#082f49', '#7dd3fc'],
+      'ดีมาก': ['ดีมาก', '#082f49', '#7dd3fc'],
+      'good': ['ดี', '#451a03', '#fde68a'],
+      'ดี': ['ดี', '#451a03', '#fde68a'],
+      'fair': ['พอใช้', '#431407', '#fdba74'],
+      'พอใช้': ['พอใช้', '#431407', '#fdba74'],
+      'acceptable': ['พอใช้', '#431407', '#fdba74']
+    };
+    var target = map[c] || [cond, '#1e293b', '#cbd5e1'];
+    return '<span class="cond-badge" style="background:' + target[1] + ';color:' + target[2] + '">' + esc(target[0]) + '</span>';
+  }
+
+  function bookCover(img, title) {
+    var t = esc(title);
+    if (img) {
+      return '<div class="book-cover-cell"><img src="' + esc(img) + '" alt="' + t + '" class="book-thumb" loading="lazy" onerror="this.style.display=\'none\';if(this.nextElementSibling)this.nextElementSibling.style.display=\'flex\';"><div class="book-thumb-fallback" style="display:none">' + SVG_BOOK + '</div></div>';
     }
-    out += '<button type="button" class="btn ghost" data-mod="delete" data-id="' + escId + '" style="font-size:11px;padding:4px 10px;color:#ef4444;border-color:rgba(239,68,68,0.5)">' + SVG_TRASH + 'ลบ</button>';
+    return '<div class="book-cover-cell"><div class="book-thumb-fallback">' + SVG_BOOK + '</div></div>';
+  }
+
+  function actionBtns(id, status, title) {
+    var escId = esc(id);
+    var t = esc(title || '');
+    var out = '<div class="mod-btn-group" role="group" aria-label="จัดการ ' + t + '">';
+    if (status === 'pending') {
+      out += '<button type="button" class="btn btn-sm" data-mod="approve" data-id="' + escId + '" aria-label="อนุมัติ ' + t + '">' + SVG_CHECK + 'อนุมัติ</button>';
+      out += '<button type="button" class="btn btn-sm ghost" data-mod="reject" data-id="' + escId + '" aria-label="ปฏิเสธ ' + t + '">' + SVG_X + 'ปฏิเสธ</button>';
+    } else if (status === 'active') {
+      out += '<button type="button" class="btn btn-sm ghost btn-warn" data-mod="pause" data-id="' + escId + '" aria-label="หยุดขาย ' + t + '">' + SVG_PAUSE + 'หยุดขาย</button>';
+    } else if (status === 'paused') {
+      out += '<button type="button" class="btn btn-sm data-mod="resume" data-id="' + escId + '" aria-label="เริ่มขายใหม่ ' + t + '">' + SVG_PLAY + 'เริ่มขายใหม่</button>';
+    } else if (status === 'archived' || status === 'rejected') {
+      out += '<button type="button" class="btn btn-sm ghost" data-mod="resume" data-id="' + escId + '" aria-label="กู้คืนรายการ ' + t + '">' + SVG_REFRESH + 'กู้คืน</button>';
+    }
+    if (status !== 'archived') {
+      out += '<button type="button" class="btn btn-sm ghost btn-danger" data-mod="archive" data-id="' + escId + '" aria-label="เก็บถาวร ' + t + '">' + SVG_TRASH + 'เก็บถาวร</button>';
+    } else {
+      out += '<button type="button" class="btn btn-sm ghost btn-danger" data-mod="delete_permanent" data-id="' + escId + '" aria-label="ลบถาวร ' + t + '">' + SVG_TRASH + 'ลบถาวร</button>';
+    }
+    out += '</div>';
     return out;
   }
 
   function renderListings(items) {
     if (!listingsBody) return;
     if (!items || !items.length) {
-      listingsBody.innerHTML = '<tr><td colspan="6" class="soft">ยังไม่มีรายการลงขาย — ลงขายผ่านหน้า /sell แล้วรายการจะโผล่ที่นี่</td></tr>';
+      listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">ยังไม่มีรายการลงขาย — ลงขายผ่านหน้า /sell แล้วรายการจะโผล่ที่นี่</td></tr>';
       if (listingsBadge) listingsBadge.textContent = '(0 รอตรวจสอบ)';
       return;
     }
     var pendingN = 0;
     listingsBody.innerHTML = items.map(function (l) {
       var id = l.id || '';
-      var shortId = id.length > 12 ? id.slice(0, 12) + '…' : id;
       var title = l.title || '—';
       var author = l.author || '';
+      var cat = l.category || '';
+      var cond = l.condition || '';
+      var img = l.image || '';
+      var story = l.story || '';
+      var defects = l.defects || '';
       var price = '฿' + (l.price != null ? Number(l.price).toLocaleString('th-TH', { maximumFractionDigits: 0 }) : '—');
+      var origPrice = (l.originalPrice != null && Number(l.originalPrice) > Number(l.price))
+        ? '<div class="soft" style="text-decoration:line-through;font-size:11px">฿' + Number(l.originalPrice).toLocaleString('th-TH', { maximumFractionDigits: 0 }) + '</div>'
+        : '';
       var status = l.status || 'active';
       if (status === 'pending') pendingN++;
       var createdAt = String(l.createdAt || '').slice(0, 16);
+
+      var storyHtml = '';
+      if (story || defects) {
+        storyHtml = '<button type="button" class="story-toggle" data-toggle-story="' + esc(id) + '">' + SVG_INFO + 'ดูเรื่องราว/ตำหนิ</button>' +
+          '<div class="story-box" id="story-' + esc(id) + '" style="display:none">' +
+          (story ? '<div><b>เรื่องราว:</b> ' + esc(story) + '</div>' : '') +
+          (defects ? '<div style="margin-top:4px"><b>ตำหนิ:</b> ' + esc(defects) + '</div>' : '') +
+          '</div>';
+      }
+
       return '<tr data-lid="' + esc(id) + '">' +
-        '<td class="mono" style="font-size:11px">' + esc(shortId) + '</td>' +
-        '<td>' + esc(title) + (author ? '<br><span class="soft">' + esc(author) + '</span>' : '') + '</td>' +
-        '<td class="mono">' + esc(price) + '</td>' +
+        '<td style="text-align:center">' + bookCover(img, title) + '</td>' +
+        '<td>' +
+          '<div style="font-weight:600">' + esc(title) + '</div>' +
+          '<div style="margin-top:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
+            (author ? '<span class="soft">' + esc(author) + '</span>' : '') +
+            conditionBadge(cond) +
+            (cat ? '<span class="category-pill">' + esc(cat) + '</span>' : '') +
+          '</div>' +
+          storyHtml +
+          '<div class="mono soft" style="font-size:10px;margin-top:4px">ID: ' + esc(id) + '</div>' +
+        '</td>' +
+        '<td class="mono"><b>' + esc(price) + '</b>' + origPrice + '</td>' +
         '<td class="listing-status">' + statusBadge(status) + '</td>' +
-        '<td class="mono" style="white-space:nowrap">' + esc(createdAt) + '</td>' +
-        '<td style="white-space:nowrap" class="listing-actions">' + actionBtns(id, status) + '</td>' +
+        '<td class="mono" style="white-space:nowrap;font-size:11px">' + esc(createdAt) + '</td>' +
+        '<td style="white-space:nowrap" class="listing-actions">' + actionBtns(id, status, title) + '</td>' +
         '</tr>';
     }).join('');
     if (listingsBadge) listingsBadge.textContent = '(' + pendingN + ' รอตรวจสอบ)';
@@ -2299,21 +3197,105 @@ GENERATED_IMAGES_PATH=images/generated</div>
     }
   }
 
+  // เข้าสู่ระบบผู้ดูแลด้วยรหัส ADMIN_TOKEN (เก็บใน session นี้เท่านั้น ไม่ฝัง cookie)
+  function adminToken() {
+    try { return sessionStorage.getItem('bookloop_admin_token') || ''; } catch (e) { return ''; }
+  }
+  function setAdminToken(t) {
+    try {
+      if (t) sessionStorage.setItem('bookloop_admin_token', t);
+      else sessionStorage.removeItem('bookloop_admin_token');
+    } catch (e) {}
+    refreshAdminBar();
+  }
+  function refreshAdminBar() {
+    var logged = adminToken() !== '';
+    var loginBar = document.getElementById('adminLoginBar');
+    if (!loginBar) return;
+    var pass = document.getElementById('adminPass');
+    var passToggle = document.getElementById('adminPassToggle');
+    var inBtn = document.getElementById('adminLoginBtn');
+    var outBtn = document.getElementById('adminLogoutBtn');
+    var state = document.getElementById('adminLoginState');
+    if (pass) { pass.value = ''; pass.style.display = logged ? 'none' : ''; }
+    if (passToggle) { passToggle.style.display = logged ? 'none' : ''; }
+    if (inBtn) inBtn.style.display = logged ? 'none' : '';
+    if (outBtn) outBtn.style.display = logged ? '' : 'none';
+    if (state) state.textContent = logged ? 'เข้าสู่ระบบผู้ดูแลแล้ว' : 'ยังไม่ได้เข้าสู่ระบบ';
+  }
+  function adminHeaders() {
+    return { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken() };
+  }
+  function handleAdminAuthFail() {
+    setAdminToken('');
+    showOut('รหัสผู้ดูแลไม่ถูกต้องหรือหมดสิทธิ์ กรุณากรอกรหัสใหม่', false);
+    var pass = document.getElementById('adminPass');
+    if (pass) pass.focus();
+  }
+  (function wireAdminBar() {
+    var inBtn = document.getElementById('adminLoginBtn');
+    var outBtn = document.getElementById('adminLogoutBtn');
+    var pass = document.getElementById('adminPass');
+    var passToggle = document.getElementById('adminPassToggle');
+
+    if (passToggle && pass) {
+      passToggle.addEventListener('click', function () {
+        var isPwd = pass.getAttribute('type') === 'password';
+        pass.setAttribute('type', isPwd ? 'text' : 'password');
+        passToggle.innerHTML = isPwd ? SVG_EYE_OFF : SVG_EYE;
+      });
+    }
+
+    function doLogin() {
+      if (!pass || !pass.value) { showOut('กรุณากรอกรหัสผู้ดูแลก่อน', false); return; }
+      setAdminToken(pass.value);
+      reloadListings();
+    }
+    if (inBtn) inBtn.addEventListener('click', doLogin);
+    if (pass) pass.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    if (outBtn) outBtn.addEventListener('click', function () {
+      setAdminToken('');
+      if (listingsBody) listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">ออกจากระบบแล้ว — เข้าสู่ระบบผู้ดูแลเพื่อดูรายการ</td></tr>';
+      showOut('ออกจากระบบผู้ดูแลแล้ว', true);
+    });
+    refreshAdminBar();
+  })();
+
+  // Accordion delegation for story/defects toggle
+  if (listingsBody) {
+    listingsBody.addEventListener('click', function (e) {
+      var stBtn = e.target.closest('[data-toggle-story]');
+      if (!stBtn) return;
+      var lid = stBtn.getAttribute('data-toggle-story');
+      var box = document.getElementById('story-' + lid);
+      if (box) {
+        var isOpen = box.style.display !== 'none';
+        box.style.display = isOpen ? 'none' : 'block';
+        stBtn.innerHTML = isOpen ? (SVG_INFO + 'ดูเรื่องราว/ตำหนิ') : (SVG_INFO + 'ซ่อนเรื่องราว/ตำหนิ');
+      }
+    });
+  }
+
   async function reloadListings() {
     if (!listingsBody) return;
-    listingsBody.innerHTML = '<tr><td colspan="6" class="soft">กำลังโหลด…</td></tr>';
+    if (!adminToken()) {
+      listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">กรุณาเข้าสู่ระบบผู้ดูแลก่อนดูรายการ</td></tr>';
+      return;
+    }
+    listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">กำลังโหลด…</td></tr>';
     try {
       var url = BASE + '/?all_listings=1';
-      var r = await fetch(url, { cache: 'no-store' });
+      var r = await fetch(url, { cache: 'no-store', headers: adminHeaders() });
       var j = null;
-      try { j = JSON.parse(await r.text()); } catch (e) { j = null; }
+      try { j = JSON.parse(await r.text()); } catch (e) { console.warn('[BookLoop][dashboard] reloadListings non-JSON response', e); j = null; }
+      if (r.status === 403) { handleAdminAuthFail(); return; }
       if (j && j.success && Array.isArray(j.items)) {
         renderListings(j.items);
         var pendingC = j.items.filter(function(x){ return x.status === 'pending'; }).length;
         showOut('โหลด ' + j.items.length + ' รายการ (รอตรวจสอบ: ' + pendingC + ')', true);
       } else if (j && !j.success) {
         showOut((j.message || 'โหลดไม่ได้') + ' (HTTP ' + r.status + ')', false);
-        listingsBody.innerHTML = '<tr><td colspan="6" class="soft">' + esc(j && j.message ? j.message : 'โหลดไม่ได้') + '</td></tr>';
+        listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">' + esc(j && j.message ? j.message : 'โหลดไม่ได้') + '</td></tr>';
       } else {
         showOut('เซิร์ฟเวอร์ตอบผิดรูปแบบ (HTTP ' + r.status + ')', false);
       }
@@ -2323,10 +3305,22 @@ GENERATED_IMAGES_PATH=images/generated</div>
   }
 
   function showOut(msg, ok) {
-    if (!listingsOut) return;
-    listingsOut.style.display = 'block';
-    listingsOut.innerHTML = (ok ? SVG_CHECK : SVG_X) + ' ' + esc(msg);
-    listingsOut.style.color = ok ? '#86efac' : '#fbbf24';
+    var toast = document.getElementById('modToast');
+    if (toast) {
+      toast.className = 'mod-toast ' + (ok ? 'ok' : 'err');
+      toast.innerHTML = (ok ? SVG_CHECK : SVG_X) + ' ' + esc(msg);
+      toast.style.display = 'flex';
+      setTimeout(function () {
+        if (toast && toast.style.display === 'flex') {
+          toast.style.display = 'none';
+        }
+      }, 6000);
+    }
+    if (listingsOut) {
+      listingsOut.style.display = 'block';
+      listingsOut.innerHTML = (ok ? SVG_CHECK : SVG_X) + ' ' + esc(msg);
+      listingsOut.style.color = ok ? '#86efac' : '#fbbf24';
+    }
   }
 
   // Reload button
@@ -2334,7 +3328,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
     listingsReload.addEventListener('click', function () { reloadListings(); });
   }
 
-  // Delegate: จัดการอนุมัติ / หยุดขาย / เริ่มขายใหม่ / ลบ
+  // Delegate: จัดการอนุมัติ / หยุดขาย / เริ่มขายใหม่ / เก็บถาวร / ลบถาวร
   function attachModerationHandlers(tbody) {
     if (!tbody) return;
     tbody.addEventListener('click', async function (e) {
@@ -2342,21 +3336,27 @@ GENERATED_IMAGES_PATH=images/generated</div>
       if (!btn) return;
       var action = btn.getAttribute('data-mod');
       var id = btn.getAttribute('data-id');
-      if (!id || !['approve', 'reject', 'pause', 'resume', 'delete'].includes(action)) return;
+      if (!id || !['approve', 'reject', 'pause', 'resume', 'archive', 'delete', 'delete_permanent'].includes(action)) return;
 
       var labels = {
         'approve': 'อนุมัติ',
         'reject': 'ปฏิเสธ',
         'pause': 'หยุดขาย',
-        'resume': 'เริ่มขายใหม่',
-        'delete': 'ลบ'
+        'resume': 'เริ่มขายใหม่ / กู้คืน',
+        'archive': 'เก็บถาวร',
+        'delete': 'เก็บถาวร',
+        'delete_permanent': 'ลบถาวร'
       };
       var label = labels[action] || action;
-      var confirmMsg = action === 'delete'
-        ? 'ยืนยันลบรายการนี้ถาวร (ID: ' + id.slice(0, 12) + '…)?'
-        : 'ยืนยัน' + label + 'รายการนี้ (ID: ' + id.slice(0, 12) + '…)?';
+      var confirmMsg = action === 'delete_permanent'
+        ? '⚠️ คำเตือน: ยืนยันลบรายการและไฟล์รูปภาพนี้ถาวรจริงหรือไม่? (ID: ' + id.slice(0, 12) + '…)\nการกระทำนี้ไม่สามารถย้อนกลับได้!'
+        : (action === 'archive' || action === 'delete'
+          ? 'ยืนยันย้ายรายการนี้ไปเก็บถาวร? (ข้อมูลและรูปภาพยังคงอยู่ สามารถกู้คืนได้ภายหลัง)'
+          : 'ยืนยัน' + label + 'รายการนี้ (ID: ' + id.slice(0, 12) + '…)?');
 
       if (!confirm(confirmMsg)) return;
+
+      if (!adminToken()) { showOut('กรุณาเข้าสู่ระบบผู้ดูแลก่อน', false); return; }
 
       btn.disabled = true;
       var row = btn.closest('tr');
@@ -2366,42 +3366,49 @@ GENERATED_IMAGES_PATH=images/generated</div>
       }
 
       try {
-        // ยิงเข้า index.php โดยตรง (?moderate_listing=1) เพื่อให้จัดการได้ทันทีจากแดชบอร์ดโดยไม่ต้องมี token
+        // ยิงเข้า index.php โดยตรง (?moderate_listing=1) พร้อม X-Admin-Token
         var modUrl = BASE + '/?moderate_listing=1';
         var r = await fetch(modUrl, {
           method: 'POST',
           cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({ id: id, action: action })
         });
         var j = null;
-        try { j = JSON.parse(await r.text()); } catch (ex) { j = null; }
+        try { j = JSON.parse(await r.text()); } catch (ex) { console.warn('[BookLoop][dashboard] moderate primary non-JSON response', ex); j = null; }
+
+        if (r.status === 403) { handleAdminAuthFail(); btn.disabled = false; return; }
 
         if (!j || !j.success) {
-          // Fallback ไปที่ api/listings_moderate.php หากจำเป็น
+          // Fallback ไปที่ api/listings_moderate.php (ต้องใช้ ADMIN_TOKEN เดียวกัน)
           try {
             var r2 = await fetch(APIBASE + '/listings_moderate.php', {
               method: 'POST',
               cache: 'no-store',
-              headers: { 'Content-Type': 'application/json' },
+              headers: adminHeaders(),
               body: JSON.stringify({ id: id, action: action })
             });
             var j2 = JSON.parse(await r2.text());
             if (j2 && j2.success) { j = j2; r = r2; }
-          } catch (e2) {}
+          } catch (e2) {
+            console.warn('[BookLoop][dashboard] listings_moderate fallback failed:', (e2 && e2.message) || e2);
+            showOut('ช่องทางสำรองไม่สำเร็จ: ' + String((e2 && e2.message) || e2), false);
+          }
         }
 
         if (j && j.success) {
-          if (action === 'delete') {
+          if (action === 'delete_permanent') {
             if (row) row.remove();
-            showOut('ลบรายการเรียบร้อยแล้ว (ID: ' + id.slice(0, 12) + '…)', true);
+            showOut('ลบรายการและไฟล์รูปภาพถาวรเรียบร้อยแล้ว (ID: ' + id.slice(0, 12) + '…)', true);
           } else {
-            var newStatus = j.status || (action === 'approve' || action === 'resume' ? 'active' : (action === 'pause' ? 'paused' : 'rejected'));
+            var newStatus = j.status || (action === 'approve' || action === 'resume' ? 'active' : (action === 'pause' ? 'paused' : (action === 'archive' || action === 'delete' ? 'archived' : 'rejected')));
             if (row) {
               var stCell = row.querySelector('.listing-status');
               if (stCell) stCell.innerHTML = statusBadge(newStatus);
               var aCell = row.querySelector('.listing-actions');
-              if (aCell) aCell.innerHTML = actionBtns(id, newStatus);
+              var titleEl = row.querySelector('td:nth-child(2) div:first-child');
+              var rowTitle = titleEl ? titleEl.textContent : '';
+              if (aCell) aCell.innerHTML = actionBtns(id, newStatus, rowTitle);
             }
             showOut((j.message || label + 'แล้ว') + ' (ID: ' + id.slice(0, 12) + '…)', true);
           }
@@ -2435,7 +3442,9 @@ GENERATED_IMAGES_PATH=images/generated</div>
             var aCell2 = row.querySelector('.listing-actions');
             if (aCell2) {
               var isPending = row.querySelector('.listing-status') && row.querySelector('.listing-status').textContent.includes('รอตรวจสอบ');
-              aCell2.innerHTML = actionBtns(id, isPending ? 'pending' : 'active');
+              var tEl = row.querySelector('td:nth-child(2) div:first-child');
+              var rTitle = tEl ? tEl.textContent : '';
+              aCell2.innerHTML = actionBtns(id, isPending ? 'pending' : 'active', rTitle);
             }
           }
           btn.disabled = false;

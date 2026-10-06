@@ -7,54 +7,7 @@ define('USERS_FILE', DATA_PATH . '/users.json');
 define('TOKENS_FILE', DATA_PATH . '/tokens.json');
 define('TOKEN_EXPIRY_DAYS', 7);
 
-// ─── JSON File Operations ──────────────────────────────────────
-
-function loadJson(string $filePath): array
-{
-    if (!file_exists($filePath)) {
-        return [];
-    }
-
-    $fp = fopen($filePath, 'r');
-    if ($fp === false) {
-        return [];
-    }
-
-    flock($fp, LOCK_SH);
-    $content = stream_get_contents($fp);
-    fclose($fp);
-
-    if (empty(trim($content))) {
-        return [];
-    }
-
-    $data = json_decode($content, true);
-    return is_array($data) ? $data : [];
-}
-
-function saveJson(string $filePath, array $data): bool
-{
-    $dir = dirname($filePath);
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
-
-    // 'c' = สร้างไฟล์ถ้ายังไม่มี แต่ไม่ truncate ก่อนได้ lock (กันข้อมูลหายเมื่อ request ชนกัน)
-    $fp = fopen($filePath, 'c');
-    if ($fp === false) {
-        return false;
-    }
-
-    flock($fp, LOCK_EX);
-    ftruncate($fp, 0);
-    rewind($fp);
-    fwrite($fp, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    fflush($fp);
-    flock($fp, LOCK_UN);
-    fclose($fp);
-
-    return true;
-}
+require_once __DIR__ . '/../Services/Storage.php';
 
 // ─── Password Hashing ─────────────────────────────────────────
 

@@ -120,7 +120,7 @@ const ItemImage: React.FC<{ item: OrderItem }> = ({ item }) => {
 /** Fallback กรณี refresh หน้าแล้ว state หาย: ดึงคำสั่งซื้อล่าสุดของ user ปัจจุบัน */
 function getMostRecentOrder(): Order | null {
   try {
-    const userId = authService.getCurrentUser()?.id;
+    const userId = authService.getCurrentUserId();
     if (!userId) return null;
     const orders = orderService.getUserOrders(userId);
     if (!orders.length) return null;

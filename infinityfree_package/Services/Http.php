@@ -131,12 +131,19 @@ if (!function_exists('getRequestData')) {
      */
     function getRequestData(): array
     {
-        $raw = file_get_contents('php://input');
-        if ($raw !== false && $raw !== '' && ($decoded = json_decode($raw, true)) !== null) {
-            return is_array($decoded) ? $decoded : [];
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
         }
 
-        return $_POST;
+        $raw = file_get_contents('php://input');
+        if ($raw !== false && $raw !== '' && ($decoded = json_decode($raw, true)) !== null) {
+            $cached = is_array($decoded) ? $decoded : [];
+            return $cached;
+        }
+
+        $cached = $_POST;
+        return $cached;
     }
 }
 
@@ -172,12 +179,10 @@ if (!function_exists('getBearerToken')) {
             return trim($_GET['token']);
         }
 
-        $raw = file_get_contents('php://input');
-        if ($raw !== false && $raw !== '') {
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded) && isset($decoded['token']) && is_string($decoded['token']) && $decoded['token'] !== '') {
-                return trim($decoded['token']);
-            }
+        // อ่านจาก cached request body
+        $data = getRequestData();
+        if (isset($data['token']) && is_string($data['token']) && $data['token'] !== '') {
+            return trim($data['token']);
         }
 
         return null;

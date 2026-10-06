@@ -1,52 +1,64 @@
-import React, { useEffect } from 'react';
+import { Box, Button, Typography } from '@mui/material';
+import { UserPlus } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
-import { Typography, Link } from '@mui/material';
 import { AuthLayout } from '../components/auth/AuthLayout';
 import { LoginForm } from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+   const { isAuthenticated } = useAuth();
+   const navigate = useNavigate();
+   const location = useLocation();
 
-  const queryParams = new URLSearchParams(location.search);
-  const redirectPath = queryParams.get('redirect') || '/';
+   const queryParams = new URLSearchParams(location.search);
+   const redirectPath = queryParams.get('redirect') || '/';
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate(redirectPath, { replace: true });
-    }
-  }, [isAuthenticated, navigate, redirectPath]);
-
-  return (
-    <AuthLayout
-      title="เข้าสู่ระบบ BookLoop"
-      subtitle="ยินดีต้อนรับกลับสู่อาณาจักรหนังสือและการแบ่งปัน"
-      hideBrandHeader
-      footerText={
-        <Typography variant="body2" sx={{ color: '#627D98', fontSize: '0.875rem' }}>
-          ยังไม่มีบัญชี BookLoop?{' '}
-          <Link
-            component={RouterLink}
-            to={`/register${location.search}`}
-            sx={{
-              color: '#1976D2',
-              fontWeight: 700,
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' },
-              '&:focus-visible': {
-                outline: '2px solid rgba(15, 23, 42, 0.2)',
-                outlineOffset: '2px',
-              },
-            }}
-          >
-            สมัครสมาชิกใหม่
-          </Link>
-        </Typography>
+   useEffect(() => {
+      if (isAuthenticated) {
+         navigate(redirectPath, { replace: true });
       }
-    >
-      <LoginForm onSuccessRedirect={redirectPath} />
-    </AuthLayout>
-  );
+   }, [isAuthenticated, navigate, redirectPath]);
+
+   return (
+      <AuthLayout
+         title="เข้าสู่ระบบ"
+         subtitle="ยินดีต้อนรับกลับสู่ BookLoop"
+         hideBrandHeader
+         layoutVariant="centered"
+         footerText={
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
+               <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.875rem' }}>
+                  ยังไม่มีบัญชี BookLoop ใช่ไหม?
+               </Typography>
+               <Button
+                  component={RouterLink}
+                  to={`/register${location.search}`}
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<UserPlus size={16} />}
+                  sx={{
+                     minHeight: 44,
+                     py: 1.1,
+                     borderRadius: '10px',
+                     borderColor: '#E2E8F0',
+                     color: '#0F2D4A',
+                     fontWeight: 700,
+                     fontSize: '0.875rem',
+                     textTransform: 'none',
+                     transition: 'all 0.18s ease',
+                     '&:hover': {
+                        borderColor: '#1976D2',
+                        color: '#1976D2',
+                        bgcolor: '#F8FBFF',
+                        transform: 'translateY(-1px)',
+                     },
+                  }}>
+                  สมัครสมาชิกใหม่ฟรี
+               </Button>
+            </Box>
+         }>
+         <LoginForm onSuccessRedirect={redirectPath} />
+      </AuthLayout>
+   );
 }
