@@ -181,6 +181,7 @@ export default function CheckoutPage() {
         subtotal,
         shippingFee,
         discount,
+        promoCode: appliedPromo?.code,
         total: finalTotal,
         shippingAddress: address,
         shippingMethod: selectedShipping.name,

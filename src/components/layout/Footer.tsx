@@ -7,23 +7,17 @@ export const Footer: React.FC = () => {
    const navigate = useNavigate();
 
    const links = [
-      { label: 'เกี่ยวกับเรา', path: '/#about' },
-      { label: 'ช่วยเหลือ', path: '/#faq' },
-      { label: 'นโยบายความเป็นส่วนตัว', path: '/#privacy' },
-      { label: 'ติดต่อเรา', path: '/#contact' },
+      { label: 'เกี่ยวกับเรา', path: '/about' },
+      { label: 'ค่าธรรมเนียมและความโปร่งใส', path: '/pricing' },
+      { label: 'ช่วยเหลือ', path: '/help' },
+      { label: 'นโยบายความเป็นส่วนตัว', path: '/privacy' },
+      { label: 'ติดต่อเรา', path: '/contact' },
    ];
 
    const handleLink = (e: React.MouseEvent, path: string) => {
       e.preventDefault();
-      if (path.startsWith('/#')) {
-         const id = path.substring(2);
-         const el = document.getElementById(id);
-         if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-            return;
-         }
-      }
       navigate(path);
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
    };
 
    return (
@@ -106,7 +100,7 @@ export const Footer: React.FC = () => {
 
                   <Typography variant="body2" sx={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, mt: 1.25 }}>
                      หนังสือทุกเล่ม มีเรื่องราวให้
-                     <Box component="span" sx={{ color: '#0F6CF0', fontWeight: 700 }}>
+                     <Box component="span" sx={{ color: '#0F6CF0', fontWeight: 700, ml: 0.5 }}>
                         คนถัดไป
                      </Box>
                   </Typography>
@@ -119,6 +113,7 @@ export const Footer: React.FC = () => {
                      onClick={() => navigate('/sell')}
                      sx={{
                         mt: 2.5,
+                        minHeight: { xs: 44, sm: 40 },
                         borderRadius: '999px',
                         backgroundColor: '#0A1628',
                         color: '#FFFFFF',
@@ -168,6 +163,10 @@ export const Footer: React.FC = () => {
                            cursor: 'pointer',
                            textUnderlineOffset: '4px',
                            textDecorationThickness: '1.5px',
+                           display: 'inline-flex',
+                           alignItems: 'center',
+                           minHeight: { xs: 44, sm: 'auto' },
+                           py: { xs: 0.5, sm: 0 },
                            transition: 'color 0.15s ease',
                            '&:hover': {
                               color: '#0F6CF0',

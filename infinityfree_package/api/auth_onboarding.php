@@ -21,6 +21,7 @@
 
 require_once __DIR__ . '/../auth/auth.php';
 require_once BASE_PATH . '/Services/RateLimiter.php';
+require_once BASE_PATH . '/Services/BackgroundMail.php';
 
 corsHeaders();
 
@@ -160,7 +161,7 @@ if ($shouldSendWelcome) {
     $prefsSnapshot = $preferences;
     $booksSnapshot = $recommendedBooks;
     // ส่งอีเมลแบบ non-blocking — fail แล้วไม่กระทบ response
-    register_shutdown_function(function () use ($safeEmail, $safeName, $prefsSnapshot, $booksSnapshot) {
+    runAfterResponse(function () use ($safeEmail, $safeName, $prefsSnapshot, $booksSnapshot) {
         require_once __DIR__ . '/../Services/emailService.php';
         require_once BASE_PATH . '/Services/Logger.php';
         try {

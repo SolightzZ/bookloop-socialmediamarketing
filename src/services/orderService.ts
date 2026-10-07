@@ -33,6 +33,7 @@ class OrderService {
             subtotal: params.subtotal,
             shippingFee: params.shippingFee,
             discount: params.discount ?? 0,
+            promoCode: params.promoCode,
             total: params.total,
             shippingAddress: params.shippingAddress,
             shippingMethod: params.shippingMethod,

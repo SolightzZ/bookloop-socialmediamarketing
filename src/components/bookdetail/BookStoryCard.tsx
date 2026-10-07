@@ -8,7 +8,7 @@ interface BookStoryCardProps {
 
 /**
  * BookStoryCard — editorial pull-quote for the book's story.
- * Left accent border + italic type, no card chrome.
+ * Top accent bar on a paper wash (no >1px colored side edge), no card chrome.
  */
 export const BookStoryCard: React.FC<BookStoryCardProps> = ({ story, sellerName }) => {
   if (!story) return null;
@@ -35,8 +35,11 @@ export const BookStoryCard: React.FC<BookStoryCardProps> = ({ story, sellerName 
         component="blockquote"
         sx={{
           m: 0,
-          pl: 2.5,
-          borderLeft: '3px solid #1976D2',
+          p: { xs: 2.5, md: 3 },
+          borderRadius: '12px',
+          bgcolor: '#F8FBFF',
+          border: '1px solid #E5EAF0',
+          borderTop: '3px solid #1976D2',
         }}
       >
         <Typography

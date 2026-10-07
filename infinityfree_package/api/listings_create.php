@@ -22,6 +22,50 @@ if (!defined('LISTINGS_FILE')) {
     define('LISTINGS_FILE', DATA_PATH . '/listings.json');
 }
 
+if (!function_exists('downscaleListingImage')) {
+    /**
+     * ย่อด้านยาวสุดเหลือ 1600px + บีบอัด (JPEG q80 / WebP q80 / PNG level 6)
+     * คืน [binary, ext] — ไม่มี GD หรือประมวลผลล้มเหลว/ไฟล์บวมกว่าเดิม → คืนต้นฉบับ
+     * (behavior ไม่เปลี่ยน แค่ไฟล์เล็กลงก่อนเสิร์ฟให้ผู้ซื้อโหลด)
+     */
+    function downscaleListingImage(string $binary, string $ext): array
+    {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagescale')) {
+            return [$binary, $ext];
+        }
+        $src = @imagecreatefromstring($binary);
+        if ($src === false) {
+            return [$binary, $ext];
+        }
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $maxSide = 1600;
+        if ($w > $maxSide || $h > $maxSide) {
+            $ratio = min($maxSide / $w, $maxSide / $h);
+            $resized = imagescale($src, (int) round($w * $ratio), (int) round($h * $ratio));
+            if ($resized !== false) {
+                imagedestroy($src);
+                $src = $resized;
+            }
+        }
+        ob_start();
+        $ok = false;
+        if ($ext === 'webp' && function_exists('imagewebp')) {
+            $ok = @imagewebp($src, null, 80);
+        } elseif ($ext === 'png') {
+            $ok = @imagepng($src, null, 6);
+        } else {
+            $ok = @imagejpeg($src, null, 80);
+        }
+        $out = ob_get_clean();
+        imagedestroy($src);
+        if (!$ok || !is_string($out) || $out === '' || strlen($out) >= strlen($binary)) {
+            return [$binary, $ext];
+        }
+        return [$out, $ext];
+    }
+}
+
 // ผูกเจ้าของเมื่อมี session (guest ลงได้เป็น userId = 'guest')
 $token = getBearerToken();
 $userId = $token !== null ? validateToken($token) : null;
@@ -77,6 +121,8 @@ if ($imageInput !== '') {
                 jsonResponse(['success' => false, 'message' => 'ไฟล์รูปภาพไม่ถูกต้อง กรุณาอัปโหลดรูป JPG/PNG/WebP อีกครั้ง'], 400);
             }
         }
+        // ย่อ+บีบอัดก่อนเซฟ — รูปผู้ขายไม่ถูกเสิร์ฟเต็ม 3MB ให้ผู้ซื้อโหลด
+        [$binary, $ext] = downscaleListingImage($binary, $ext);
         $dir = IMAGES_PATH . '/listings';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);

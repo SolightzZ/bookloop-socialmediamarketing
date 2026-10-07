@@ -1,5 +1,6 @@
 import { Box, Chip } from '@mui/material';
 import { memo } from 'react';
+import { getConditionMeta } from '../ConditionBadge';
 
 interface BookActiveFiltersProps {
    query: string;
@@ -14,12 +15,7 @@ interface BookActiveFiltersProps {
    onClearFavorite: () => void;
 }
 
-const conditionMap: Record<string, string> = {
-   Excellent: 'เหมือนใหม่',
-   'Very Good': 'สภาพดี',
-   Good: 'พอใช้',
-   Acceptable: 'มีตำหนิ',
-};
+const getConditionShort = (value: string): string => getConditionMeta(value).short || value;
 
 export const BookActiveFilters = memo<BookActiveFiltersProps>(function BookActiveFilters({
    query,
@@ -43,7 +39,7 @@ export const BookActiveFilters = memo<BookActiveFiltersProps>(function BookActiv
       fontWeight: 600,
       fontSize: '0.75rem',
       borderRadius: '6px',
-      height: 28,
+      height: { xs: 44, md: 28 },
       transition: 'all 0.15s ease',
       '&:focus-visible': {
          outline: '2px solid #1976D2',
@@ -109,10 +105,10 @@ export const BookActiveFilters = memo<BookActiveFiltersProps>(function BookActiv
          )}
          {condition && (
             <Chip
-               label={`สภาพ: ${conditionMap[condition] || condition}`}
+               label={`สภาพ: ${getConditionShort(condition)}`}
                size="small"
                onDelete={onClearCondition}
-               aria-label={`ลบตัวกรองสภาพ ${conditionMap[condition] || condition}`}
+               aria-label={`ลบตัวกรองสภาพ ${getConditionShort(condition)}`}
                sx={{
                   ...chipBaseSx,
                   bgcolor: '#EAF4FF',

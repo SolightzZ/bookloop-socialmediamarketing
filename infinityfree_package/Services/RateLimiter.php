@@ -2,9 +2,50 @@
 
 // ─── Fixed-window rate limiter แบบ file-backed ─────────────────────
 // ใช้ flock ผ่าน loadJson/saveJson (นิยามใน auth.php) — require ไฟล์นี้หลัง auth.php
-// เก็บ state ใน DATA_PATH/ratelimit.json (runtime-only, ถูก gitignore)
+// เก็บ state แยกเป็น 16 bucket ตาม hash ของ key (runtime-only, ถูก gitignore)
+// กัน rewrite ไฟล์ก้อนเดียวที่โตขึ้นเรื่อยๆ ทุก request + ล็อกไม่ชนกันข้าม bucket
 
 require_once __DIR__ . '/../auth/auth.php';
+
+if (!function_exists('rateLimitFileFor')) {
+    /**
+     * เลือกไฟล์ bucket จาก hash ของ key — logic เดียวกันทุก caller จึงเสถียร
+     */
+    function rateLimitFileFor(string $key): string
+    {
+        $bucket = abs(crc32($key)) % 16;
+        return DATA_PATH . '/ratelimit_' . $bucket . '.json';
+    }
+}
+
+if (!function_exists('migrateLegacyRateLimitFile')) {
+    /**
+     * ย้าย state จากไฟล์รวมเดิม (ratelimit.json) กระจายลง bucket ครั้งเดียว —
+     * รันครั้งแรกต่อ request (static flag) แล้วลบไฟล์เดิมทิ้ง
+     */
+    function migrateLegacyRateLimitFile(): void
+    {
+        $legacy = DATA_PATH . '/ratelimit.json';
+        if (!is_file($legacy)) {
+            return;
+        }
+        $all = loadJson($legacy);
+        if (!empty($all)) {
+            $staged = [];
+            foreach ($all as $k => $hits) {
+                $file = rateLimitFileFor((string) $k);
+                if (!isset($staged[$file])) {
+                    $staged[$file] = loadJson($file);
+                }
+                $staged[$file][$k] = $hits;
+            }
+            foreach ($staged as $file => $data) {
+                saveJson($file, $data);
+            }
+        }
+        @unlink($legacy);
+    }
+}
 
 if (!function_exists('rateLimitCheck')) {
     /**
@@ -13,7 +54,12 @@ if (!function_exists('rateLimitCheck')) {
      */
     function rateLimitCheck(string $key, int $maxAttempts, int $windowSeconds): bool
     {
-        $file = DATA_PATH . '/ratelimit.json';
+        static $migrated = false;
+        if (!$migrated) {
+            $migrated = true;
+            migrateLegacyRateLimitFile();
+        }
+        $file = rateLimitFileFor($key);
         $now = time();
         $buckets = loadJson($file);
 

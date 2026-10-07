@@ -132,10 +132,22 @@ $order = [
     ),
     'paymentMethod' => $paymentMethod,
     'paymentStatus' => $paymentStatus,
+    'promoCode' => !empty($data['promoCode']) ? mb_substr(strtoupper(trim((string) $data['promoCode'])), 0, 32) : null,
     'status' => $status,
     'createdAt' => $now,
     'updatedAt' => $now,
 ];
+
+if (!empty($order['promoCode']) && $order['promoCode'] === 'NEW10') {
+    foreach ($orders as $prevOrder) {
+        if (($prevOrder['userId'] ?? '') === $userId) {
+            $prevSt = (string) ($prevOrder['status'] ?? '');
+            if (!in_array($prevSt, ['cancelled', 'failed', 'refunded'], true)) {
+                jsonResponse(['success' => false, 'message' => 'โค้ดส่วนลด NEW10 สำหรับสมาชิกใหม่และคำสั่งซื้อแรกเท่านั้น'], 400);
+            }
+        }
+    }
+}
 
 array_unshift($orders, $order);
 if (!saveJson(ORDERS_FILE, $orders)) {

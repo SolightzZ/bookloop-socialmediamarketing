@@ -44,6 +44,16 @@ if ($isPublic) {
     header('Cache-Control: private, no-cache, no-store, must-revalidate');
 }
 
+// result cache 30s เฉพาะ catalog สาธารณะแบบ list (?id= / ?mine=1 ข้าม — ถูกและต้องสดเสมอ)
+// key ตาม params + mtime ของ listings.json — ไฟล์เปลี่ยน cache หลุดเอง
+$useResultCache = ($isPublic && $id === '');
+if ($useResultCache) {
+    $cached = cacheGet('listings:' . $paramSig, $fileMtime, 30);
+    if (is_array($cached)) {
+        jsonResponse($cached);
+    }
+}
+
 $listings = loadJson(LISTINGS_FILE);
 
 // ดึงรายการเดียวโดยตรงตาม ID (?id=LST-...)
@@ -91,4 +101,8 @@ $filtered = array_values(array_filter($listings, function ($l) use ($q, $categor
 $total = count($filtered);
 $items = array_slice($filtered, $offset, $limit);
 
-jsonResponse(['success' => true, 'total' => $total, 'items' => $items, 'count' => count($items)]);
+$response = ['success' => true, 'total' => $total, 'items' => $items, 'count' => count($items)];
+if ($useResultCache) {
+    cacheSet('listings:' . $paramSig, $fileMtime, $response);
+}
+jsonResponse($response);

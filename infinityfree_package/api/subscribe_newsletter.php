@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../auth/auth.php';
 require_once BASE_PATH . '/Services/Subscribers.php';
-require_once __DIR__ . '/../Services/emailService.php';
+require_once BASE_PATH . '/Services/BackgroundMail.php';
 
 corsHeaders();
 
@@ -29,26 +29,23 @@ appendSubscriber($subscriberFile, $email);
 $user = findUserByEmail($email);
 $userName = !empty($data['name']) ? trim($data['name']) : ($user ? $user['name'] : $email);
 
-// ส่ง Confirmation Email (catch Throwable เพราะ TimeoutException เป็น Error ไม่ใช่ Exception)
-$emailResult = ['success' => false, 'error' => ''];
-try {
-    $emailResult = sendConfirmationEmailService($email, $userName);
-    if (empty($emailResult['success'])) {
-        error_log("[BookLoop][WARNING] subscribe_newsletter email failed: " . ($emailResult['error'] ?? 'unknown') . " to={$email}");
+// ส่ง Confirmation Email แบบ non-blocking — ตอบ user ทันทีหลังบันทึก (pattern
+// เดียวกับ subscribe.php/auth_register.php) กัน SMTP 5–15s บล็อก response
+runAfterResponse(function () use ($email, $userName) {
+    require_once BASE_PATH . '/Services/emailService.php';
+    try {
+        $result = sendConfirmationEmailService($email, $userName);
+        if (empty($result['success'])) {
+            error_log("[BookLoop][WARNING] subscribe_newsletter email failed: " . ($result['error'] ?? 'unknown') . " to={$email}");
+        }
+    } catch (Throwable $e) {
+        // TimeoutException เป็น Error ไม่ใช่ Exception — ต้อง catch Throwable
+        error_log("[BookLoop][ERROR] subscribe_newsletter email exception: " . $e->getMessage() . " to={$email}");
     }
-} catch (Throwable $e) {
-    $emailResult['error'] = $e->getMessage();
-    error_log("[BookLoop][ERROR] subscribe_newsletter email exception: " . $e->getMessage() . " to={$email}");
-}
+});
 
-if ($emailResult['success']) {
-    jsonResponse([
-        'success' => true,
-        'message' => 'สมัครสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ',
-    ]);
-} else {
-    jsonResponse([
-        'success' => true,
-        'message' => 'สมัครสำเร็จ! แต่ไม่สามารถส่งอีเมลได้: ' . ($emailResult['error'] ?: 'ไม่ทราบสาเหตุ'),
-    ]);
-}
+// ส่ง response ทันที ไม่รอ SMTP (email fail ดูใน error log — ไม่กระทบการสมัคร)
+jsonResponse([
+    'success' => true,
+    'message' => 'สมัครสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ',
+]);

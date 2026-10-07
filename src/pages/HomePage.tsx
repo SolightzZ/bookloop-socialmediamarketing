@@ -65,7 +65,14 @@ function LazyOnVisible({ children, minHeight = 320 }: { children: React.ReactNod
    }, [visible]);
 
    return (
-      <div ref={ref} style={{ minHeight: visible ? undefined : minHeight }}>
+      <div
+         ref={ref}
+         style={{
+            minHeight: visible ? undefined : minHeight,
+            // กัน layout ใต้โฟลด์ถ่วง initial render — บราวเซอร์ข้ามงาน layout/paint จนใกล้ viewport
+            contentVisibility: visible ? undefined : ('auto' as const),
+            containIntrinsicSize: visible ? undefined : `auto ${minHeight}px`,
+         }}>
          {visible ? <Suspense fallback={null}>{children}</Suspense> : null}
       </div>
    );
@@ -74,6 +81,18 @@ function LazyOnVisible({ children, minHeight = 320 }: { children: React.ReactNod
 export default function HomePage() {
    const navigate = useNavigate();
    const [searchQuery, setSearchQuery] = useState('');
+   // โมดัล onboarding เลื่อนไปโหลดตอน browser ว่าง — ไม่แย่ง bandwidth/parse กับ Hero (LCP)
+   const [showOnboarding, setShowOnboarding] = useState(false);
+
+   useEffect(() => {
+      const win = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+      if (typeof win.requestIdleCallback === 'function') {
+         const id = win.requestIdleCallback(() => setShowOnboarding(true), { timeout: 5000 });
+         return () => (win as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+      }
+      const t = setTimeout(() => setShowOnboarding(true), 2500);
+      return () => clearTimeout(t);
+   }, []);
 
    const handleSearch = (e: React.FormEvent) => {
       e.preventDefault();
@@ -127,9 +146,11 @@ export default function HomePage() {
          </LazyOnVisible>
 
          {/* First-time onboarding popup (auto แสดงเฉพาะ user ที่ยังไม่เคยทำ) */}
-         <Suspense fallback={null}>
-            <OnboardingModal />
-         </Suspense>
+         {showOnboarding && (
+            <Suspense fallback={null}>
+               <OnboardingModal />
+            </Suspense>
+         )}
       </Box>
    );
 }

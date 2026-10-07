@@ -21,7 +21,7 @@ import {
 import { Book } from '../../data/books';
 import { ConditionBadge } from '../ConditionBadge';
 import { useAuth } from '../../hooks/useAuth';
-import { PriceAlertButton } from './PriceAlertButton';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface BookPurchaseBoxProps {
   book: Book;
@@ -152,9 +152,6 @@ export const BookPurchaseBox: React.FC<BookPurchaseBoxProps> = ({
           />
         )}
       </Box>
-      <Box sx={{ mt: 0.5, mb: 2.5 }}>
-        <PriceAlertButton bookId={book.id} currentPrice={book.price} />
-      </Box>
 
       {/* 6. Availability */}
       <Box sx={{ mb: 3 }}>
@@ -174,6 +171,13 @@ export const BookPurchaseBox: React.FC<BookPurchaseBoxProps> = ({
 
       {/* Mobile-only: condition strip sits before purchase actions */}
       {conditionSlot}
+
+      {/* Login pre-signal — warm invite above the CTAs, never a warning below them */}
+      {!isAuthenticated && (
+        <Typography sx={{ color: '#475569', fontSize: '0.85rem', mb: 1.5 }}>
+          เข้าสู่ระบบเพื่อสั่งซื้อ — บัญชีเดียวใช้ได้ทั้งซื้อและขาย
+        </Typography>
+      )}
 
       {/* 7. Purchase actions — clear visual hierarchy */}
       <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
@@ -237,6 +241,7 @@ export const BookPurchaseBox: React.FC<BookPurchaseBoxProps> = ({
           fullWidth
           onClick={onToggleWishlist}
           aria-label={isFavorite ? 'นำออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}
+          title="เก็บในรายการโปรดเพื่อติดตามเล่มนี้"
           aria-pressed={isFavorite}
           startIcon={<Heart size={18} fill={isFavorite ? '#D64545' : 'none'} color={isFavorite ? '#D64545' : '#62748A'} />}
           sx={{
@@ -287,29 +292,51 @@ export const BookPurchaseBox: React.FC<BookPurchaseBoxProps> = ({
         {[
           { icon: <Truck size={20} />, title: 'จัดส่งทั่วไทย', sub: '1–3 วัน' },
           { icon: <ShieldCheck size={20} />, title: 'สินค้าตรวจสอบแล้ว', sub: 'มั่นใจได้' },
-          { icon: <Undo2 size={20} />, title: 'คืนสินค้าได้', sub: 'ตามเงื่อนไข' },
-        ].map((t, i) => (
-          <Box
-            key={t.title}
-            sx={{
-              display: 'flex',
-              gap: 1.25,
-              alignItems: 'flex-start',
-              pr: 1.5,
-              pl: i === 0 ? 0 : 1.5,
-              borderLeft: i === 0 ? 'none' : '1px solid #D9E2EC',
-              color: '#1976D2',
-            }}
-          >
-            <Box sx={{ flexShrink: 0, mt: 0.25 }}>{t.icon}</Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontWeight: 700, color: '#102A43', fontSize: '0.82rem', lineHeight: 1.4 }}>
-                {t.title}
-              </Typography>
-              <Typography sx={{ color: '#62748A', fontSize: '0.78rem' }}>{t.sub}</Typography>
+          { icon: <Undo2 size={20} />, title: 'คืนสินค้าได้', sub: 'แจ้งภายใน 48 ชม.', to: '/help' },
+        ].map((t, i) => {
+          const content = (
+            <>
+              <Box sx={{ flexShrink: 0, mt: 0.25 }}>{t.icon}</Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  className="trust-title"
+                  sx={{ fontWeight: 700, color: '#102A43', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                  {t.title}
+                </Typography>
+                <Typography sx={{ color: '#62748A', fontSize: '0.78rem' }}>{t.sub}</Typography>
+              </Box>
+            </>
+          );
+          const cellSx = {
+            display: 'flex',
+            gap: 1.25,
+            alignItems: 'flex-start',
+            pr: 1.5,
+            pl: i === 0 ? 0 : 1.5,
+            borderLeft: i === 0 ? 'none' : '1px solid #D9E2EC',
+            color: '#1976D2',
+          };
+          return 'to' in t && t.to ? (
+            <Box
+              key={t.title}
+              component={RouterLink}
+              to={t.to}
+              aria-label={`${t.title} — ${t.sub} ดูรายละเอียดที่หน้าช่วยเหลือ`}
+              sx={{
+                ...cellSx,
+                textDecoration: 'none',
+                borderRadius: '6px',
+                '&:hover .trust-title': { color: '#1976D2', textDecoration: 'underline' },
+                '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+              }}>
+              {content}
             </Box>
-          </Box>
-        ))}
+          ) : (
+            <Box key={t.title} sx={cellSx}>
+              {content}
+            </Box>
+          );
+        })}
       </Box>
 
     </Box>

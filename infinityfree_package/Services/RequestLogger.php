@@ -107,6 +107,9 @@ class RequestLogger
                 FILE_APPEND | LOCK_EX
             );
             self::$buffer = [];
+            if (class_exists('Logger') && method_exists('Logger', 'rotateIfOversized')) {
+                Logger::rotateIfOversized(self::getLogFile());
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, TextField, FormHelperText } from '@mui/material';
 import { Sparkles, CheckCircle2, BookOpen, AlertCircle, Check } from 'lucide-react';
+import { CONDITION_META } from '../ConditionBadge';
 
 interface ConditionOption {
    value: 'Excellent' | 'Very Good' | 'Good' | 'Acceptable';
@@ -12,25 +13,25 @@ interface ConditionOption {
 const CONDITION_OPTIONS: ConditionOption[] = [
    {
       value: 'Excellent',
-      title: 'เหมือนใหม่',
+      title: CONDITION_META.Excellent.short,
       description: 'แทบไม่มีรอย',
       icon: <Sparkles size={20} color="#1976D2" />,
    },
    {
       value: 'Very Good',
-      title: 'สภาพดี',
+      title: CONDITION_META['Very Good'].short,
       description: 'มีร่องรอยเล็กน้อย',
       icon: <CheckCircle2 size={20} color="#1976D2" />,
    },
    {
       value: 'Good',
-      title: 'พอใช้',
+      title: CONDITION_META.Good.short,
       description: 'มีร่องรอยใช้งาน',
       icon: <BookOpen size={20} color="#1976D2" />,
    },
    {
       value: 'Acceptable',
-      title: 'มีตำหนิ',
+      title: CONDITION_META.Acceptable.short,
       description: 'มีรอยชัดเจน',
       icon: <AlertCircle size={20} color="#1976D2" />,
    },

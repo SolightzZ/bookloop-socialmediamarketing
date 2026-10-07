@@ -98,26 +98,23 @@ $bodyContent = <<<HTML
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ยินดีต้อนรับสู่ BookLoop</title>
 </head>
-<body style="margin:0;padding:0;background:#EAF2FE;font-family:'Noto Sans Thai','Inter','Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#F8FBFF;font-family:'Noto Sans Thai','Inter','Helvetica Neue',Helvetica,Arial,sans-serif;">
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;padding:32px 16px;background:#EAF2FE;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;padding:32px 16px;background:#F8FBFF;">
     <tr>
         <td align="center">
-            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;margin:0 auto;background:#FFFFFF;border:1px solid #C9DDF7;border-radius:6px;overflow:hidden;">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #C9DDF7;border-radius:6px;overflow:hidden;">
 
                 <tr>
-                    <td style="background:#0F6CF0;font-size:0;line-height:0;height:6px;">&nbsp;</td>
+                    <td style="background:#0F6CF0;font-size:0;line-height:0;height:4px;">&nbsp;</td>
                 </tr>
 
                 <tr>
-                    <td style="padding:18px 32px;background:#FFFFFF;border-bottom:1px solid #C9DDF7;">
+                    <td style="padding:20px 28px;background:#FFFFFF;border-bottom:1px solid #C9DDF7;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td style="color:#0B2A5B;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.5px;">
-                                    BOOKLOOP<span style="color:#0F6CF0;">®</span>
-                                </td>
-                                <td style="text-align:right;color:#54749E;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;">
-                                    WELCOME / ต้อนรับ
+                                    <img src="cid:logo_image" alt="BookLoop" width="28" height="28" style="display:inline-block;width:28px;height:28px;vertical-align:-6px;margin-right:8px;border:0;">BOOKLOOP<span style="color:#0F6CF0;">®</span>
                                 </td>
                             </tr>
                         </table>
@@ -125,7 +122,7 @@ $bodyContent = <<<HTML
                 </tr>
 
                 <tr>
-                    <td style="padding:32px 32px 8px;background:#FFFFFF;">
+                    <td style="padding:32px 28px 20px;background:#FFFFFF;">
                         <div style="margin:0;color:#0F6CF0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;line-height:1.5;">
                             PERSONALIZED FOR YOU — คัดมาเพื่อคุณโดยเฉพาะ
                         </div>
@@ -140,7 +137,7 @@ $bodyContent = <<<HTML
                 </tr>
 
                 <tr>
-                    <td style="padding:20px 32px 0;background:#FFFFFF;">
+                    <td style="padding:20px 28px 0;background:#FFFFFF;">
                         <div style="margin:0 0 10px;color:#0B2A5B;font-family:'Noto Sans Thai',Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;">
                             สิ่งที่คุณสนใจ
                         </div>
@@ -151,7 +148,7 @@ $bodyContent = <<<HTML
                 </tr>
 
                 <tr>
-                    <td style="padding:12px 32px 0;background:#FFFFFF;">
+                    <td style="padding:12px 28px 0;background:#FFFFFF;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td style="padding:0 0 4px;border-bottom:2px solid #0B2A5B;color:#0B2A5B;font-family:'Noto Sans Thai',Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;">
@@ -162,7 +159,7 @@ $bodyContent = <<<HTML
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:4px 32px 8px;background:#FFFFFF;">
+                    <td style="padding:4px 28px 8px;background:#FFFFFF;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             {$bookRows}
                         </table>
@@ -170,14 +167,14 @@ $bodyContent = <<<HTML
                 </tr>
 
                 <tr>
-                    <td align="left" style="padding:16px 32px 10px;background:#FFFFFF;">
+                    <td align="left" style="padding:16px 28px 10px;background:#FFFFFF;">
                         <a href="{$bookloopUrl}" style="display:inline-block;padding:14px 28px;background:#0F6CF0;color:#FFFFFF;text-decoration:none;border-radius:6px;font-family:'Noto Sans Thai',Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;">
                             ดูหนังสือที่แนะนำ&nbsp; →
                         </a>
                     </td>
                 </tr>
                 <tr>
-                    <td align="left" style="padding:0 32px 28px;background:#FFFFFF;">
+                    <td align="left" style="padding:0 28px 28px;background:#FFFFFF;">
                         <a href="{$profileUrl}" style="color:#0F6CF0;font-family:'Noto Sans Thai',Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;text-decoration:underline;">
                             เลือกความสนใจเพิ่มเติม
                         </a>
@@ -185,7 +182,7 @@ $bodyContent = <<<HTML
                 </tr>
 
                 <tr>
-                    <td style="padding:24px 32px 28px;background:#0B2A5B;">
+                    <td style="padding:24px 28px 28px;background:#0B2A5B;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td style="color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.5px;">

@@ -7,6 +7,10 @@
 $checks = [];
 $appOk = true;
 $envError = '';
+$requestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+if (preg_match('/^(localhost|127\.0\.0\.1)(:\d+)?$/', $requestHost)) {
+    header('Permissions-Policy: unload=self');
+}
 
 // 1) config + .env โหลดได้หรือไม่ (config.php จะ throw ถ้าไม่มี .env)
 try {
@@ -837,6 +841,386 @@ if (($_GET['moderate_listing'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 
     exit();
 }
 
+// ─── Data explorer: ดู/เพิ่ม/แก้/ลบแถวใน data/ ผ่าน dashboard (ADMIN_TOKEN, fail-closed) ───
+// ?data_files=1 (GET) — รายชื่อไฟล์ + จำนวนแถว/ขนาด/kind
+// ?data_rows=1&file=X&q= (GET) — แถวทั้งหมด (cap 1000) + คอลัมน์ (union key)
+// ?data_row=1 (POST) — {file, action: create|update|delete, key, row}
+// กฎ: whitelist เฉพาะ basename .json ใน DATA_PATH (realpath กัน traversal),
+// .txt/.log อ่านอย่างเดียว, ฟิลด์ password ล็อกห้ามเขียน (แสดง •••),
+// ทุก write: backup .bak 1 ชุด + เขียนแบบ atomic (tmp + rename)
+if (!function_exists('bl_data_is_list')) {
+    function bl_data_is_list(array $a): bool
+    {
+        if ($a === []) return true;
+        return array_keys($a) === range(0, count($a) - 1);
+    }
+}
+if (!function_exists('bl_data_file_list')) {
+    function bl_data_file_list(string $dataDir): array
+    {
+        $out = [];
+        foreach ((array) glob($dataDir . '/*.{json,txt,log}', GLOB_BRACE) as $path) {
+            $path = (string) $path;
+            $name = basename($path);
+            if (str_ends_with($name, '.bak') || str_ends_with($name, '.tmp') || !is_file($path) || !is_readable($path)) {
+                continue;
+            }
+            $entry = [
+                'name' => $name,
+                'bytes' => (int) @filesize($path),
+                'mtime' => (int) @filemtime($path),
+                'writable' => false,
+                'kind' => 'lines',
+                'rows' => 0,
+            ];
+            if (str_ends_with($name, '.json')) {
+                $decoded = json_decode((string) @file_get_contents($path), true);
+                if (is_array($decoded)) {
+                    $entry['writable'] = true;
+                    $entry['kind'] = bl_data_is_list($decoded) ? 'list' : 'map';
+                    $entry['rows'] = count($decoded);
+                } else {
+                    $entry['kind'] = 'scalar';
+                }
+            } else {
+                $entry['rows'] = count(@file($path, FILE_IGNORE_NEW_LINES) ?: []);
+            }
+            $out[] = $entry;
+        }
+        usort($out, fn($a, $b) => strcmp($a['name'], $b['name']));
+        return $out;
+    }
+}
+if (!function_exists('bl_data_json')) {
+    // ตอบ JSON แล้วจบ (pattern เดียวกับ handler อื่นในไฟล์นี้)
+    function bl_data_json(array $payload, int $status = 200): void
+    {
+        while (ob_get_level() > 0 && ob_get_length() > 0) { ob_end_clean(); }
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        http_response_code($status);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+}
+if (!function_exists('bl_data_resolve')) {
+    // คืน [path, decoded] ของไฟล์ .json ใน whitelist หรือจบด้วย 4xx
+    function bl_data_resolve(string $dataDir, string $file): array
+    {
+        $file = basename(trim($file));
+        if ($file === '' || !str_ends_with($file, '.json')) {
+            bl_data_json(['success' => false, 'message' => 'ไฟล์ไม่ถูกต้อง (รองรับเฉพาะ .json ใน data/)'], 400);
+        }
+        $base = (string) realpath($dataDir);
+        $path = $dataDir . '/' . $file;
+        $real = realpath($path);
+        if ($real === false || dirname($real) !== $base || !is_readable($path)) {
+            bl_data_json(['success' => false, 'message' => 'ไม่พบไฟล์ข้อมูลนี้'], 404);
+        }
+        $decoded = json_decode((string) @file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            bl_data_json(['success' => false, 'message' => 'ไฟล์นี้ไม่ใช่ JSON object/array ที่แก้ไขได้'], 400);
+        }
+        return [$path, $decoded];
+    }
+}
+if (!function_exists('bl_data_row_key')) {
+    // คีย์ระบุแถว: ฟิลด์ id ก่อน, ไม่มีใช้ _idx (list) / _key (map)
+    function bl_data_row_key(array $row, $idx): string
+    {
+        if (isset($row['id']) && (is_string($row['id']) || is_numeric($row['id']))) {
+            return (string) $row['id'];
+        }
+        return (string) $idx;
+    }
+}
+
+// ?data_files=1 — รายชื่อไฟล์ใน data/
+if (($_GET['data_files'] ?? '') === '1' && !empty($checks['env']['ok'])) {
+    bl_require_admin_token();
+    bl_data_json(['success' => true, 'files' => bl_data_file_list($dataDir)]);
+}
+
+// ?data_rows=1&file=X&q= — แถว + คอลัมน์ (union key, cap 12 คอลัมน์ / 1000 แถว)
+if (($_GET['data_rows'] ?? '') === '1' && !empty($checks['env']['ok'])) {
+    bl_require_admin_token();
+    $rqFile = trim((string) ($_GET['file'] ?? ''));
+    if ($rqFile === '') {
+        bl_data_json(['success' => false, 'message' => 'กรุณาระบุ file'], 400);
+    }
+    // ไฟล์ .txt/.log: คืนเป็นบรรทัด (อ่านอย่างเดียว)
+    if (!str_ends_with(basename($rqFile), '.json')) {
+        $base = (string) realpath($dataDir);
+        $tpath = $dataDir . '/' . basename($rqFile);
+        $treal = realpath($tpath);
+        if ($treal === false || dirname($treal) !== $base || !is_readable($tpath)) {
+            bl_data_json(['success' => false, 'message' => 'ไม่พบไฟล์ข้อมูลนี้'], 404);
+        }
+        $lines = @file($tpath, FILE_IGNORE_NEW_LINES) ?: [];
+        $q = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
+        $rows = [];
+        foreach ($lines as $i => $ln) {
+            if ($q !== '' && mb_stripos((string) $ln, $q) === false) continue;
+            $rows[] = ['_idx' => $i, 'line' => mb_substr((string) $ln, 0, 500)];
+            if (count($rows) >= 1000) break;
+        }
+        bl_data_json(['success' => true, 'kind' => 'lines', 'writable' => false, 'total' => count($lines), 'columns' => ['line'], 'rows' => $rows, 'truncated' => count($rows) < count($lines)]);
+    }
+    [$rpath, $decoded] = bl_data_resolve($dataDir, $rqFile);
+    $isList = bl_data_is_list($decoded);
+    $q = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
+    $rows = [];
+    $colOrder = [];
+    foreach ($decoded as $idx => $item) {
+        $row = is_array($item) ? $item : ['_value' => $item];
+        if ($isList) {
+            $row['_idx'] = $idx;
+        } else {
+            $row['_key'] = (string) $idx;
+        }
+        if (array_key_exists('password', $row)) {
+            $row['password'] = '•••';
+        }
+        if ($q !== '' && mb_stripos(json_encode($row, JSON_UNESCAPED_UNICODE) ?: '', $q) === false) {
+            continue;
+        }
+        foreach ($row as $ck => $_) {
+            if (!in_array($ck, $colOrder, true)) $colOrder[] = $ck;
+        }
+        $rows[] = $row;
+        if (count($rows) >= 1000) break;
+    }
+    // password ไว้ท้ายสุดเสมอ (ถ้ามี)
+    $colOrder = array_values(array_filter($colOrder, fn($c) => $c !== 'password'));
+    if (!empty($decoded)) {
+        $hasPw = false;
+        foreach ($rows as $r) { if (array_key_exists('password', $r)) { $hasPw = true; break; } }
+        if ($hasPw) $colOrder[] = 'password';
+    }
+    // _idx/_key ไว้คอลัมน์แรก
+    foreach (['_key', '_idx'] as $meta) {
+        if (in_array($meta, $colOrder, true)) {
+            $colOrder = array_merge([$meta], array_values(array_filter($colOrder, fn($c) => $c !== $meta)));
+        }
+    }
+    $colOrder = array_slice($colOrder, 0, 12);
+    bl_data_json([
+        'success' => true,
+        'kind' => $isList ? 'list' : 'map',
+        'writable' => true,
+        'total' => count($decoded),
+        'columns' => $colOrder,
+        'rows' => $rows,
+        'truncated' => count($rows) >= 1000,
+    ]);
+}
+
+// ?data_row=1 (POST) — create/update/delete แถวเดียว
+if (($_GET['data_row'] ?? '') === '1' && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($checks['env']['ok'])) {
+    $raw = (string) file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        $data = $_POST;
+    }
+    bl_require_admin_token($data);
+    $wFile = trim((string) ($data['file'] ?? ''));
+    $action = trim((string) ($data['action'] ?? ''));
+    if (!in_array($action, ['create', 'update', 'delete'], true)) {
+        bl_data_json(['success' => false, 'message' => 'action ไม่ถูกต้อง (create/update/delete)'], 400);
+    }
+    [$wpath, $wdecoded] = bl_data_resolve($dataDir, $wFile);
+    $wIsList = bl_data_is_list($wdecoded);
+    $wKey = (string) ($data['key'] ?? '');
+    $wRow = $data['row'] ?? null;
+    if (in_array($action, ['create', 'update'], true) && !is_array($wRow)) {
+        bl_data_json(['success' => false, 'message' => 'row ต้องเป็น object'], 400);
+    }
+    if (is_array($wRow)) {
+        unset($wRow['_idx'], $wRow['_key']);
+        if (array_key_exists('password', $wRow)) {
+            bl_data_json(['success' => false, 'message' => 'ฟิลด์ password ล็อกไว้ เปลี่ยนผ่าน auth endpoints'], 400);
+        }
+    }
+    if ($wIsList) {
+        $found = null;
+        foreach ($wdecoded as $idx => $item) {
+            if (!is_array($item)) continue;
+            if ($wKey !== '' && bl_data_row_key($item, $idx) === $wKey) {
+                $found = $idx;
+                break;
+            }
+        }
+        if ($action === 'create') {
+            if ($found !== null) {
+                bl_data_json(['success' => false, 'message' => 'id นี้มีอยู่แล้ว'], 409);
+            }
+            $wdecoded[] = $wRow;
+            $msg = 'เพิ่มแถวใหม่แล้ว';
+        } else {
+            if ($wKey === '' || $found === null) {
+                bl_data_json(['success' => false, 'message' => 'ไม่พบแถวนี้'], 404);
+            }
+            if ($action === 'update') {
+                $base = is_array($wdecoded[$found]) ? $wdecoded[$found] : [];
+                $wdecoded[$found] = array_merge($base, $wRow);
+                $msg = 'แก้ไขแถวแล้ว';
+            } else {
+                array_splice($wdecoded, $found, 1);
+                $msg = 'ลบแถวถาวรแล้ว';
+            }
+        }
+    } else {
+        if ($wKey === '') {
+            bl_data_json(['success' => false, 'message' => 'กรุณาระบุ key'], 400);
+        }
+        if ($action === 'create') {
+            if (array_key_exists($wKey, $wdecoded)) {
+                bl_data_json(['success' => false, 'message' => 'key นี้มีอยู่แล้ว'], 409);
+            }
+            $wdecoded[$wKey] = $wRow;
+            $msg = 'เพิ่มแถวใหม่แล้ว';
+        } else {
+            if (!array_key_exists($wKey, $wdecoded)) {
+                bl_data_json(['success' => false, 'message' => 'ไม่พบแถวนี้'], 404);
+            }
+            if ($action === 'update') {
+                $base = is_array($wdecoded[$wKey]) ? $wdecoded[$wKey] : [];
+                $wdecoded[$wKey] = array_merge($base, $wRow);
+                $msg = 'แก้ไขแถวแล้ว';
+            } else {
+                unset($wdecoded[$wKey]);
+                $msg = 'ลบแถวถาวรแล้ว';
+            }
+        }
+    }
+    @copy($wpath, $wpath . '.bak');
+    $tmp = $wpath . '.tmp.' . bin2hex(random_bytes(4));
+    if (@file_put_contents($tmp, json_encode($wdecoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX) === false) {
+        @unlink($tmp);
+        bl_data_json(['success' => false, 'message' => 'เขียนไฟล์ไม่สำเร็จ'], 500);
+    }
+    if (!@rename($tmp, $wpath)) {
+        @unlink($tmp);
+        bl_data_json(['success' => false, 'message' => 'เขียนไฟล์ไม่สำเร็จ'], 500);
+    }
+    bl_data_json(['success' => true, 'message' => $msg, 'rows' => count($wdecoded)]);
+}
+
+// ?data_file=1 — อ่าน/เขียนไฟล์ JSON ทั้งไฟล์ (ADMIN_TOKEN, fail-closed)
+// GET ?data_file=1&file=X → content ทั้งไฟล์ (mask password เป็น •••)
+// POST ?data_file=1 {file, content} → แทนที่ทั้งไฟล์ (คืนค่า password เดิมทุกแถว — password ล็อกเสมอ)
+if (!function_exists('bl_data_mask_passwords')) {
+    function bl_data_mask_passwords($data)
+    {
+        if (!is_array($data)) {
+            return $data;
+        }
+        foreach ($data as $k => $v) {
+            if ($k === 'password') {
+                $data[$k] = '•••';
+            } elseif (is_array($v)) {
+                $data[$k] = bl_data_mask_passwords($v);
+            }
+        }
+        return $data;
+    }
+}
+if (!function_exists('bl_data_orig_pw_map')) {
+    // map password เดิมไว้คืนค่าตอนเซฟ: list → id (มี id) / idx:N, map → key
+    function bl_data_orig_pw_map($decoded): array
+    {
+        $map = [];
+        if (!is_array($decoded)) {
+            return $map;
+        }
+        $isList = bl_data_is_list($decoded);
+        foreach ($decoded as $idx => $item) {
+            if (!is_array($item) || !array_key_exists('password', $item)) {
+                continue;
+            }
+            $k = $isList
+                ? (isset($item['id']) && (is_string($item['id']) || is_numeric($item['id'])) ? (string) $item['id'] : 'idx:' . $idx)
+                : (string) $idx;
+            $map[$k] = $item['password'];
+        }
+        return $map;
+    }
+}
+if (($_GET['data_file'] ?? '') === '1' && !empty($checks['env']['ok'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        bl_require_admin_token();
+        [$gpath, $gdecoded] = bl_data_resolve($dataDir, trim((string) ($_GET['file'] ?? '')));
+        $gout = json_encode(bl_data_mask_passwords($gdecoded), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        if ($gout === false) {
+            bl_data_json(['success' => false, 'message' => 'อ่านไฟล์ไม่สำเร็จ'], 500);
+        }
+        bl_data_json([
+            'success' => true,
+            'file' => basename($gpath),
+            'kind' => bl_data_is_list($gdecoded) ? 'list' : 'map',
+            'content' => $gout,
+        ]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = (string) file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            $data = $_POST;
+        }
+        bl_require_admin_token($data);
+        $content = (string) ($data['content'] ?? '');
+        if ($content === '' || strlen($content) > 2097152) {
+            bl_data_json(['success' => false, 'message' => 'เนื้อหา JSON ว่างเปล่าหรือใหญ่เกินไป (สูงสุด 2MB)'], 400);
+        }
+        [$fpath, $forig] = bl_data_resolve($dataDir, trim((string) ($data['file'] ?? '')));
+        $fnew = json_decode($content, true);
+        if (!is_array($fnew)) {
+            bl_data_json(['success' => false, 'message' => 'JSON ไม่ถูกต้อง: ' . json_last_error_msg()], 400);
+        }
+        if (bl_data_is_list($forig) !== bl_data_is_list($fnew)) {
+            bl_data_json(['success' => false, 'message' => 'โครงสร้างต้องเป็นแบบเดิม (list หรือ map อย่างใดอย่างหนึ่ง)'], 400);
+        }
+        $origPw = bl_data_orig_pw_map($forig);
+        $fIsList = bl_data_is_list($fnew);
+        foreach ($fnew as $fidx => &$frow) {
+            if (!is_array($frow)) {
+                continue;
+            }
+            $fk = $fIsList
+                ? (isset($frow['id']) && (is_string($frow['id']) || is_numeric($frow['id'])) ? (string) $frow['id'] : 'idx:' . $fidx)
+                : (string) $fidx;
+            if (array_key_exists('password', $frow)) {
+                if ($frow['password'] !== '•••') {
+                    bl_data_json(['success' => false, 'message' => 'ฟิลด์ password ล็อกไว้ เปลี่ยนผ่าน auth endpoints'], 400);
+                }
+                if (array_key_exists($fk, $origPw)) {
+                    $frow['password'] = $origPw[$fk];
+                } else {
+                    unset($frow['password']);
+                }
+            } elseif (array_key_exists($fk, $origPw)) {
+                $frow['password'] = $origPw[$fk];
+            }
+        }
+        unset($frow);
+        $fout = json_encode($fnew, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        if ($fout === false) {
+            bl_data_json(['success' => false, 'message' => 'บันทึกไม่ได้ (เข้ารหัส JSON ไม่สำเร็จ)'], 500);
+        }
+        @copy($fpath, $fpath . '.bak');
+        $ftmp = $fpath . '.tmp.' . bin2hex(random_bytes(4));
+        if (@file_put_contents($ftmp, $fout, LOCK_EX) === false) {
+            @unlink($ftmp);
+            bl_data_json(['success' => false, 'message' => 'เขียนไฟล์ไม่สำเร็จ'], 500);
+        }
+        if (!@rename($ftmp, $fpath)) {
+            @unlink($ftmp);
+            bl_data_json(['success' => false, 'message' => 'เขียนไฟล์ไม่สำเร็จ'], 500);
+        }
+        bl_data_json(['success' => true, 'message' => 'บันทึกทั้งไฟล์แล้ว', 'rows' => count($fnew)]);
+    }
+}
+
 
 $isJson = (($_GET['format'] ?? '') === 'json');
 // poll=1 = dashboard เรียลไทม์เรียกเอง: ส่ง 200 เสมอ กัน console ขึ้น 500 หลอกตอนระบบมีปัญหา
@@ -1453,7 +1837,7 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   /* ═══ Asymmetric 2-Column Split ═══ */
   .swiss-split {
     display: grid;
-    grid-template-columns: 5fr 7fr;
+    grid-template-columns: 1fr 1fr;
     gap: 24px;
     align-items: start;
   }
@@ -1462,6 +1846,8 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     flex-direction: column;
     gap: 24px;
   }
+  /* 4 overview cards สมมาตร: ระยะห่างใช้ gap อย่างเดียว ไม่ซ้อน margin */
+  .swiss-col .card { margin-bottom: 0; }
 
   /* ═══ Swiss Structural Cards ═══ */
   .card {
@@ -1482,9 +1868,15 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     border-bottom: 1px solid var(--border-hairline);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 8px;
+  }
+  /* หัวข้อชิดซ้ายตาม Swiss grid — subtitle (.soft ท้ายสุด) เท่านั้นที่ชิดขวา (เฉพาะ desktop) */
+  @media (min-width: 541px) {
+    .card h2 > .soft:last-child {
+      margin-left: auto;
+    }
   }
   .check {
     display: flex;
@@ -1850,6 +2242,9 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
   }
   .row-flex button { cursor: pointer; background: var(--swiss-blue); border-color: var(--swiss-blue); font-weight: 600; color: #fff; }
   .row-flex button:hover { background: var(--swiss-blue-hover); }
+  /* ลิงก์ทดสอบ API: ปุ่มสมมาตร 2 คอลัมน์ เต็มความกว้างเท่ากัน */
+  .api-link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .api-link-grid .btn { width: 100%; }
 
   .mono { font-family: var(--font-mono, monospace); }
   .soft { color: var(--text-muted); font-weight: 400; font-size: 12px; }
@@ -1992,7 +2387,17 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       font-size: 12px;
       gap: 12px;
       padding: 8px 0;
+      flex-wrap: wrap;
+      row-gap: 6px;
     }
+    .check > span:first-child {
+      min-width: 0;
+      flex: 1 1 180px;
+      overflow-wrap: anywhere;
+    }
+    /* Overview 2-col tables (PHP env): fit without h-scroll; 4-col logs keep scroll */
+    .req-wrap--fit table { min-width: 0; }
+    .req-wrap--fit th, .req-wrap--fit td { white-space: normal; overflow-wrap: anywhere; }
     th, td {
       padding: 8px 10px;
       font-size: 12px;
@@ -2052,6 +2457,7 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
       min-height: 44px;
       font-size: 13px;
     }
+    .api-link-grid { grid-template-columns: 1fr; }
     .btn {
       min-height: 44px;
       font-size: 12px;
@@ -2067,6 +2473,15 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
     .stat .n { font-size: 20px; }
     .stat .l { font-size: 9px; letter-spacing: 0.04em; }
     .req-wrap table { min-width: 500px; }
+    /* 4 overview divs: PHP-env 2-col fits without h-scroll; .check wraps (wins over 500px floor) */
+    .req-wrap--fit table { min-width: 0; }
+    .req-wrap--fit th, .req-wrap--fit td { white-space: normal; overflow-wrap: anywhere; }
+    .swiss-split .check { flex-wrap: wrap; row-gap: 6px; }
+    .swiss-split .check > span:first-child { min-width: 0; flex: 1 1 180px; overflow-wrap: anywhere; }
+    /* 393px: overview tables fit container — no h-scroll in these 4 cards */
+    #p-overview .req-wrap table { min-width: 0; width: 100%; table-layout: auto; }
+    #p-overview .req-wrap th, #p-overview .req-wrap td { white-space: normal; overflow-wrap: anywhere; }
+    #p-overview .req-wrap td.mono, #p-overview .req-wrap td.path { word-break: break-all; }
     pre.out, .code {
       font-size: 11px;
       padding: 10px;
@@ -2156,6 +2571,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
     <button class="tab" data-pane="p-logs" id="tab-logs" role="tab" aria-selected="false" aria-controls="p-logs" type="button"><?= bl_icon('log') ?>Logs</button>
     <button class="tab" data-pane="p-ep" id="tab-ep" role="tab" aria-selected="false" aria-controls="p-ep" type="button"><?= bl_icon('plug') ?>Endpoints (<span id="epCount"><?= count($endpoints) ?></span>)</button>
     <button class="tab" data-pane="p-listings" id="tab-listings" role="tab" aria-selected="false" aria-controls="p-listings" type="button"><?= bl_icon('box') ?>รายการลงขาย<?= $pendingCount > 0 ? ' <span class="tab-badge">' . $pendingCount . ' รอ</span>' : '' ?></button>
+    <button class="tab" data-pane="p-data" id="tab-data" role="tab" aria-selected="false" aria-controls="p-data" type="button"><?= bl_icon('server') ?>ข้อมูล</button>
     <button class="tab" data-pane="p-tools" id="tab-tools" role="tab" aria-selected="false" aria-controls="p-tools" type="button"><?= bl_icon('tools') ?>เครื่องมือ</button>
   </div>
 
@@ -2316,7 +2732,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
 
         <div class="card">
           <h2><?= bl_icon('server') ?>สภาพแวดล้อม PHP</h2>
-          <div class="req-wrap">
+          <div class="req-wrap req-wrap--fit">
           <table>
             <thead>
               <tr><th scope="col">หัวข้อ</th><th scope="col">ค่า</th></tr>
@@ -2433,15 +2849,16 @@ GENERATED_IMAGES_PATH=images/generated</div>
     <div class="card">
       <h2><?= bl_icon('box') ?>จัดการและอนุมัติรายการลงขาย <span class="soft" id="listingsPendingBadge">(<?= $pendingCount ?> รอตรวจสอบ)</span></h2>
       <p class="hint">จัดการสถานะหนังสือ: อนุมัติ, หยุดขาย หรือลบรายการ (ต้องเข้าสู่ระบบด้วย ADMIN_TOKEN)</p>
-      <div class="row-flex" id="adminLoginBar" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap">
+      <form class="row-flex" id="adminLoginBar" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap" action="#" onsubmit="return false">
+        <input type="text" id="adminUser" name="username" value="admin" autocomplete="username" aria-label="ชื่อผู้ใช้ผู้ดูแล" tabindex="-1" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0;pointer-events:none" readonly>
         <div style="position:relative;display:inline-flex;align-items:center;flex:1;min-width:240px">
-          <input type="password" id="adminPass" class="text-input" style="width:100%;padding-right:42px" placeholder="รหัสผู้ดูแล (ADMIN_TOKEN)" aria-label="รหัสผู้ดูแล" autocomplete="current-password">
+          <input type="password" id="adminPass" name="password" class="text-input" style="width:100%;padding-right:42px" placeholder="รหัสผู้ดูแล (ADMIN_TOKEN)" aria-label="รหัสผู้ดูแล" autocomplete="current-password">
           <button type="button" id="adminPassToggle" class="pwd-toggle-btn" style="position:absolute;right:3px;top:3px;bottom:3px;border:none;min-height:auto;padding:4px 8px" aria-label="แสดง/ซ่อนรหัสผ่าน"><?= bl_icon('eye') ?></button>
         </div>
         <button type="button" id="adminLoginBtn" class="btn"><?= bl_icon('lock') ?>เข้าสู่ระบบผู้ดูแล</button>
         <button type="button" id="adminLogoutBtn" class="btn ghost" style="display:none"><?= bl_icon('x') ?>ออกจากระบบ</button>
         <span class="soft" id="adminLoginState">ยังไม่ได้เข้าสู่ระบบ</span>
-      </div>
+      </form>
       <div id="modToast" class="mod-toast" role="status" aria-live="polite"></div>
       <div class="row-flex" style="margin-bottom:12px;gap:8px">
         <button type="button" id="listingsReload" class="btn"><?= bl_icon('refresh') ?>โหลดรายการใหม่ (รีเฟรช)</button>
@@ -2504,6 +2921,61 @@ GENERATED_IMAGES_PATH=images/generated</div>
     </div>
   </div>
 
+  <!-- ═══ ข้อมูล (data/) ═══ -->
+  <div class="pane" id="p-data" role="tabpanel" aria-labelledby="tab-data">
+    <div class="card">
+      <h2><?= bl_icon('server') ?>ข้อมูลใน data/ <span class="soft" id="dataFileMeta"></span></h2>
+      <p class="hint">ดู เพิ่ม แก้ไข ลบ แถว หรือแก้ทั้งไฟล์ JSON (txt/log อ่านอย่างเดียว, ฟิลด์ password ล็อกไว้) — ต้องเข้าสู่ระบบด้วย ADMIN_TOKEN</p>
+      <form class="row-flex" id="dataAdminBar" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap" action="#" onsubmit="return false">
+        <input type="text" id="dataAdminUser" name="username" value="admin" autocomplete="username" aria-label="ชื่อผู้ใช้ผู้ดูแล" tabindex="-1" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0;pointer-events:none" readonly>
+        <div style="position:relative;display:inline-flex;align-items:center;flex:1;min-width:240px">
+          <input type="password" id="dataAdminPass" name="password" class="text-input" style="width:100%;padding-right:42px" placeholder="รหัสผู้ดูแล (ADMIN_TOKEN)" aria-label="รหัสผู้ดูแล" autocomplete="current-password">
+          <button type="button" id="dataAdminPassToggle" class="pwd-toggle-btn" style="position:absolute;right:3px;top:3px;bottom:3px;border:none;min-height:auto;padding:4px 8px" aria-label="แสดง/ซ่อนรหัสผ่าน"><?= bl_icon('eye') ?></button>
+        </div>
+        <button type="button" id="dataAdminLoginBtn" class="btn"><?= bl_icon('lock') ?>เข้าสู่ระบบผู้ดูแล</button>
+        <button type="button" id="dataAdminLogoutBtn" class="btn ghost" style="display:none"><?= bl_icon('x') ?>ออกจากระบบ</button>
+        <span class="soft" id="dataAdminLoginState">ยังไม่ได้เข้าสู่ระบบ</span>
+      </form>
+      <div id="dataToast" class="mod-toast" role="status" aria-live="polite" style="display:none"></div>
+      <div class="row-flex" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="dataFileSel" class="text-input" style="flex:1;min-width:220px" aria-label="เลือกไฟล์ข้อมูล">
+          <option value="">— เลือกไฟล์ —</option>
+        </select>
+        <button type="button" id="dataReload" class="btn"><?= bl_icon('refresh') ?>โหลดใหม่</button>
+        <button type="button" id="dataAddRow" class="btn ghost"><?= bl_icon('check') ?>เพิ่มแถว</button>
+        <button type="button" id="dataEditFile" class="btn ghost"><?= bl_icon('wrench') ?>แก้ไขทั้งไฟล์ (JSON)</button>
+      </div>
+      <div class="row-flex" style="margin-bottom:12px;gap:8px;align-items:center">
+        <input type="search" id="dataSearch" class="text-input" style="flex:1;min-width:200px" placeholder="ค้นหาในตาราง…" aria-label="ค้นหาในตาราง">
+        <span class="soft mono" id="dataCount" style="font-size:11px;white-space:nowrap"></span>
+      </div>
+      <div class="req-wrap">
+      <table id="dataTable">
+        <thead id="dataHead"></thead>
+        <tbody id="dataBody">
+          <tr><td class="soft" style="text-align:center;padding:24px">เลือกไฟล์แล้วกดโหลดใหม่ (ต้องเข้าสู่ระบบผู้ดูแลก่อน)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="row-flex" style="margin-top:12px;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <span class="soft mono" id="dataPageInfo" style="font-size:11px"></span>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="dataPrev" class="btn ghost">← ก่อนหน้า</button>
+          <button type="button" id="dataNext" class="btn ghost">ถัดไป →</button>
+        </div>
+      </div>
+      <div id="dataEditor" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-hairline)">
+        <h2 id="dataEditorTitle">แก้ไขแถว</h2>
+        <p class="hint">แก้ JSON ระดับแถว หรือกด «แก้ไขทั้งไฟล์» เพื่อแก้ทั้งไฟล์แล้วบันทึก (ฟิลด์ password ล็อกไว้เสมอ, _idx/_key ใช้อ้างอิงแถวเท่านั้น)</p>
+        <textarea id="dataEditorJson" class="mono" rows="12" spellcheck="false" style="width:100%;background:#090D16;border:1px solid #1E293B;border-radius:8px;color:#E2E8F0;padding:12px;font-size:12px;line-height:1.6;box-sizing:border-box" aria-label="ข้อมูลแถวรูปแบบ JSON"></textarea>
+        <div class="row-flex" style="margin-top:12px;gap:8px">
+          <button type="button" id="dataEditorSave" class="btn"><?= bl_icon('check') ?>บันทึก</button>
+          <button type="button" id="dataEditorCancel" class="btn ghost"><?= bl_icon('x') ?>ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ เครื่องมือ ═══ -->
   <div class="pane" id="p-tools" role="tabpanel" aria-labelledby="tab-tools">
     <div class="card">
@@ -2545,10 +3017,11 @@ GENERATED_IMAGES_PATH=images/generated</div>
         <a class="btn" href="<?= $BACKEND_BASE ?>/email/subscribe_form.php"><?= bl_icon('mail') ?>ฟอร์มทดสอบอีเมล</a>
         <a class="btn ghost" href="<?= $BACKEND_BASE ?>/api/auth_me.php"><?= bl_icon('plug') ?>เทส API</a>
       </p>
-      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-        <div><a href="<?= $BASE_URL ?>/?format=json">ดูสถานะแบบ JSON</a> · <a href="<?= $BACKEND_BASE ?>/api/">api/ รายชื่อ endpoint (JSON)</a></div>
-        <div><a href="<?= $BACKEND_BASE ?>/api/auth_me.php">api/auth_me.php</a> <span class="soft">(ต้องได้ JSON)</span></div>
-        <div><a href="<?= $BACKEND_BASE ?>/email/subscribe_form.php">ฟอร์ม subscribe ทดสอบ</a></div>
+      <div class="api-link-grid">
+        <a class="btn ghost" href="<?= $BASE_URL ?>/?format=json"><?= bl_icon('chart') ?>ดูสถานะแบบ JSON</a>
+        <a class="btn ghost" href="<?= $BACKEND_BASE ?>/api/"><?= bl_icon('plug') ?>api/ รายชื่อ endpoint</a>
+        <a class="btn ghost" href="<?= $BACKEND_BASE ?>/api/auth_me.php"><?= bl_icon('lock') ?>api/auth_me.php (JSON)</a>
+        <a class="btn ghost" href="<?= $BACKEND_BASE ?>/email/subscribe_form.php"><?= bl_icon('mail') ?>ฟอร์ม subscribe ทดสอบ</a>
       </div>
     </div>
   </div>
@@ -3252,7 +3725,8 @@ GENERATED_IMAGES_PATH=images/generated</div>
       reloadListings();
     }
     if (inBtn) inBtn.addEventListener('click', doLogin);
-    if (pass) pass.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    var loginForm = document.getElementById('adminLoginBar');
+    if (loginForm && loginForm.tagName === 'FORM') loginForm.addEventListener('submit', function (e) { e.preventDefault(); doLogin(); });
     if (outBtn) outBtn.addEventListener('click', function () {
       setAdminToken('');
       if (listingsBody) listingsBody.innerHTML = '<tr><td colspan="6" class="soft" style="text-align:center;padding:24px">ออกจากระบบแล้ว — เข้าสู่ระบบผู้ดูแลเพื่อดูรายการ</td></tr>';
@@ -3349,7 +3823,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       };
       var label = labels[action] || action;
       var confirmMsg = action === 'delete_permanent'
-        ? '⚠️ คำเตือน: ยืนยันลบรายการและไฟล์รูปภาพนี้ถาวรจริงหรือไม่? (ID: ' + id.slice(0, 12) + '…)\nการกระทำนี้ไม่สามารถย้อนกลับได้!'
+        ? 'คำเตือน: ยืนยันลบรายการและไฟล์รูปภาพนี้ถาวรจริงหรือไม่? (ID: ' + id.slice(0, 12) + '…)\nการกระทำนี้ไม่สามารถย้อนกลับได้!'
         : (action === 'archive' || action === 'delete'
           ? 'ยืนยันย้ายรายการนี้ไปเก็บถาวร? (ข้อมูลและรูปภาพยังคงอยู่ สามารถกู้คืนได้ภายหลัง)'
           : 'ยืนยัน' + label + 'รายการนี้ (ID: ' + id.slice(0, 12) + '…)?');
@@ -3457,6 +3931,327 @@ GENERATED_IMAGES_PATH=images/generated</div>
   }
 
   attachModerationHandlers(listingsBody);
+})();
+
+// ═══ Data explorer (data/) — ตาราง + ค้นหา + เพจ + เพิ่ม/แก้/ลบแถว ═══
+(function () {
+  var BASE = <?= json_encode($BASE_URL, JSON_UNESCAPED_SLASHES) ?>;
+  var PAGE_SIZE = 20;
+  var st = { files: [], file: '', kind: '', writable: false, cols: [], rows: [], page: 0, q: '', editKey: null, editAction: 'update', editMode: 'row' };
+  function $(id) { return document.getElementById(id); }
+  // auth helpers ของแท็บนี้โดยเฉพาะ (อ่าน sessionStorage คีย์เดียวกับแท็บรายการลงขาย
+  // แต่ไม่พึ่งฟังก์ชันใน IIFE อื่น — กัน ReferenceError เรื่องลำดับสคริปต์)
+  function dAdminToken() {
+    try { return sessionStorage.getItem('bookloop_admin_token') || ''; } catch (e) { return ''; }
+  }
+  function dSetAdminToken(t) {
+    try {
+      if (t) sessionStorage.setItem('bookloop_admin_token', t);
+      else sessionStorage.removeItem('bookloop_admin_token');
+    } catch (e) {}
+    syncDataLoginBar();
+  }
+  function dAdminHeaders() {
+    return { 'X-Admin-Token': dAdminToken() };
+  }
+  function dHandleAuthFail() {
+    dSetAdminToken('');
+    toast('รหัสผู้ดูแลไม่ถูกต้อง', false);
+  }
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function toast(msg, ok) {
+    var t = $('dataToast');
+    if (!t) return;
+    t.className = 'mod-toast ' + (ok ? 'ok' : 'err');
+    t.textContent = msg;
+    t.style.display = 'flex';
+    setTimeout(function () { if (t) t.style.display = 'none'; }, 5000);
+  }
+  function fmtCell(v) {
+    if (v === null || v === undefined) return '<span class="soft">—</span>';
+    if (typeof v === 'object') {
+      var s = JSON.stringify(v);
+      if (s.length > 80) s = s.slice(0, 80) + '…';
+      return '<span class="mono" style="font-size:11px">' + esc(s) + '</span>';
+    }
+    var str = String(v);
+    if (str.length > 80) str = str.slice(0, 80) + '…';
+    return '<span class="mono" style="font-size:11px">' + esc(str) + '</span>';
+  }
+  function rowKey(r) {
+    if (r._key !== undefined) return String(r._key);
+    if (r.id !== undefined) return String(r.id);
+    return String(r._idx);
+  }
+  async function api(path, opts) {
+    var r = await fetch(BASE + path, opts || { cache: 'no-store', headers: dAdminHeaders() });
+    var j = null;
+    try { j = JSON.parse(await r.text()); } catch (e) { j = null; }
+    if (r.status === 403) { dHandleAuthFail(); }
+    return { status: r.status, json: j };
+  }
+  function syncDataLoginBar() {
+    var logged = dAdminToken() !== '';
+    var p = $('dataAdminPass'), ib = $('dataAdminLoginBtn'), ob = $('dataAdminLogoutBtn'), s = $('dataAdminLoginState');
+    if (p) p.style.display = logged ? 'none' : '';
+    var pt = $('dataAdminPassToggle');
+    if (pt) pt.style.display = logged ? 'none' : '';
+    if (ib) ib.style.display = logged ? 'none' : '';
+    if (ob) ob.style.display = logged ? '' : 'none';
+    if (s) s.textContent = logged ? 'เข้าสู่ระบบแล้ว' : 'ยังไม่ได้เข้าสู่ระบบ';
+  }
+  async function loadFiles() {
+    if (!dAdminToken()) {
+      $('dataBody').innerHTML = '<tr><td class="soft" style="text-align:center;padding:24px">กรุณาเข้าสู่ระบบผู้ดูแลก่อนดูข้อมูล</td></tr>';
+      return;
+    }
+    var res = await api('/?data_files=1');
+    var j = res.json;
+    if (!j || !j.success || !Array.isArray(j.files)) {
+      toast((j && j.message) || ('โหลดรายชื่อไฟล์ไม่ได้ (HTTP ' + res.status + ')'), false);
+      return;
+    }
+    st.files = j.files;
+    var sel = $('dataFileSel');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">— เลือกไฟล์ (' + j.files.length + ') —</option>' + j.files.map(function (f) {
+      var tag = f.writable ? (f.kind + ' · ' + f.rows + ' แถว') : 'อ่านอย่างเดียว · ' + f.rows + ' บรรทัด';
+      return '<option value="' + esc(f.name) + '">' + esc(f.name) + ' — ' + esc(tag) + '</option>';
+    }).join('');
+    if (cur && j.files.some(function (f) { return f.name === cur; })) sel.value = cur;
+    var m = $('dataFileMeta');
+    if (m) m.textContent = '(' + j.files.length + ' ไฟล์)';
+  }
+  async function loadRows() {
+    var f = $('dataFileSel').value;
+    if (!f) {
+      $('dataBody').innerHTML = '<tr><td class="soft" style="text-align:center;padding:24px">เลือกไฟล์ก่อน</td></tr>';
+      return;
+    }
+    if (!dAdminToken()) {
+      $('dataBody').innerHTML = '<tr><td class="soft" style="text-align:center;padding:24px">กรุณาเข้าสู่ระบบผู้ดูแลก่อนดูข้อมูล</td></tr>';
+      return;
+    }
+    $('dataBody').innerHTML = '<tr><td class="soft" style="text-align:center;padding:24px">กำลังโหลด…</td></tr>';
+    var res = await api('/?data_rows=1&file=' + encodeURIComponent(f));
+    var j = res.json;
+    if (!j || !j.success) {
+      $('dataBody').innerHTML = '<tr><td class="soft" style="text-align:center;padding:24px">' + esc((j && j.message) || 'โหลดไม่ได้') + '</td></tr>';
+      toast((j && j.message) || 'โหลดไม่ได้', false);
+      return;
+    }
+    st.file = f;
+    st.kind = j.kind;
+    st.writable = !!j.writable;
+    st.cols = Array.isArray(j.columns) ? j.columns : [];
+    st.rows = Array.isArray(j.rows) ? j.rows : [];
+    st.page = 0;
+    hideEditor();
+    renderTable();
+    var addBtn = $('dataAddRow');
+    if (addBtn) addBtn.style.display = st.writable ? '' : 'none';
+    var fileBtn = $('dataEditFile');
+    if (fileBtn) fileBtn.style.display = st.writable ? '' : 'none';
+  }
+  function filteredRows() {
+    var q = st.q.trim().toLowerCase();
+    if (!q) return st.rows;
+    return st.rows.filter(function (r) {
+      return JSON.stringify(r).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  function renderTable() {
+    var head = $('dataHead'), body = $('dataBody');
+    var cols = st.cols.length ? st.cols : ['line'];
+    var nCols = cols.length + (st.writable ? 1 : 0);
+    head.innerHTML = '<tr><th scope="col" style="width:44px;text-align:center">#</th>' +
+      cols.map(function (c) { return '<th scope="col">' + esc(c) + '</th>'; }).join('') +
+      (st.writable ? '<th scope="col" style="width:120px">จัดการ</th>' : '') + '</tr>';
+    var rows = filteredRows();
+    var pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (st.page >= pages) st.page = pages - 1;
+    var slice = rows.slice(st.page * PAGE_SIZE, st.page * PAGE_SIZE + PAGE_SIZE);
+    if (!slice.length) {
+      body.innerHTML = '<tr><td colspan="' + nCols + '" class="soft" style="text-align:center;padding:24px">ไม่มีแถว' + (st.q ? 'ตรงคำค้น' : 'ในไฟล์นี้') + '</td></tr>';
+    } else {
+      body.innerHTML = slice.map(function (r, i) {
+        var key = rowKey(r);
+        var tds = cols.map(function (c) {
+          if (c === 'password') return '<td class="mono soft">•••</td>';
+          return '<td>' + fmtCell(r[c]) + '</td>';
+        }).join('');
+        var act = st.writable
+          ? '<td style="white-space:nowrap"><button type="button" class="btn ghost" data-dedit="' + esc(key) + '">แก้ไข</button> <button type="button" class="btn ghost" data-ddel="' + esc(key) + '">ลบ</button></td>'
+          : '';
+        return '<tr data-dkey="' + esc(key) + '"><td class="mono soft" style="text-align:center">' + (st.page * PAGE_SIZE + i + 1) + '</td>' + tds + act + '</tr>';
+      }).join('');
+    }
+    $('dataPageInfo').textContent = 'หน้า ' + (st.page + 1) + '/' + pages + ' · ' + rows.length + '/' + st.rows.length + ' แถว';
+    var c = $('dataCount');
+    if (c) c.textContent = st.file + ' · ' + st.kind + (st.writable ? '' : ' · อ่านอย่างเดียว');
+  }
+  function showEditor(title, obj) {
+    st.editMode = 'row';
+    st.editAction = title === 'create' ? 'create' : 'update';
+    $('dataEditorTitle').textContent = title === 'create' ? 'เพิ่มแถวใหม่ใน ' + st.file : 'แก้ไขแถวใน ' + st.file;
+    $('dataEditorJson').value = JSON.stringify(obj, null, 2);
+    $('dataEditor').style.display = 'block';
+    $('dataEditor').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideEditor() {
+    st.editKey = null;
+    st.editMode = 'row';
+    var e = $('dataEditor');
+    if (e) e.style.display = 'none';
+  }
+  async function saveEditor() {
+    if (st.editMode === 'file') {
+      var rawText = $('dataEditorJson').value;
+      try { JSON.parse(rawText); } catch (e) {
+        toast('JSON ไม่ถูกต้อง: ' + String((e && e.message) || e), false);
+        return;
+      }
+      var fres = await api('/?data_file=1', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: (function (h) { h['Content-Type'] = 'application/json'; return h; })(dAdminHeaders()),
+        body: JSON.stringify({ file: st.file, content: rawText })
+      });
+      var fj = fres.json;
+      if (fj && fj.success) {
+        toast(fj.message || 'บันทึกแล้ว', true);
+        hideEditor();
+        await loadFiles();
+        var fsel = $('dataFileSel');
+        if (fsel) fsel.value = st.file;
+        await loadRows();
+      } else {
+        toast((fj && fj.message) || ('บันทึกไม่ได้ (HTTP ' + fres.status + ')'), false);
+      }
+      return;
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse($('dataEditorJson').value);
+    } catch (e) {
+      toast('JSON ไม่ถูกต้อง: ' + String((e && e.message) || e), false);
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      toast('row ต้องเป็น object', false);
+      return;
+    }
+    var key = st.editKey;
+    if (st.kind === 'map' && parsed._key !== undefined && String(parsed._key) !== '') {
+      key = String(parsed._key);
+    }
+    var payload = { file: st.file, action: st.editAction, key: key, row: parsed };
+    var res = await api('/?data_row=1', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: (function (h) { h['Content-Type'] = 'application/json'; return h; })(dAdminHeaders()),
+      body: JSON.stringify(payload)
+    });
+    var j = res.json;
+    if (j && j.success) {
+      toast(j.message || 'บันทึกแล้ว', true);
+      hideEditor();
+      await loadFiles();
+      var sel = $('dataFileSel');
+      if (sel) sel.value = st.file;
+      await loadRows();
+    } else {
+      toast((j && j.message) || ('บันทึกไม่ได้ (HTTP ' + res.status + ')'), false);
+    }
+  }
+  var tbody = $('dataBody');
+  if (tbody) tbody.addEventListener('click', async function (e) {
+    var eb = e.target.closest('[data-dedit]');
+    var db = e.target.closest('[data-ddel]');
+    if (eb) {
+      var k = eb.getAttribute('data-dedit');
+      var found = st.rows.filter(function (r) { return rowKey(r) === k; })[0];
+      if (!found) { toast('ไม่พบแถวนี้', false); return; }
+      var copy = JSON.parse(JSON.stringify(found));
+      delete copy._idx;
+      st.editKey = k;
+      showEditor('update', copy);
+      return;
+    }
+    if (db) {
+      var dk = db.getAttribute('data-ddel');
+      if (!window.confirm('ลบแถวนี้ถาวร? (' + st.file + ' / ' + dk + ')')) return;
+      var res = await api('/?data_row=1', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: (function (h) { h['Content-Type'] = 'application/json'; return h; })(dAdminHeaders()),
+        body: JSON.stringify({ file: st.file, action: 'delete', key: dk })
+      });
+      var j = res.json;
+      if (j && j.success) {
+        toast(j.message || 'ลบแล้ว', true);
+        await loadRows();
+      } else {
+        toast((j && j.message) || ('ลบไม่ได้ (HTTP ' + res.status + ')'), false);
+      }
+    }
+  });
+  var rel = $('dataReload');
+  if (rel) rel.addEventListener('click', async function () { await loadFiles(); await loadRows(); });
+  var fsel = $('dataFileSel');
+  if (fsel) fsel.addEventListener('change', function () { st.page = 0; loadRows(); });
+  var sch = $('dataSearch');
+  if (sch) sch.addEventListener('input', function () { st.q = sch.value || ''; st.page = 0; renderTable(); });
+  var pv = $('dataPrev');
+  if (pv) pv.addEventListener('click', function () { if (st.page > 0) { st.page--; renderTable(); } });
+  var nx = $('dataNext');
+  if (nx) nx.addEventListener('click', function () { st.page++; renderTable(); });
+  var addB = $('dataAddRow');
+  if (addB) addB.addEventListener('click', function () {
+    if (!st.file || !st.writable) { toast('เลือกไฟล์ JSON ที่เขียนได้ก่อน', false); return; }
+    st.editKey = st.kind === 'map' ? '' : null;
+    var seed = st.kind === 'map' ? { _key: '', name: '' } : { id: '', title: '' };
+    showEditor('create', seed);
+  });
+  var sv = $('dataEditorSave');
+  if (sv) sv.addEventListener('click', saveEditor);
+  var efB = $('dataEditFile');
+  if (efB) efB.addEventListener('click', async function () {
+    if (!st.file || !st.writable) { toast('เลือกไฟล์ JSON ที่เขียนได้ก่อน', false); return; }
+    var res = await api('/?data_file=1&file=' + encodeURIComponent(st.file), { cache: 'no-store', headers: dAdminHeaders() });
+    var j = res.json;
+    if (!(j && j.success && typeof j.content === 'string')) {
+      toast((j && j.message) || ('โหลดไฟล์ไม่ได้ (HTTP ' + res.status + ')'), false);
+      return;
+    }
+    st.editMode = 'file';
+    st.editAction = 'file';
+    st.editKey = null;
+    $('dataEditorTitle').textContent = 'แก้ไขทั้งไฟล์ ' + st.file + ' (password ล็อกไว้ — เซิร์ฟเวอร์คืนค่าเดิมให้เอง)';
+    $('dataEditorJson').value = j.content;
+    $('dataEditor').style.display = 'block';
+    $('dataEditor').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  var cc = $('dataEditorCancel');
+  if (cc) cc.addEventListener('click', hideEditor);
+  // รหัสผู้ดูแลใช้ที่เก็บเดียวกับแท็บรายการลงขาย (sessionStorage)
+  var lp = $('dataAdminPass'), li = $('dataAdminLoginBtn'), lo = $('dataAdminLogoutBtn'), lt = $('dataAdminPassToggle');
+  if (li) li.addEventListener('click', function () {
+    if (lp && lp.value) { dSetAdminToken(lp.value); lp.value = ''; }
+    syncDataLoginBar();
+    loadFiles();
+  });
+  var dForm = $('dataAdminBar');
+  if (dForm && dForm.tagName === 'FORM') dForm.addEventListener('submit', function (e) { e.preventDefault(); if (li) li.click(); });
+  if (lo) lo.addEventListener('click', function () { dSetAdminToken(''); syncDataLoginBar(); });
+  if (lt && lp) lt.addEventListener('click', function () {
+    var show = lp.getAttribute('type') === 'password';
+    lp.setAttribute('type', show ? 'text' : 'password');
+  });
+  syncDataLoginBar();
 })();
 </script>
 </body>

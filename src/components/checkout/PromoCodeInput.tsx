@@ -6,8 +6,10 @@ import {
   Close as RemoveIcon,
 } from '@mui/icons-material';
 import { showSuccess, showWarning } from '../../utils/alerts';
+import { apiClient } from '../../services/apiClient';
 
 const VALID_PROMOS: Record<string, { discount: number; type: 'percent' | 'fixed'; label: string }> = {
+  NEW10: { discount: 10, type: 'percent', label: 'ลด 10% สำหรับสมาชิกใหม่' },
   BOOKLOOP10: { discount: 10, type: 'percent', label: 'ลด 10%' },
   READER2024: { discount: 50, type: 'fixed', label: 'ลด 50 บาท' },
   FIRSTBUY: { discount: 15, type: 'percent', label: 'ลด 15% (ลูกค้าใหม่)' },
@@ -23,7 +25,7 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({ onApply, onRemov
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) {
       showWarning('กรุณาใส่รหัสส่วนลด');
@@ -31,18 +33,41 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({ onApply, onRemov
     }
 
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res = await apiClient.post<{
+        success: boolean;
+        valid: boolean;
+        promo?: { discount: number; label: string; code: string };
+        message?: string;
+      }>('promo_validate.php', { code: trimmed });
+
+      if (res.valid && res.promo) {
+        onApply(res.promo.discount, res.promo.label);
+        showSuccess(`ใช้รหัส ${res.promo.code || trimmed} สำเร็จ! ${res.promo.label}`);
+        setCode('');
+        setLoading(false);
+        return;
+      }
+
+      if (res.message) {
+        showWarning(res.message);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Offline fallback เมื่อเซิร์ฟเวอร์ยังไม่พร้อม
       const promo = VALID_PROMOS[trimmed];
       if (promo) {
         onApply(promo.discount, promo.label);
         showSuccess(`ใช้รหัส ${trimmed} สำเร็จ! ${promo.label}`);
         setCode('');
-      } else {
-        showWarning('รหัสส่วนลดไม่ถูกต้องหรือหมดอายุแล้ว');
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    }, 600);
+    }
+
+    showWarning('รหัสส่วนลดไม่ถูกต้องหรือหมดอายุแล้ว');
+    setLoading(false);
   };
 
   if (appliedPromo) {

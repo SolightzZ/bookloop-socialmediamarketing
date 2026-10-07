@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../auth/auth.php';
 require_once BASE_PATH . '/Services/RateLimiter.php';
+require_once BASE_PATH . '/Services/BackgroundMail.php';
 
 corsHeaders();
 
@@ -53,8 +54,8 @@ if ($subscribeNewsletter) {
     if (!isEmailSubscribed($email, $subscriberFile)) {
         appendSubscriber($subscriberFile, $email);
     }
-    // ยืนยันการสมัครรับข่าวสารแบบ non-blocking
-    register_shutdown_function(function () use ($email, $name) {
+    // ยืนยันการสมัครรับข่าวสารแบบ non-blocking (flush response ก่อนค่อย SMTP)
+    runAfterResponse(function () use ($email, $name) {
         require_once __DIR__ . '/../Services/emailService.php';
         try {
             sendConfirmationEmailService($email, $name);
@@ -67,9 +68,9 @@ if ($subscribeNewsletter) {
 
 unset($user['password']);
 
-// ส่ง Welcome Email แบบ non-blocking — ไม่รอ SMTP ให้เสียเวลา
+// ส่ง Welcome Email แบบ non-blocking — flush response ก่อนค่อย SMTP
 // (ถ้า SMTP timeout 15s user จะรอฟรี ทั้งที่ register สำเร็จแล้ว)
-register_shutdown_function(function () use ($email, $name) {
+runAfterResponse(function () use ($email, $name) {
     require_once __DIR__ . '/../Services/emailService.php';
     try {
         sendWelcomeEmailService($email, $name);

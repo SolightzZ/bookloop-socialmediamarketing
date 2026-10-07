@@ -6,6 +6,7 @@ use PHPMailer\PHPMailer\Exception;
 // โหลดไฟล์ config และ autoloader
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/vendor/autoload.php';
+require_once BASE_PATH . '/Services/BackgroundMail.php';
 
 set_time_limit(60);
 
@@ -39,15 +40,24 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
         $name = $userName;
         $preferences = $data['preferences'] ?? [];
         $orderId = $data['orderId'] ?? '';
-        $items = $data['items'] ?? [];
+        // จำกัดแถวสินค้าในอีเมล — กันตะกร้าใหญ่กลายเป็น HTML หลายร้อย KB
+        $items = capEmailItems(is_array($data['items'] ?? null) ? $data['items'] : []);
         $total = $data['total'] ?? '0.00';
         $shippingAddress = $data['shippingAddress'] ?? '';
         $paymentMethod = $data['paymentMethod'] ?? 'promptpay';
         $shippingMethod = $data['shippingMethod'] ?? 'standard';
+        $bookTitle = $data['bookTitle'] ?? '';
+        $bookPrice = $data['bookPrice'] ?? '';
+        $bookImage = $data['bookImage'] ?? '';
+        $bookAuthor = $data['bookAuthor'] ?? '';
+        $condition = $data['condition'] ?? 'very_good';
+        $promoCode = $data['promoCode'] ?? 'NEW10';
 
         ob_start();
         if ($type === 'purchase') {
             include __DIR__ . '/orderConfirmEmail.php';
+        } elseif ($type === 'add_to_cart') {
+            include __DIR__ . '/orderEmails.php';
         } else {
             include __DIR__ . '/newsletterWelcomeEmail.php';
         }
@@ -59,17 +69,20 @@ function sendEmail(string $to, string $userName, string $type = 'welcome', array
         $mail->Body = $emailHtml;
 
         // แนบรูป banner (CID) ให้แสดงใน body — purchase ใช้แบนเนอร์คำสั่งซื้อสำเร็จ
+        // ไฟล์ใหญ่เกิน 300KB จะถูกข้าม (embedImageCapped + log) กัน payload base64
+        // 1MB+ ทำให้ SMTP ช้า/timeout — ไปบีบอัดรูปที่ images/ แทน
         if ($type === 'purchase') {
             $bannerPath = IMAGES_PATH . '/orderSuccess.jpg';
             if (!is_file($bannerPath)) {
                 $bannerPath = IMAGES_PATH . '/welcome.png'; // fallback กันรูปหายแล้วเมลพัง
             }
-            $mail->addEmbeddedImage($bannerPath, 'welcome_image');
+            embedImageCapped($mail, $bannerPath, 'welcome_image');
         } elseif ($type === 'welcome' || $type === 'subscription') {
-            $mail->addEmbeddedImage(IMAGES_PATH . '/welcome.png', 'welcome_image');
+            embedImageCapped($mail, IMAGES_PATH . '/welcome.png', 'welcome_image');
         }
 
         // ส่งจริง
+        embedImageCapped($mail, IMAGES_PATH . '/logo-email.png', 'logo_image');
         $mail->send();
 
         // บันทึกผู้รับลง subscribers.txt เฉพาะอีเมลสมัครข่าวสารเท่านั้น
@@ -130,7 +143,7 @@ function sendSubscriptionEmail(string $to, string $userName, array $preferences 
 
 
 // ส่งอีเมลตามประเภท — เฉพาะตอนเข้าถึง sendMail.php โดยตรง (ไม่ใช่ require จากไฟล์อื่น)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__)) {
+if (($_SERVER["REQUEST_METHOD"] ?? '') === "POST" && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
     $name = $_POST['name'] ?? '';
     $formType = $_POST['form_type'] ?? 'register';

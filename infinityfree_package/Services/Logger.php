@@ -73,6 +73,7 @@ class Logger
         $logLine = "[{$timestamp}] [{$level}] {$message}{$contextStr}" . PHP_EOL;
 
         file_put_contents($this->logFile, $logLine, FILE_APPEND | LOCK_EX);
+        self::rotateIfOversized($this->logFile);
 
         // Mirror ระดับ WARNING ขึ้นไปออก console ด้วย — php -S แสดง error_log
         // ใน terminal, ส่วน production เข้า error log ของโฮสต์ (InfinityFree ดูได้)
@@ -125,6 +126,21 @@ class Logger
     public function clearLogs(): bool
     {
         return file_put_contents($this->logFile, '') !== false;
+    }
+
+    /**
+     * Reusable: หมุนไฟล์ log เมื่อเกิน 1MB (เก็บ backup .1 ไว้ชุดเดียว)
+     * กันไฟล์โตไม่จำกัดจน getLogs() ต้อง parse ทั้งก้อน — ใช้ทั้ง error.log
+     * (Logger) และ request.log (RequestLogger::flushBuffer)
+     */
+    public static function rotateIfOversized(string $logFile, int $maxBytes = 1048576): void
+    {
+        $size = @filesize($logFile);
+        if ($size === false || $size <= $maxBytes) {
+            return;
+        }
+        @unlink($logFile . '.1');
+        @rename($logFile, $logFile . '.1');
     }
 
     public function getLogFilePath(): string

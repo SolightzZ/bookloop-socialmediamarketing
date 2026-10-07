@@ -30,7 +30,8 @@ export type AnalyticsEvent =
    | 'user_register'
    | 'user_logout'
    | 'onboarding_complete'
-   | 'onboarding_skip';
+   | 'onboarding_skip'
+   | 'contact_form_submit';
 
 export interface EventPayload {
    [key: string]: any;

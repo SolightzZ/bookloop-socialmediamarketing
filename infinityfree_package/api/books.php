@@ -37,6 +37,13 @@ if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']
     exit();
 }
 
+// result cache 60s (key ตาม params + mtime ของ snapshot) — 304 miss ก็ไม่ต้อง
+// parse books.json 263KB + filter/sort ใหม่ถ้าไฟล์ไม่เปลี่ยน
+$cached = cacheGet('books:' . $paramSig, $fileMtime, 60);
+if (is_array($cached)) {
+    jsonResponse($cached);
+}
+
 $books = loadJson(BOOKS_FILE);
 if (!is_array($books)) {
     $books = [];
@@ -74,4 +81,6 @@ if ($sort === 'price_asc') {
 $total = count($filtered);
 $items = array_slice($filtered, $offset, $limit);
 
-jsonResponse(['success' => true, 'total' => $total, 'items' => $items, 'count' => count($items)]);
+$response = ['success' => true, 'total' => $total, 'items' => $items, 'count' => count($items)];
+cacheSet('books:' . $paramSig, $fileMtime, $response);
+jsonResponse($response);

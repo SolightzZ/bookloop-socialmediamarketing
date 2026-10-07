@@ -3,6 +3,7 @@
 // โหลด config + helpers กลาง
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/Services/Http.php';
+require_once BASE_PATH . '/Services/BackgroundMail.php';
 
 corsHeaders();
 
@@ -65,8 +66,9 @@ file_put_contents(
     FILE_APPEND | LOCK_EX
 );
 
-// ส่ง Welcome Email แบบ non-blocking — ไม่รอ SMTP
-register_shutdown_function(function () use ($email, $name) {
+// ส่ง Welcome Email แบบ non-blocking — flush response ก่อน แล้วค่อย SMTP
+// (register_shutdown_function เพียวๆ ยังบล็อก connection จน SMTP จบ)
+runAfterResponse(function () use ($email, $name) {
     require_once EMAIL_PATH . '/sendMail.php';
     try {
         sendWelcomeEmail($email, $name);

@@ -45,6 +45,16 @@ function generateToken(string $userId): string
 
 function validateToken(string $token): ?string
 {
+    // Probabilistic prune (1/50 ครั้ง) — เก็บกวาด token หมดอายุไม่ให้ tokens.json
+    // โตไม่จำกัด (validateToken ถูกเรียกทุก request ที่ล็อกอิน) ค่าเฉลี่ยเขียนดิสก์เพิ่ม ~2%
+    if (mt_rand(1, 50) === 1) {
+        $all = loadJson(TOKENS_FILE);
+        $kept = array_values(array_filter($all, fn($t) => strtotime($t['expiresAt'] ?? '') >= time()));
+        if (count($kept) !== count($all)) {
+            saveJson(TOKENS_FILE, $kept);
+        }
+    }
+
     $tokens = loadJson(TOKENS_FILE);
     $now = time();
 

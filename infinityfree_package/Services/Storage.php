@@ -78,3 +78,76 @@ if (!function_exists('saveJson')) {
         return true;
     }
 }
+
+if (!function_exists('cacheGet')) {
+    /**
+     * อ่านผลลัพธ์ที่แคชไว้ใน sys temp (รอดชีวิตข้าม request แบบเดียวกับ .env cache
+     * ใน config.php) — ใช้กับ response ที่คำนวณแพง (filter/sort ไฟล์ JSON ทั้งก้อน)
+     * คืน null เมื่อไม่มี cache / source file เปลี่ยน (mtime ไม่ตรง) / หมด TTL
+     */
+    function cacheGet(string $key, int $sourceMtime, int $ttlSeconds): ?array
+    {
+        $file = sys_get_temp_dir() . '/bookloop_cache_' . md5($key) . '.json';
+        if (!is_file($file)) {
+            return null;
+        }
+        $raw = @file_get_contents($file);
+        if ($raw === false) {
+            return null;
+        }
+        $payload = json_decode($raw, true);
+        if (!is_array($payload) || ($payload['mtime'] ?? -1) !== $sourceMtime) {
+            return null;
+        }
+        if (time() - (int) ($payload['at'] ?? 0) > $ttlSeconds) {
+            return null;
+        }
+        return is_array($payload['data'] ?? null) ? $payload['data'] : null;
+    }
+}
+
+if (!function_exists('cacheSet')) {
+    /**
+     * เขียนผลลัพธ์ลง cache (best-effort — เขียนไม่สำเร็จก็แค่คำนวณใหม่รอบหน้า)
+     */
+    function cacheSet(string $key, int $sourceMtime, array $data): void
+    {
+        $file = sys_get_temp_dir() . '/bookloop_cache_' . md5($key) . '.json';
+        @file_put_contents(
+            $file,
+            json_encode(['mtime' => $sourceMtime, 'at' => time(), 'data' => $data], JSON_UNESCAPED_UNICODE),
+            LOCK_EX
+        );
+    }
+}
+
+if (!function_exists('countUserActiveOrders')) {
+    /**
+     * นับออเดอร์ที่ไม่ถูกยกเลิก/ล้มเหลว/คืนเงินของ user — แคชตาม mtime ของ
+     * orders.json (ไฟล์เปลี่ยน cache หลุดเอง ผลลัพธ์ตรงกับสแกนจริงเสมอ)
+     * ใช้แทนการ parse + วน orders.json ทั้งไฟล์ใน promo_validate/NEW10 check
+     */
+    function countUserActiveOrders(string $userId): int
+    {
+        $ordersFile = DATA_PATH . '/orders.json';
+        $mtime = is_file($ordersFile) ? (int) filemtime($ordersFile) : 0;
+        $cached = cacheGet('userordercount:' . $userId, $mtime, 3600);
+        if (is_array($cached) && isset($cached['n']) && is_int($cached['n'])) {
+            return $cached['n'];
+        }
+        $n = 0;
+        foreach (loadJson($ordersFile) as $order) {
+            if (!is_array($order)) {
+                continue;
+            }
+            if (($order['userId'] ?? '') !== $userId) {
+                continue;
+            }
+            if (!in_array((string) ($order['status'] ?? ''), ['cancelled', 'failed', 'refunded'], true)) {
+                $n++;
+            }
+        }
+        cacheSet('userordercount:' . $userId, $mtime, ['n' => $n]);
+        return $n;
+    }
+}

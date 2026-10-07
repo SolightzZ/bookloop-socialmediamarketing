@@ -58,6 +58,7 @@ export interface Order {
 
   trackingNumber?: string;
   shippingCarrier?: string;
+  promoCode?: string;
 
   createdAt: string;
   updatedAt: string;

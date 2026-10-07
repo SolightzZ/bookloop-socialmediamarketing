@@ -102,22 +102,41 @@ function listingToBook(item: ListingItem): Book {
    };
 }
 
+const ACTIVE_LISTINGS_TTL_MS = 60_000;
+let activeListingsCache: { at: number; items: Book[] } | null = null;
+let activeListingsInflight: Promise<Book[]> | null = null;
+
 export const listingService = {
    /**
     * ดึงรายการลงขายที่ผ่านการอนุมัติแล้ว (status = active) เพื่อนำไปแสดงในหน้าร้าน / ค้นหา
+    * มี in-memory cache 60 วินาที + รวม request ซ้อน (dedup) กันยิง /api ซ้ำตอน mount พร้อมกัน
     */
    async getActiveListings(): Promise<Book[]> {
-      try {
-         // endpoint สาธารณะ — ไม่แนบ token กันหลุดไปอยู่ใน URL โดยไม่จำเป็น
-         const res = await apiClient.getPublic<{ success: boolean; items: ListingItem[] }>('listings_list.php?limit=50');
-         if (res && res.success && Array.isArray(res.items)) {
-            return res.items.map(listingToBook);
-         }
-         return [];
-      } catch (e) {
-         logWarn('listingService.getActiveListings failed, returning []', e);
-         return [];
+      const now = Date.now();
+      if (activeListingsCache && now - activeListingsCache.at < ACTIVE_LISTINGS_TTL_MS) {
+         return activeListingsCache.items;
       }
+      if (activeListingsInflight) {
+         return activeListingsInflight;
+      }
+      activeListingsInflight = (async () => {
+         try {
+            // endpoint สาธารณะ — ไม่แนบ token กันหลุดไปอยู่ใน URL โดยไม่จำเป็น
+            const res = await apiClient.getPublic<{ success: boolean; items: ListingItem[] }>('listings_list.php?limit=50');
+            if (res && res.success && Array.isArray(res.items)) {
+               const mapped = res.items.map(listingToBook);
+               activeListingsCache = { at: Date.now(), items: mapped };
+               return mapped;
+            }
+            return activeListingsCache?.items ?? [];
+         } catch (e) {
+            logWarn('listingService.getActiveListings failed, returning []', e);
+            return activeListingsCache?.items ?? [];
+         } finally {
+            activeListingsInflight = null;
+         }
+      })();
+      return activeListingsInflight;
    },
 
    /**

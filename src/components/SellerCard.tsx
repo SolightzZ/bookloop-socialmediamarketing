@@ -86,19 +86,25 @@ export const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
           mb: 2.5,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Rating
-            value={seller.rating}
-            precision={0.1}
-            readOnly
-            size="small"
-            aria-label={`คะแนนผู้ขาย ${seller.rating} จาก 5`}
-            sx={{ color: '#F5A623', '& .MuiRating-iconEmpty': { color: '#D9E2EC' } }}
-          />
-          <Typography sx={{ fontWeight: 800, color: '#102A43', fontSize: '0.9rem' }}>
-            {seller.rating.toFixed(1)}
+        {seller.rating > 0 ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Rating
+              value={seller.rating}
+              precision={0.1}
+              readOnly
+              size="small"
+              aria-label={`คะแนนผู้ขาย ${seller.rating} จาก 5`}
+              sx={{ color: '#F5A623', '& .MuiRating-iconEmpty': { color: '#D9E2EC' } }}
+            />
+            <Typography sx={{ fontWeight: 800, color: '#102A43', fontSize: '0.9rem' }}>
+              {seller.rating.toFixed(1)}
+            </Typography>
+          </Box>
+        ) : (
+          <Typography sx={{ fontWeight: 700, color: '#102A43', fontSize: '0.85rem' }}>
+            ผู้ขายใหม่ · ยังไม่มีคะแนน
           </Typography>
-        </Box>
+        )}
         <Box aria-hidden sx={{ width: 1, height: 18, bgcolor: '#D9E2EC' }} />
         <Typography sx={{ color: '#62748A', fontSize: '0.85rem' }}>
           ตอบแชท <Box component="span" sx={{ color: '#102A43', fontWeight: 700 }}>{seller.responseRate}%</Box>

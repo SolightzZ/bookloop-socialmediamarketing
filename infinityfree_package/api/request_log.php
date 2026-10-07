@@ -28,16 +28,15 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
         ], 400);
     }
 
-    $logs = $logger->getLogs($level ? strtoupper($level) : null, $limit * 2);
+    // getLogs หยุดเองเมื่อครบ limit — ไม่ต้องขอเผื่อ 2 เท่าแล้ว slice ทิ้ง
+    $logs = $logger->getLogs($level ? strtoupper($level) : null, $limit);
 
     if ($search) {
         $logs = array_filter($logs, function ($log) use ($search) {
             return str_contains(strtolower($log['message']), strtolower($search)) ||
                    str_contains(strtolower(json_encode($log)), strtolower($search));
         });
-        $logs = array_slice(array_values($logs), 0, $limit);
-    } else {
-        $logs = array_slice($logs, 0, $limit);
+        $logs = array_values($logs);
     }
 
     $stats = [

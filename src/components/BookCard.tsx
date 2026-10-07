@@ -11,18 +11,16 @@ import { LoginRequiredDialog } from './auth/LoginRequiredDialog';
 import { savePendingAction, PendingAction } from '../types/authGate';
 import { trackEvent } from '../utils/analytics';
 import { formatCurrency, calculateDiscount } from '../utils/formatCurrency';
+import { CONDITION_META } from './ConditionBadge';
 
 export interface BookCardProps {
    book: Book;
    priority?: boolean;
 }
 
-const conditionConfig: Record<string, { label: string; bg: string; color: string }> = {
-   Excellent: { label: 'เหมือนใหม่', bg: '#DCFCE7', color: '#15803D' },
-   'Very Good': { label: 'สภาพดี', bg: '#E0F2FE', color: '#0369A1' },
-   Good: { label: 'พอใช้', bg: '#FEF3C7', color: '#B45309' },
-   Acceptable: { label: 'มีตำหนิ', bg: '#FFEDD5', color: '#C2410C' },
-};
+const conditionConfig: Record<string, { label: string; bg: string; color: string }> = Object.fromEntries(
+   Object.values(CONDITION_META).map((m) => [m.value, { label: m.short, bg: m.bg, color: m.color }]),
+);
 
 export const BookCard = memo<BookCardProps>(function BookCard({ book, priority = false }) {
    const navigate = useNavigate();
@@ -183,8 +181,9 @@ export const BookCard = memo<BookCardProps>(function BookCard({ book, priority =
                {/* Favorite Heart Button (Top-Right of Image) */}
                <IconButton
                   size="small"
-                  aria-label={isFavorite ? `นำ ${book.title} ออกจากรายการโปรด` : `เพิ่ม ${book.title} ในรายการโปรด`}
-                  onClick={handleToggleFavorite}
+                   aria-label={isFavorite ? `นำ ${book.title} ออกจากรายการโปรด` : `เพิ่ม ${book.title} ในรายการโปรด`}
+                   title="เก็บในรายการโปรดเพื่อติดตามเล่มนี้"
+                   onClick={handleToggleFavorite}
                   sx={{
                       position: 'absolute',
                       top: 8,
@@ -368,9 +367,9 @@ export const BookCard = memo<BookCardProps>(function BookCard({ book, priority =
                            <ShoppingCart size={15} strokeWidth={2} />
                         )
                      }
-                     sx={{
-                        height: 38,
-                        fontWeight: 700,
+                      sx={{
+                         height: { xs: 44, md: 38 },
+                         fontWeight: 700,
                         fontSize: { xs: '0.8rem', sm: '0.825rem' },
                         borderRadius: '8px',
                         bgcolor: cartState === 'success' ? '#16A34A' : '#1976D2',

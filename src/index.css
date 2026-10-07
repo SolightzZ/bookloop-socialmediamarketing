@@ -57,6 +57,12 @@ button,
    white-space: nowrap;
 }
 
+/* Allow normal text wrapping inside accordion summaries and compound controls */
+.MuiAccordionSummary-root,
+.MuiAccordionSummary-content {
+   white-space: normal;
+}
+
 /* Hide scrollbars on inner scroll containers (MUI Tabs, drawers, modals)
    while keeping scroll functionality */
 .no-scrollbar,
@@ -493,6 +499,11 @@ button,
 .hero-paused .bl-dust,
 .hero-paused .bl-sparkle {
    animation-play-state: paused !important;
+}
+
+/* ── Perf: hero background isolation — กัน repaint ลามออกนอก Hero ── */
+.hero-bg-root {
+   contain: layout paint;
 }
 
 /* --------------------------------------------------

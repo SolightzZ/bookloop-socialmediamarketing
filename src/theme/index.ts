@@ -240,6 +240,9 @@ export const theme = createTheme({
                padding: '0 16px',
                borderRadius: '8px',
                transition: 'background-color 140ms ease',
+               whiteSpace: 'normal',
+               justifyContent: 'space-between',
+               alignItems: 'center',
                '&:hover': {
                   backgroundColor: '#F8FAFC',
                },
@@ -254,9 +257,14 @@ export const theme = createTheme({
             },
             content: {
                margin: '12px 0',
+               whiteSpace: 'normal',
+               minWidth: 0,
                '&.Mui-expanded': {
                   margin: '12px 0',
                },
+            },
+            expandIconWrapper: {
+               flexShrink: 0,
             },
          },
       },

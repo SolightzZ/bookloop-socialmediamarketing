@@ -15,6 +15,11 @@ import {
    LoginRounded as LoginIcon,
    PersonAddAlt1Rounded as RegisterIcon,
    LogoutRounded as LogoutIcon,
+   InfoOutlined as InfoIcon,
+   HelpOutlineOutlined as HelpIcon,
+   ShieldOutlined as ShieldIcon,
+   MailOutlineOutlined as ContactIcon,
+   CalculateOutlined as PricingIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { tokens } from '../../theme/tokens';
@@ -48,6 +53,21 @@ interface AccountMenuItem {
    icon: React.ComponentType<{ sx?: any }>;
 }
 
+
+interface InfoMenuItem {
+   label: string;
+   path: string;
+   icon: React.ComponentType<{ sx?: any }>;
+}
+
+const INFO_MENU_ITEMS: readonly InfoMenuItem[] = [
+   { label: 'เกี่ยวกับเรา', path: '/about', icon: InfoIcon },
+   { label: 'ค่าธรรมเนียมและความโปร่งใส', path: '/pricing', icon: PricingIcon },
+   { label: 'ศูนย์ช่วยเหลือ (FAQ)', path: '/help', icon: HelpIcon },
+   { label: 'นโยบายความเป็นส่วนตัว', path: '/privacy', icon: ShieldIcon },
+   { label: 'ติดต่อเรา', path: '/contact', icon: ContactIcon },
+] as const;
+
 const ACCOUNT_MENU_ITEMS: readonly AccountMenuItem[] = [
    { label: 'บัญชีของฉัน', path: '/account/profile', icon: UserIcon },
    { label: 'คำสั่งซื้อของฉัน', path: '/account/orders', icon: ShoppingBagIcon },
@@ -71,6 +91,16 @@ const prefetchRoute = (path: string) => {
          import('../../pages/LoginPage');
       } else if (path === '/register') {
          import('../../pages/RegisterPage');
+      } else if (path === '/about') {
+         import('../../pages/AboutPage');
+      } else if (path === '/pricing') {
+         import('../../pages/PricingPage');
+      } else if (path === '/help') {
+         import('../../pages/HelpPage');
+      } else if (path === '/privacy') {
+         import('../../pages/PrivacyPage');
+      } else if (path === '/contact') {
+         import('../../pages/ContactPage');
       }
    } catch {
       // Ignore prefetch errors
@@ -760,6 +790,98 @@ export const AppMobileDrawer: React.FC<AppMobileDrawerProps> = ({ open, onClose,
                   </Box>
                </Box>
             )}
+
+            {/* -------------------------------------------------- */}
+            {/* 5.5 INFO & SUPPORT                                 */}
+            {/* -------------------------------------------------- */}
+            <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #F1F5F9' }}>
+               <Typography
+                  sx={{
+                     fontFamily: tokens.typography.fontFamily,
+                     fontSize: '0.75rem',
+                     fontWeight: 700,
+                     color: '#94A3B8',
+                     letterSpacing: '0.04em',
+                     textTransform: 'uppercase',
+                     px: 1.5,
+                     mb: 1,
+                  }}>
+                  เกี่ยวกับ BookLoop
+               </Typography>
+               <Box component="nav" aria-label="ข้อมูลเพิ่มเติมใน Drawer" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {INFO_MENU_ITEMS.map((item) => {
+                     const IconComponent = item.icon;
+                     const active = isCurrentPage(item.path);
+
+                     return (
+                        <ButtonBase
+                           key={item.path}
+                           onClick={() => handleNavigate(item.path)}
+                           onTouchStart={() => prefetchRoute(item.path)}
+                           onMouseEnter={() => prefetchRoute(item.path)}
+                           aria-current={active ? 'page' : undefined}
+                           sx={{
+                              height: 44,
+                              minHeight: 44,
+                              width: '100%',
+                              px: 1.5,
+                              borderRadius: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              textAlign: 'left',
+                              bgcolor: active ? '#EAF4FF' : 'transparent',
+                              color: active ? '#1976D2' : '#475569',
+                              border: 'none',
+                              outline: 'none',
+                              transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
+                              '&:hover': {
+                                 bgcolor: active ? '#EAF4FF' : '#F8FAFC',
+                              },
+                           }}>
+                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Box
+                                 sx={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: active ? '1.5px solid #1976D2' : '1.5px solid transparent',
+                                    bgcolor: active ? '#FFFFFF' : 'transparent',
+                                    color: active ? '#1976D2' : '#64748B',
+                                    boxShadow: active ? '0 1px 4px rgba(25, 118, 210, 0.15)' : 'none',
+                                    transition: 'all 160ms ease',
+                                    flexShrink: 0,
+                                 }}>
+                                 <IconComponent sx={{ fontSize: 18 }} />
+                              </Box>
+                              <Typography
+                                 component="span"
+                                 sx={{
+                                    fontFamily: tokens.typography.fontFamily,
+                                    fontSize: '0.875rem',
+                                    fontWeight: active ? 600 : 500,
+                                    color: 'inherit',
+                                    letterSpacing: '-0.01em',
+                                 }}>
+                                 {item.label}
+                              </Typography>
+                           </Box>
+
+                           <ChevronRightIcon
+                              sx={{
+                                 fontSize: 18,
+                                 color: active ? '#1976D2' : '#CBD5E1',
+                                 flexShrink: 0,
+                              }}
+                           />
+                        </ButtonBase>
+                     );
+                  })}
+               </Box>
+            </Box>
 
             {/* -------------------------------------------------- */}
             {/* 6. LOGOUT                                          */}

@@ -223,7 +223,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = () => {
                         เงื่อนไขการใช้บริการ
                      </Link>{' '}
                      และ{' '}
-                     <Link component={RouterLink} to="/about" sx={{ color: 'secondary.main', fontWeight: 600 }}>
+                     <Link component={RouterLink} to="/privacy" sx={{ color: 'secondary.main', fontWeight: 600 }}>
                         นโยบายความเป็นส่วนตัว
                      </Link>{' '}
                      ของ BookLoop

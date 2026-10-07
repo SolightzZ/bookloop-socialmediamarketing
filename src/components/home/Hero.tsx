@@ -5,6 +5,16 @@ import { HeroContent } from './HeroContent';
 import { HeroIllustration } from './HeroIllustration';
 import { AppContainer } from '../common/Container';
 
+// Spec parallax: BG 1-2px, Glow 2-3px, Clouds 3-4px, Books 3-5px, Dust 5-7px
+// Girl/Cat move via HeroIllustration's own parallax (≤2px), not here.
+// โมดูลคงที่ — ไม่สร้าง object ใหม่ทุก render
+const PARALLAX_MULTIPLIERS: Record<string, number> = {
+   glow: 2.5,
+   cloud: 3.5,
+   book: 4,
+   dust: 6,
+};
+
 export interface HeroProps {
    searchQuery: string;
    onSearchQueryChange: (query: string) => void;
@@ -34,15 +44,6 @@ export const Hero: React.FC<HeroProps> = ({ searchQuery, onSearchQueryChange, on
 
    const springConfig = { stiffness: 0.04, damping: 0.88 };
 
-   // Spec parallax: BG 1-2px, Glow 2-3px, Clouds 3-4px, Books 3-5px, Dust 5-7px
-   // Girl/Cat move via HeroIllustration's own parallax (≤2px), not here.
-   const parallaxMultipliers: Record<string, number> = {
-      glow: 2.5,
-      cloud: 3.5,
-      book: 4,
-      dust: 6,
-   };
-
    const updateParallax = useCallback(() => {
       if (isTouchDevice.current || !isHeroVisible.current) {
          isAnimating.current = false;
@@ -65,7 +66,7 @@ export const Hero: React.FC<HeroProps> = ({ searchQuery, onSearchQueryChange, on
          const nodeList = heroRef.current.querySelectorAll<HTMLElement>('[data-parallax]');
          cachedEls.current = Array.from(nodeList).map((el) => {
             const key = el.getAttribute('data-parallax') || 'glow';
-            return { el, mul: parallaxMultipliers[key] ?? 2 };
+            return { el, mul: PARALLAX_MULTIPLIERS[key] ?? 2 };
          });
       }
 
@@ -75,9 +76,11 @@ export const Hero: React.FC<HeroProps> = ({ searchQuery, onSearchQueryChange, on
          const py = currentPos.current.y - 0.5;
          for (let i = 0; i < items.length; i++) {
             const item = items[i];
+            // ข้ามโหนดที่ CSS ซ่อนไว้ (mobile/tablet display:none) — ประหยัด CPU โดยไม่แตะ DOM
+            if (item.el.offsetParent === null) continue;
             const ox = px * item.mul;
             const oy = py * item.mul;
-            item.el.style.transform = `translate3d(${ox}px, ${oy}px, 0)`;
+            item.el.style.transform = `translate3d(${ox.toFixed(2)}px, ${oy.toFixed(2)}px, 0)`;
          }
       }
 

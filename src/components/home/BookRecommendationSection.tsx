@@ -7,6 +7,7 @@ import { Book, books as defaultBooks } from '../../data/books';
 import { AppContainer } from '../common/Container';
 import { useWishlist } from '../../hooks/useWishlist';
 import { trackEvent } from '../../utils/analytics';
+import { CONDITION_META } from '../ConditionBadge';
 
 // ============================================================================
 // Types & Constants
@@ -34,32 +35,9 @@ const CYCLE_DURATION_MS = 42_000;
 // Helper: Condition badge (pre-computed map, no closure allocation per render)
 // ============================================================================
 
-const CONDITION_CONFIG_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = {
-   Excellent: {
-      label: 'สภาพ: ดีเยี่ยม (95%+)',
-      color: '#065F46',
-      bg: '#ECFDF5',
-      border: 'rgba(53,168,117,0.3)',
-   },
-   'Very Good': {
-      label: 'สภาพ: ดีมาก (85-94%)',
-      color: '#1D4ED8',
-      bg: '#EFF6FF',
-      border: 'rgba(25,118,210,0.3)',
-   },
-   Good: {
-      label: 'สภาพ: ปานกลาง (70-84%)',
-      color: '#B45309',
-      bg: '#FFFBEB',
-      border: 'rgba(245,158,11,0.3)',
-   },
-   Acceptable: {
-      label: 'สภาพ: พอใช้ (50-69%)',
-      color: '#475569',
-      bg: '#F8FAFC',
-      border: '#E2E8F0',
-   },
-};
+const CONDITION_CONFIG_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = Object.fromEntries(
+   Object.values(CONDITION_META).map((m) => [m.value, { label: `สภาพ: ${m.short}`, color: m.color, bg: m.bg, border: m.border }]),
+);
 
 const FALLBACK_CONDITION = CONDITION_CONFIG_MAP['Acceptable'];
 

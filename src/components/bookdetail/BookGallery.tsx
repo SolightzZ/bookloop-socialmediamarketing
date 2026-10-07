@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SafeImage } from '../common/SafeImage';
 
@@ -127,7 +127,7 @@ export const BookGallery: React.FC<BookGalleryProps> = ({
         )}
       </Box>
 
-      {/* Thumbnails */}
+      {/* Thumbnails — capped at 4 with an honest overflow counter */}
       {hasMultiple && (
         <Box
           role="list"
@@ -136,6 +136,8 @@ export const BookGallery: React.FC<BookGalleryProps> = ({
         >
           {galleryImages.slice(0, 4).map((img, index) => {
             const isSelected = currentImage === img;
+            const isOverflowThumb = index === 3 && galleryImages.length > 4;
+            const overflowCount = galleryImages.length - 4;
             return (
               <Box
                 key={`${img}-${index}`}
@@ -144,16 +146,21 @@ export const BookGallery: React.FC<BookGalleryProps> = ({
                 <Box
                   role="button"
                   tabIndex={0}
-                  aria-label={`ดูรูปภาพที่ ${index + 1} จากทั้งหมด ${galleryImages.length} รูป`}
+                  aria-label={
+                    isOverflowThumb
+                      ? `ดูรูปภาพที่ 4 และอีก ${overflowCount} รูป จากทั้งหมด ${galleryImages.length} รูป`
+                      : `ดูรูปภาพที่ ${index + 1} จากทั้งหมด ${galleryImages.length} รูป`
+                  }
                   aria-current={isSelected ? 'true' : undefined}
-                  onClick={() => onSelectImage(img)}
+                  onClick={() => onSelectImage(isOverflowThumb ? galleryImages[4] : img)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      onSelectImage(img);
+                      onSelectImage(isOverflowThumb ? galleryImages[4] : img);
                     }
                   }}
                   sx={{
+                    position: 'relative',
                     width: '100%',
                     aspectRatio: '3 / 4',
                     borderRadius: '8px',
@@ -175,12 +182,35 @@ export const BookGallery: React.FC<BookGalleryProps> = ({
                     loading="lazy"
                     sx={{ width: '100%', height: '100%' }}
                   />
+                  {isOverflowThumb && (
+                    <Box
+                      aria-hidden="true"
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        bgcolor: 'rgba(15, 45, 74, 0.62)',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '1.1rem',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>
+                      +{overflowCount}
+                    </Box>
+                  )}
                 </Box>
               </Box>
             );
           })}
         </Box>
       )}
+
+      {/* Proof caption — every photo is of the actual copy for sale */}
+      <Typography sx={{ color: '#62748A', fontSize: '0.78rem', lineHeight: 1.6, mt: 1.25 }}>
+        ภาพถ่ายจริงจากหนังสือเล่มที่ขาย — ดูรูปตำหนิก่อนตัดสินใจ
+      </Typography>
     </Box>
   );
 };

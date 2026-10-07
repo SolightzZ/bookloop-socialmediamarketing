@@ -246,6 +246,26 @@ export default function BookDetailPage() {
                </Box>
             )}
 
+            {/* Pass-forward nudge — one quiet seller-minting entry, always visible */}
+            <Box sx={{ mb: { xs: 6, md: 10 } }}>
+               <Link
+                  component={RouterLink}
+                  to="/sell"
+                  sx={{
+                     display: 'inline-flex',
+                     alignItems: 'center',
+                     minHeight: 44,
+                     color: '#1976D2',
+                     fontWeight: 700,
+                     fontSize: '0.9rem',
+                     textDecoration: 'none',
+                     '&:hover': { textDecoration: 'underline' },
+                     '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px', borderRadius: '4px' },
+                  }}>
+                  อ่านจบแล้ว? ส่งต่อเล่มนี้ให้เจ้าของคนต่อไป →
+               </Link>
+            </Box>
+
             {/* Condition — desktop full-width strip (mobile renders inside hero) */}
             <Box sx={{ display: { xs: 'none', md: 'block' }, mb: { md: 10 } }}>
                <ConditionStrip book={book} />
@@ -286,8 +306,8 @@ export default function BookDetailPage() {
             <Box aria-hidden sx={{ display: { xs: 'block', md: 'none' }, height: 96 }} />
          </Container>
 
-         {/* Sticky mobile purchase bar */}
-         <MobilePurchaseBar book={book} onBuyNow={handleBuyNow} />
+          {/* Sticky mobile purchase bar */}
+          <MobilePurchaseBar book={book} onBuyNow={handleBuyNow} onAddToCart={handleAddToCart} />
 
          {/* Mandatory Authentication Gate Modal */}
          <LoginRequiredDialog open={loginModalOpen} onClose={() => setLoginModalOpen(false)} onLogin={handleModalLogin} mode={authGateMode} />

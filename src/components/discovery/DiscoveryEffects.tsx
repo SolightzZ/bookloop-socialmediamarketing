@@ -18,19 +18,6 @@ export const DiscoveryEffects: React.FC<DiscoveryEffectsProps> = ({ isReducedMot
       }}
       aria-hidden="true"
     >
-      {/* 1. Notebook Graph Paper Grid Texture (สมุดจดบันทึก / ตารางกราฟสมุด) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.14,
-          backgroundImage: `
-            linear-gradient(to right, #1677E8 1px, transparent 1px),
-            linear-gradient(to bottom, #1677E8 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px',
-        }}
-      />
 
 
       {/* 3. Left Library Wall & Bookshelves (ห้องหนังสือ / ชั้นหนังสือฝั่งซ้าย) */}

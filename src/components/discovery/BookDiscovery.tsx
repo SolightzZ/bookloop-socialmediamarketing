@@ -83,7 +83,7 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({ books, onSelectBoo
             overflow: 'hidden',
          }}
          className={className}>
-         {/* Soft Swiss Background (Faint dot grid, zero glow) */}
+         {/* Soft Swiss Background (Clean editorial, zero glow) */}
          <DiscoveryEffects isReducedMotion={isReducedMotion} />
 
          {/* Screen reader live announcements (zero emojis) */}
@@ -101,7 +101,7 @@ export const BookDiscovery: React.FC<BookDiscoveryProps> = ({ books, onSelectBoo
                   variant="h2"
                   component="h2"
                   sx={{
-                     fontWeight: 800,
+                     fontWeight: 800, 
                      fontSize: { xs: '1.55rem', sm: '2rem', md: '2.35rem' },
                      color: '#102F4F',
                      letterSpacing: '-0.02em',

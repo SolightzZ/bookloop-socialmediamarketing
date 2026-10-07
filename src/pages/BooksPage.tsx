@@ -16,7 +16,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function BooksPage() {
    const [searchParams, setSearchParams] = useSearchParams();
-   const { wishlist, isInWishlist } = useWishlist();
+   const { wishlistIds, isInWishlist } = useWishlist();
 
    const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
    const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
@@ -29,6 +29,8 @@ export default function BooksPage() {
    const onlyFavorites = searchParams.get('favorite') === 'true';
    const pageParam = parseInt(searchParams.get('page') || '1', 10);
    const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+   // stamp นิ่ง ('') เมื่อไม่ได้กรองรายการโปรด — กัน recompute ทั้งกริดตอน toggle หัวใจจากหน้าอื่น
+   const wishlistStamp = onlyFavorites ? wishlistIds.join('|') : '';
 
    const [priceRange, setPriceRange] = useState<number>(maxPriceParam ? Number(maxPriceParam) : 2000);
    const [activeListings, setActiveListings] = useState<Book[]>([]);
@@ -206,7 +208,6 @@ export default function BooksPage() {
    const handleMobileCategoryChange = useCallback(
       (cat: string) => {
          handleCategoryChange(cat);
-         setMobileFilterOpen(false);
       },
       [handleCategoryChange],
    );
@@ -214,7 +215,6 @@ export default function BooksPage() {
    const handleMobileConditionChange = useCallback(
       (cond: string) => {
          handleConditionChange(cond);
-         setMobileFilterOpen(false);
       },
       [handleConditionChange],
    );
@@ -276,7 +276,40 @@ export default function BooksPage() {
       }
 
       return result;
-   }, [query, category, condition, maxPriceParam, sort, onlyFavorites, wishlist, activeListings]);
+   }, [query, category, condition, maxPriceParam, sort, onlyFavorites, wishlistStamp, activeListings]);
+
+   // Live per-category counts ignoring the category filter itself,
+   // so visitors compare before committing (drawer stays open).
+   const categoryCounts = useMemo(() => {
+      let base = [...activeListings, ...books];
+
+      if (onlyFavorites) {
+         base = base.filter((b) => isInWishlist(b.id));
+      }
+
+      if (query) {
+         const q = query.toLowerCase();
+         base = base.filter(
+            (b) =>
+               b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn && b.isbn.toLowerCase().includes(q)) || (b.tags && b.tags.some((t) => t.toLowerCase().includes(q))),
+         );
+      }
+
+      if (condition && condition !== 'ทั้งหมด') {
+         base = base.filter((b) => b.condition === condition);
+      }
+
+      if (maxPriceParam) {
+         const maxP = Number(maxPriceParam);
+         base = base.filter((b) => b.price <= maxP);
+      }
+
+      const counts: Record<string, number> = { ทั้งหมด: base.length };
+      for (const b of base) {
+         counts[b.category] = (counts[b.category] ?? 0) + 1;
+      }
+      return counts;
+   }, [query, condition, maxPriceParam, onlyFavorites, wishlistStamp, activeListings]);
 
    const totalPages = Math.ceil(filteredBooks.length / ITEMS_PER_PAGE);
    const validPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
@@ -388,7 +421,7 @@ export default function BooksPage() {
                         searchParams.delete('page');
                         setSearchParams(searchParams);
                      }}
-                     sx={{ p: 0.75, color: '#94A3B8', mr: 0.5 }}>
+                     sx={{ p: 0.75, color: '#94A3B8', mr: 0.5, minWidth: 44, minHeight: 44 }}>
                      <CloseIcon size={16} />
                   </IconButton>
                )}
@@ -396,9 +429,9 @@ export default function BooksPage() {
                <Button
                   type="submit"
                   variant="contained"
-                  sx={{
-                     height: 40,
-                     px: { xs: 2, sm: 3 },
+                   sx={{
+                      height: { xs: 44, md: 40 },
+                      px: { xs: 2, sm: 3 },
                      borderRadius: '8px',
                      bgcolor: '#1976D2',
                      color: '#FFFFFF',
@@ -461,9 +494,9 @@ export default function BooksPage() {
                      size="small"
                      onClick={() => setMobileFilterOpen(true)}
                      startIcon={<SlidersHorizontal size={15} />}
-                     sx={{
-                        display: { xs: 'inline-flex', md: 'none' },
-                        height: 36,
+                      sx={{
+                         display: { xs: 'inline-flex', md: 'none' },
+                         height: { xs: 44, md: 36 },
                         px: 1.5,
                         borderRadius: '8px',
                         borderColor: activeFiltersCount > 0 ? '#1976D2' : '#DCE6F0',
@@ -471,8 +504,8 @@ export default function BooksPage() {
                         color: activeFiltersCount > 0 ? '#1976D2' : '#0F2F52',
                         fontWeight: 600,
                         fontSize: '0.8125rem',
-                        textTransform: 'none',
-                        minHeight: 36,
+                         textTransform: 'none',
+                         minHeight: { xs: 44, md: 36 },
                         '&:focus-visible': {
                            outline: '2px solid #1976D2',
                            outlineOffset: '2px',
@@ -499,9 +532,9 @@ export default function BooksPage() {
                            value={sort}
                            onChange={(e) => handleSortChange(e.target.value)}
                            aria-label="เรียงลำดับหนังสือ"
-                           sx={{
-                              height: 36,
-                              borderRadius: '8px',
+                            sx={{
+                               height: { xs: 44, md: 36 },
+                               borderRadius: '8px',
                               bgcolor: '#FFFFFF',
                               fontSize: '0.825rem',
                               fontWeight: 600,
@@ -558,6 +591,7 @@ export default function BooksPage() {
                         priceRange={priceRange}
                         onlyFavorites={onlyFavorites}
                         activeFiltersCount={activeFiltersCount}
+categoryCounts={categoryCounts}
                         onCategoryChange={handleCategoryChange}
                         onConditionChange={handleConditionChange}
                         onPriceChange={handlePriceChange}
@@ -685,9 +719,9 @@ export default function BooksPage() {
                   onClick={() => setMobileFilterOpen(false)}
                   aria-label="ปิดตัวกรอง"
                   sx={{
-                     color: '#64748B',
-                     width: 40,
-                     height: 40,
+                      color: '#64748B',
+                      width: 44,
+                      height: 44,
                      '&:hover': { bgcolor: '#F1F5F9', color: '#0F2F52' },
                      '&:focus-visible': {
                         outline: '2px solid #1976D2',
@@ -705,6 +739,7 @@ export default function BooksPage() {
                   priceRange={priceRange}
                   onlyFavorites={onlyFavorites}
                   activeFiltersCount={activeFiltersCount}
+categoryCounts={categoryCounts}
                   onCategoryChange={handleMobileCategoryChange}
                   onConditionChange={handleMobileConditionChange}
                   onPriceChange={handlePriceChange}

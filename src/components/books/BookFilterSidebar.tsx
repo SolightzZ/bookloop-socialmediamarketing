@@ -1,18 +1,18 @@
 import { Box, Button, Slider, Typography } from '@mui/material';
 import { RotateCcw } from 'lucide-react';
 import { memo } from 'react';
+import { CONDITION_META, CONDITION_ORDER } from '../ConditionBadge';
 
 const categories = ['ทั้งหมด', 'นิยาย', 'พัฒนาตนเอง', 'ธุรกิจ', 'ความรู้', 'การ์ตูน', 'เด็ก', 'การศึกษา', 'หนังสือสะสม'];
 
+// Labels + bands from the single condition map — the % band shows where the choice is made.
 const conditionList = [
    { value: 'ทั้งหมด', label: 'ทั้งหมด' },
-   { value: 'Excellent', label: 'เหมือนใหม่' },
-   { value: 'Very Good', label: 'สภาพดี' },
-   { value: 'Good', label: 'พอใช้' },
-   { value: 'Acceptable', label: 'มีตำหนิ' },
+   ...CONDITION_ORDER.map((value) => ({
+      value,
+      label: `${CONDITION_META[value].short} · ${CONDITION_META[value].band}`,
+   })),
 ];
-
-const conditions = ['ทั้งหมด', 'Excellent', 'Very Good', 'Good', 'Acceptable'];
 
 interface BookFilterSidebarProps {
    category: string;
@@ -20,6 +20,8 @@ interface BookFilterSidebarProps {
    priceRange: number;
    onlyFavorites: boolean;
    activeFiltersCount: number;
+   /** Live result counts per category, ignoring the category filter itself. */
+   categoryCounts: Record<string, number>;
    onCategoryChange: (cat: string) => void;
    onConditionChange: (cond: string) => void;
    onPriceChange: (val: number) => void;
@@ -34,6 +36,7 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
    priceRange,
    onlyFavorites,
    activeFiltersCount,
+   categoryCounts,
    onCategoryChange,
    onConditionChange,
    onPriceChange,
@@ -171,7 +174,7 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
                            gap: 1,
                            px: 1,
                            py: { xs: 0.85, md: 0.65 },
-                           minHeight: { xs: 38, md: 32 },
+                           minHeight: { xs: 44, md: 32 },
                            borderRadius: '6px',
                            bgcolor: isSelected ? '#F0F7FF' : 'transparent',
                            color: isSelected ? '#1976D2' : '#475569',
@@ -202,8 +205,19 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
                               transition: 'border 0.15s ease',
                            }}
                         />
-                        <Typography component="span" sx={{ fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' }}>
+                        <Typography component="span" sx={{ flex: 1, fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' }}>
                            {cat}
+                        </Typography>
+                        <Typography
+                           component="span"
+                           aria-label={`${categoryCounts[cat] ?? 0} เล่ม`}
+                           sx={{
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: isSelected ? '#1976D2' : '#94A3B8',
+                              fontVariantNumeric: 'tabular-nums',
+                           }}>
+                           {categoryCounts[cat] ?? 0}
                         </Typography>
                      </Box>
                   );
@@ -250,7 +264,7 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
                            gap: 1,
                            px: 1,
                            py: { xs: 0.85, md: 0.65 },
-                           minHeight: { xs: 38, md: 32 },
+                           minHeight: { xs: 44, md: 32 },
                            borderRadius: '6px',
                            bgcolor: isSelected ? '#F0F7FF' : 'transparent',
                            color: isSelected ? '#1976D2' : '#475569',
@@ -344,11 +358,11 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
 
             {/* Quick Range Buttons */}
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75, mt: 1 }}>
-               {[
-                  { label: '฿0–150', max: 150 },
-                  { label: '฿150–300', max: 300 },
-                  { label: '฿300+', max: 2000 },
-               ].map((range) => {
+                {[
+                   { label: '฿0–150', max: 150 },
+                   { label: '฿150–300', max: 300 },
+                   { label: 'ทั้งหมด', max: 2000 },
+                ].map((range) => {
                   const isCurrent = priceRange === range.max;
                   return (
                      <Button
@@ -360,9 +374,9 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
                            onPriceChangeCommitted(null, range.max);
                         }}
                         sx={{
-                           p: '4px 6px',
-                           minWidth: 0,
-                           height: 32,
+                            p: '4px 6px',
+                            minWidth: 0,
+                            height: { xs: 44, md: 32 },
                            fontSize: '0.72rem',
                            fontWeight: 600,
                            borderRadius: '6px',
@@ -400,9 +414,9 @@ export const BookFilterSidebar = memo<BookFilterSidebarProps>(function BookFilte
                      textTransform: 'none',
                      fontWeight: 600,
                      fontSize: '0.8rem',
-                     color: '#64748B',
-                     borderColor: '#E2E8F0',
-                     minHeight: 36,
+                      color: '#64748B',
+                      borderColor: '#E2E8F0',
+                      minHeight: 44,
                      '&:hover': {
                         borderColor: '#CBD5E1',
                         bgcolor: '#F8FAFD',

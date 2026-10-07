@@ -22,6 +22,11 @@ const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage'));
 const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
 const SellerProfilePage = lazy(() => import('../pages/SellerProfilePage'));
+const AboutPage = lazy(() => import('../pages/AboutPage'));
+const HelpPage = lazy(() => import('../pages/HelpPage'));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const ContactPage = lazy(() => import('../pages/ContactPage'));
+const PricingPage = lazy(() => import('../pages/PricingPage'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 
 const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
@@ -50,6 +55,12 @@ const router = createBrowserRouter([
          { path: 'seller/:sellerId', element: withSuspense(SellerProfilePage) },
          { path: 'sell', element: withSuspense(SellPage) },
          { path: 'cart', element: withSuspense(CartPage) },
+         { path: 'about', element: withSuspense(AboutPage) },
+         { path: 'help', element: withSuspense(HelpPage) },
+         { path: 'faq', element: <Navigate to="/help" replace /> },
+         { path: 'pricing', element: withSuspense(PricingPage) },
+         { path: 'privacy', element: withSuspense(PrivacyPage) },
+         { path: 'contact', element: withSuspense(ContactPage) },
          {
             path: 'checkout',
             element: (
@@ -74,16 +85,16 @@ const router = createBrowserRouter([
                </RequireAuth>
             ),
          },
-          { path: 'login', element: withSuspense(LoginPage) },
-          { path: 'register', element: withSuspense(RegisterPage) },
-          {
+         { path: 'login', element: withSuspense(LoginPage) },
+         { path: 'register', element: withSuspense(RegisterPage) },
+         {
             path: 'onboarding',
             element: (
                <RequireAuth>
                   {withSuspense(OnboardingPage)}
                </RequireAuth>
             ),
-          },
+         },
          { path: 'forgot-password', element: withSuspense(ForgotPasswordPage) },
          { path: 'reset-password', element: withSuspense(ResetPasswordPage) },
          {
@@ -154,4 +165,3 @@ export const AppRouter = () => {
       </AppProviders>
    );
 };
-

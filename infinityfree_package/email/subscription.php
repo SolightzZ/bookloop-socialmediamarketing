@@ -6,6 +6,9 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/../config/config.php';
 require_once BASE_PATH . '/vendor/autoload.php';
 
+// LEGACY — ไม่มี caller ในโค้ดปัจจุบัน (ทุกรายใช้ sendMail.php / Services/emailService.php)
+// คงไฟล์ไว้กันฟอร์มเก่า แต่กัน fatal หากถูกโหลดร่วมกับ sendMail.php (ชื่อฟังก์ชันซ้ำ)
+if (!function_exists('sendSubscriptionEmail')) {
 function sendSubscriptionEmail(string $to, string $userName): array
 {
     $mail = new PHPMailer(true);
@@ -36,6 +39,10 @@ function sendSubscriptionEmail(string $to, string $userName): array
         $mail->Subject = 'ยินดีต้อนรับสู่ BookLoop';
         $mail->Body = $emailHtml;
         $mail->addEmbeddedImage(IMAGES_PATH . '/welcome.png', 'welcome_image');
+        $logoPath = IMAGES_PATH . '/logo-email.png';
+        if (is_file($logoPath)) {
+            $mail->addEmbeddedImage($logoPath, 'logo_image');
+        }
 
         $mail->send();
 
@@ -53,3 +60,4 @@ function sendSubscriptionEmail(string $to, string $userName): array
         return ['success' => false, 'error' => $err];
     }
 }
+} // end function_exists guard

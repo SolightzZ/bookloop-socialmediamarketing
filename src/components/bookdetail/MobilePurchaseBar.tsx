@@ -1,18 +1,20 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, IconButton } from '@mui/material';
+import { ShoppingCart } from 'lucide-react';
 import { Book } from '../../data/books';
 
 interface MobilePurchaseBarProps {
   book: Book;
   onBuyNow: () => void;
+  onAddToCart: () => void;
 }
 
 /**
  * MobilePurchaseBar — sticky bottom purchase bar (mobile only).
- * Price + dominant CTA. Safe-area aware, never covers content
- * (page renders a matching spacer, see BookDetailPage).
+ * Price + deferral (cart) + dominant CTA. Safe-area aware, never covers
+ * content (page renders a matching spacer, see BookDetailPage).
  */
-export const MobilePurchaseBar: React.FC<MobilePurchaseBarProps> = ({ book, onBuyNow }) => {
+export const MobilePurchaseBar: React.FC<MobilePurchaseBarProps> = ({ book, onBuyNow, onAddToCart }) => {
   return (
     <Box
       component="div"
@@ -49,6 +51,24 @@ export const MobilePurchaseBar: React.FC<MobilePurchaseBarProps> = ({ book, onBu
             </Typography>
           )}
         </Box>
+        <IconButton
+          onClick={onAddToCart}
+          aria-label={`เพิ่ม ${book.title} ลงตะกร้า`}
+          sx={{
+            minWidth: 48,
+            minHeight: 48,
+            width: 48,
+            height: 48,
+            flexShrink: 0,
+            borderRadius: '8px',
+            border: '1px solid #D9E2EC',
+            color: '#0F3557',
+            bgcolor: '#FFFFFF',
+            '&:hover': { borderColor: '#1976D2', color: '#1976D2', bgcolor: '#FFFFFF' },
+            '&:focus-visible': { outline: '2px solid #1976D2', outlineOffset: '2px' },
+          }}>
+          <ShoppingCart size={20} />
+        </IconButton>
         <Button
           variant="contained"
           fullWidth
