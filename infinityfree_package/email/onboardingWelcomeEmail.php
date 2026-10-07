@@ -96,7 +96,12 @@ $bodyContent = <<<HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>ยินดีต้อนรับสู่ BookLoop</title>
+    <style>
+        :root { color-scheme: light only; supported-color-schemes: light only; }
+    </style>
 </head>
 <body style="margin:0;padding:0;background:#F8FBFF;font-family:'Noto Sans Thai','Inter','Helvetica Neue',Helvetica,Arial,sans-serif;">
 

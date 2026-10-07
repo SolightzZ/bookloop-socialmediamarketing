@@ -17,7 +17,12 @@ $socialLinks = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>ยืนยันการสมัครรับข่าวสาร - BookLoop</title>
+    <style>
+        :root { color-scheme: light only; supported-color-schemes: light only; }
+    </style>
 </head>
 <body style="margin:0;padding:0;background:#F8FBFF;font-family:<?= $fontThai ?>;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;padding:32px 16px;background:#F8FBFF;">

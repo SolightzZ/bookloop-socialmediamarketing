@@ -1,11 +1,7 @@
 <?php
 $title = 'สมัครรับข่าวสาร - BookLoop';
 
-// DEV panel: แสดงเฉพาะบน localhost (กันหลุดขึ้น production)
-$__host = $_SERVER['HTTP_HOST'] ?? '';
-$__ip = $_SERVER['REMOTE_ADDR'] ?? '';
-$__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
-    || in_array($__ip, ['127.0.0.1', '::1'], true);
+// กล่องทดสอบอีเมล: แสดงทุก host (local + production) — ใช้ SMTP จริงจาก .env
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -219,7 +215,7 @@ $__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
 
         .privacy-note { margin: 16px 0 0; font-size: 11px; line-height: 1.7; color: #62748A; }
 
-        /* DEV blocks (localhost only) */
+        /* กล่องทดสอบส่งอีเมล (แสดงทุก host) */
         .dev-box {
             margin-bottom: 20px;
             border: 1px dashed #CBD5E1;
@@ -377,9 +373,8 @@ $__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
                         </button>
                     </div>
 
-                    <?php if ($__isLocal): ?>
                     <div class="dev-box">
-                        <div class="dev-title">DEV — ส่ง DEMO เข้าอีเมล</div>
+                        <div class="dev-title">ทดสอบ — ส่ง DEMO เข้าอีเมล</div>
                         <div class="dev-row">
                             <button type="button" class="dev-btn" onclick="sendDemo('confirm')">ยืนยันสมัคร</button>
                             <button type="button" class="dev-btn" onclick="sendDemo('welcome')">ต้อนรับ</button>
@@ -387,9 +382,8 @@ $__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
                             <button type="button" class="dev-btn" onclick="sendDemo('order')">ใบเสร็จ</button>
                             <button type="button" class="dev-btn" onclick="sendDemo('cart')">เตือนตะกร้า</button>
                         </div>
-                        <p class="dev-note">ใช้ชื่อ–อีเมลที่กรอกในฟอร์มนี้ ส่งจริงผ่าน SMTP (localhost เท่านั้น)</p>
+                        <p class="dev-note">ใช้ชื่อ–อีเมลที่กรอกในฟอร์มนี้ ส่งจริงผ่าน SMTP</p>
                     </div>
-                    <?php endif; ?>
 
                     <!-- Form 1: register (logic เดิม → sendMail.php) -->
                     <form class="form" id="form-register" role="tabpanel" aria-labelledby="tab-register" method="POST" action="sendMail.php">
@@ -445,11 +439,10 @@ $__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
             </footer>
         </div>
 
-        <?php if ($__isLocal): ?>
         <section class="dev-templates">
             <div class="dev-templates-head">
-                <strong>DEV — ทดสอบเทมเพลตอีเมล</strong>
-                <span class="meta-line">LOCALHOST ONLY</span>
+                <strong>ทดสอบเทมเพลตอีเมล</strong>
+                <span class="meta-line">LIVE</span>
             </div>
             <div class="dev-templates-body">
                 <a class="dev-btn" target="_blank" rel="noopener" href="preview.php?t=confirm">ยืนยันสมัคร</a>
@@ -460,7 +453,6 @@ $__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
             </div>
             <p class="dev-templates-foot">แบนเนอร์ในพรีวิวดึงจากโฟลเดอร์ images — ตรงกับไฟล์แนบตอนส่งจริง</p>
         </section>
-        <?php endif; ?>
     </main>
 
     <script>

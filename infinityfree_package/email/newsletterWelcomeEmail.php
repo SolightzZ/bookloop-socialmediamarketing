@@ -15,7 +15,12 @@ $bodyContent = <<<HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>ยินดีต้อนรับสู่ BookLoop</title>
+    <style>
+        :root { color-scheme: light only; supported-color-schemes: light only; }
+    </style>
 </head>
 <body style="margin:0;padding:0;background:#F8FBFF;font-family:'Noto Sans Thai','Inter','Helvetica Neue',Helvetica,Arial,sans-serif;">
 
@@ -60,11 +65,6 @@ $bodyContent = <<<HTML
                             <tr>
                                 <td style="padding:0;font-size:0;line-height:0;">
                                     <img src="cid:welcome_image" alt="BookLoop Welcome" width="576" style="display:block;width:100%;height:auto;margin:0;padding:0;border:0;border-radius:6px 6px 0 0;">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding:8px 14px;border-top:1px solid #C9DDF7;color:#54749E;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;">
-                                    FIG. 01 — BOOKLOOP WELCOME
                                 </td>
                             </tr>
                         </table>

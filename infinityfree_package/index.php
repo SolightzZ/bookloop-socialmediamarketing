@@ -8,9 +8,7 @@ $checks = [];
 $appOk = true;
 $envError = '';
 $requestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-if (preg_match('/^(localhost|127\.0\.0\.1)(:\d+)?$/', $requestHost)) {
-    header('Permissions-Policy: unload=self');
-}
+header('Permissions-Policy: unload=self');
 
 // 1) config + .env โหลดได้หรือไม่ (config.php จะ throw ถ้าไม่มี .env)
 try {
@@ -578,16 +576,18 @@ if ($selftestPing !== '' && preg_match('/^[a-z0-9_]{4,32}$/', $selftestPing)) {
     });
 }
 
-// Base URL ของ backend — บน InfinityFree ใช้ production URL คงที่;
-// ตอนรัน local (php -S) ใช้ host+path ปัจจุบันอัตโนมัติ จะได้เทสกับ frontend localhost ได้
+// Base URL ของ backend — แสดงผลทุก host (local + production + custom domain)
+// ใช้ host ปัจจุบันของ request เสมอ จะได้รันได้ทั้ง localhost และ production;
+// มี fallback เป็น production URL เฉพาะตอนไม่มี HTTP_HOST (เช่น รันผ่าน CLI)
 $host = $_SERVER['HTTP_HOST'] ?? '';
 $isLocal = $host !== '' && (
-    str_contains($host, 'localhost') || str_starts_with($host, '127.') || str_starts_with($host, '192.168.')
+    str_contains(strtolower($host), 'localhost') || str_starts_with($host, '127.') || str_starts_with($host, '192.168.') || str_starts_with($host, '[::1]')
 );
-if ($isLocal) {
+if ($host !== '') {
     $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
     $forwardedProto = strtolower(trim((explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0] ?? ''));
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https'
+        || (!str_contains($host, 'localhost') && !str_starts_with($host, '127.') && !str_starts_with($host, '192.168.'));
     $scheme = $isHttps ? 'https' : 'http';
     $BASE_URL = $scheme . '://' . $host . ($scriptDir === '' || $scriptDir === '/' ? '' : $scriptDir);
 } else {
@@ -2514,7 +2514,7 @@ $warnCount = ($logCounts['WARNING'] ?? 0) + ($logCounts['ERROR'] ?? 0) + ($logCo
         <div>
           <div class="masthead-title-wrap">
             <h1 class="masthead-title">BookLoop API & Telemetry</h1>
-            <span class="env-pill"><?= (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) ? 'Dev Node (Local)' : 'Production (xo.je)' ?></span>
+            <span class="env-pill"><?= $isLocal ? 'Dev Node (Local)' : 'Production' ?> · <?= htmlspecialchars($host !== '' ? $host : 'panitijahem.xo.je', ENT_QUOTES, 'UTF-8') ?></span>
           </div>
           <p class="masthead-sub">ศูนย์ควบคุมระบบหลังบ้าน & สุขภาพ API แบบเรียลไทม์</p>
         </div>
@@ -2666,7 +2666,7 @@ GENERATED_IMAGES_PATH=images/generated</div>
       <div class="spec-divider"></div>
       <div class="spec-item">
         <span class="spec-title">Node Environment:</span>
-        <span class="spec-val"><?= (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) ? 'Local Development' : 'Production (xo.je)' ?></span>
+        <span class="spec-val"><?= $isLocal ? 'Local Development' : 'Production' ?> · <?= htmlspecialchars($host !== '' ? $host : 'panitijahem.xo.je', ENT_QUOTES, 'UTF-8') ?></span>
       </div>
     </div>
 

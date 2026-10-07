@@ -1,15 +1,15 @@
 <?php
-// BookLoop — DEV ONLY: email template preview (localhost only).
-// เปิดผ่านปุ่มทดสอบใน subscribe_form.php — ห้ามใช้บน production เด็ดขาด.
+// BookLoop — email template preview + ส่ง demo email ผ่านปุ่มทดสอบใน subscribe_form.php
+// แสดง/ใช้งานได้ทุก host (local + production) — ลิงก์ใน demo ใช้ host ปัจจุบันอัตโนมัติ
 
-$__host = $_SERVER['HTTP_HOST'] ?? '';
-$__ip = $_SERVER['REMOTE_ADDR'] ?? '';
-$__isLocal = (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])/i', $__host)
-    || in_array($__ip, ['127.0.0.1', '::1'], true);
-if (!$__isLocal) {
-    http_response_code(403);
-    exit('Forbidden: preview available on localhost only.');
-}
+// Base URL ของเว็บแอป (/app) — อิง host ปัจจุบัน จะได้ถูกทั้ง local และ production
+$__reqHost = $_SERVER['HTTP_HOST'] ?? '';
+$__fwdProto = strtolower(trim((explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0] ?? ''));
+$__isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $__fwdProto === 'https'
+    || ($__reqHost !== '' && !preg_match('/^(localhost|127\.|192\.168\.|\[::1\])/i', $__reqHost));
+$__appBase = $__reqHost !== ''
+    ? (($__isHttps ? 'https' : 'http') . '://' . $__reqHost . '/app')
+    : 'https://panitijahem.xo.je/app';
 
 $allowed = [
     'confirm'    => 'newsletterConfirmationEmail.php',
@@ -25,7 +25,7 @@ if (!isset($allowed[$t]) && ($_GET['action'] ?? '') !== 'send') {
     exit('Unknown template. Use ?t=confirm|welcome|onboarding|order|cart');
 }
 
-// ── DEV ONLY: ส่ง demo email ด้วยข้อมูลที่กรอกจากฟอร์ม (localhost) ──
+// ── ส่ง demo email ด้วยข้อมูลที่กรอกจากฟอร์ม ──
 if (($_GET['action'] ?? '') === 'send') {
     header('Content-Type: application/json; charset=UTF-8');
     $st = $_POST['t'] ?? '';
@@ -45,8 +45,8 @@ if (($_GET['action'] ?? '') === 'send') {
 
     // ข้อมูลตัวอย่าง — ตรงกับพรีวิว ?t= ทุกประการ
     $demoBooks = [
-        ['id' => 'bk-001', 'title' => 'เจ้าชายน้อย (ปกแข็ง)', 'author' => 'อองตวน เดอ แซงเตกซูว์เพรี', 'price' => 189, 'category' => 'นิยาย', 'cover' => '', 'url' => 'http://localhost:8000/app'],
-        ['id' => 'bk-002', 'title' => 'Atomic Habits', 'author' => 'James Clear', 'price' => 245, 'category' => 'พัฒนาตนเอง', 'cover' => '', 'url' => 'http://localhost:8000/app'],
+        ['id' => 'bk-001', 'title' => 'เจ้าชายน้อย (ปกแข็ง)', 'author' => 'อองตวน เดอ แซงเตกซูว์เพรี', 'price' => 189, 'category' => 'นิยาย', 'cover' => '', 'url' => $__appBase],
+        ['id' => 'bk-002', 'title' => 'Atomic Habits', 'author' => 'James Clear', 'price' => 245, 'category' => 'พัฒนาตนเอง', 'cover' => '', 'url' => $__appBase],
     ];
     $demoItems = [
         ['title' => 'เจ้าชายน้อย (ปกแข็ง)', 'author' => 'อองตวน เดอ แซงเตกซูว์เพรี', 'price' => 189, 'quantity' => 1, 'image' => '', 'condition' => 'like_new'],
@@ -137,7 +137,7 @@ if (($_GET['action'] ?? '') === 'send') {
 
 // ── Sample data — จำลองเหมือน caller จริง (sendMail.php / emailService) ──
 $name = 'คุณทดสอบ';
-$bookloopUrl = 'http://localhost:8000/app';
+$bookloopUrl = $__appBase;
 $profileUrl = $bookloopUrl . '/account/profile';
 
 if ($t === 'onboarding') {
